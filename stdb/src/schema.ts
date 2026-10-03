@@ -24,6 +24,9 @@ const simConfig = table(
     homes_per_dot: t.f64(),
     operator: t.option(t.identity()),
     updated_at: t.timestamp(),
+    // Added after CP0 (H1-approved): tick needs the local clock and gas conversion.
+    start_iso: t.string(),
+    hhv_btu_per_cf: t.f64(),
   }
 );
 
