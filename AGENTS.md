@@ -38,6 +38,7 @@ You are one of four coding agents building **Thermal Reserve** at MHacks 2026 in
 8. **Tests before claims.** Don't announce `[DONE]` without the acceptance test in your brief passing.
 9. **Log your work** in `docs/AI_LOG.md` (Section 4); MLH requires disclosing AI use.
 10. **Stop and ask your human** for the escalation triggers listed in Section 4.
+11. Never change or remove a value in data/constants.json because you couldn't find its source. Mark it 'link not found', keep the value, and post a [REQUEST] to H1. Only H1 approves replacing a value, removing a constant, or switching to a different source, and any change that moves a headline number requires a [CONTRACT] post.
 
 **The first ten minutes of your session.**
 
@@ -716,7 +717,7 @@ You own the facts and the story: every data file in `data/`, every document in `
    - File each failure as a `[REQUEST]` to its owner with steps to reproduce.
 9. **D8 Validation numbers and final Devpost (06:00–10:30).** Fill in validation results from ENGINE's test output, screenshots from H3, the AI-use disclosure assembled from `docs/AI_LOG.md`, and Notability notes from H3. Write the backup-video shot list (90 seconds following the pitch's demo section) for H3 to record.
 
-**Do not:** invent a number, a quote, or a URL; quote more than a short phrase from any article (paraphrase and cite); change field names in data files after Checkpoint 0 without `[CONTRACT]`.
+**Do not:** invent a number, a quote, or a URL; quote more than a short phrase from any article (paraphrase and cite); change field names in data files after Checkpoint 0 without `[CONTRACT]`. Never change or remove a value in data/constants.json because you couldn't find its source. Mark it 'link not found', keep the value, and post a [REQUEST] to H1. Only H1 approves replacing a value, removing a constant, or switching to a different source, and any change that moves a headline number requires a [CONTRACT] post.
 
 ## 14. Checkpoints, integration tests, definition of done
 
