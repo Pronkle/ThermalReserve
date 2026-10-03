@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { anchorageSanity, buildCohorts, compareStrategies, gasDays, loadConstants, runPlan, solvePlan, whatIf } from '../src/index';
-import type { CohortSpec, ConstantsJson, Scenario } from '../src/index';
+import { anchorageSanity, buildCohorts, compareStrategies, gasDays, inWater, loadConstants, runPlan, sampleHomes, solvePlan, whatIf } from '../src/index';
+import type { Anchor, CohortSpec, ConstantsJson, Scenario, WaterMask } from '../src/index';
 import constantsJson from '../../../data/constants.json';
 import cohortSpecJson from '../../../data/cohort_spec.json';
 import designJson from '../../../data/scenarios/design.json';
 import feb2024Json from '../../../data/scenarios/feb2024.json';
+import anchorsJson from '../../../data/anchors.json';
+import waterMaskJson from '../../../data/water_mask.json';
 
 // Smoke test against DATA's live files (fixtures pin the numbers; this catches drift between them).
 const consts = loadConstants(constantsJson as unknown as ConstantsJson);
@@ -53,5 +55,20 @@ describe('real data files', () => {
     }
     // Snapback (negative relief) only lands on days that stay under capacity.
     for (const d of opt) if (d.reliefMMcf < 0) expect(d.uncoveredMMcf).toBe(0);
+  });
+
+  it('real water mask: no sample home in water, and only homes that were in water move', () => {
+    const mask = waterMaskJson as unknown as WaterMask;
+    const anchors = anchorsJson as unknown as Anchor[];
+    for (const a of anchors) expect(inWater(a.lat, a.lon, mask), a.name).toBe(false);
+    const feb = feb2024Json as unknown as Scenario;
+    const plain = sampleHomes(cohorts, anchors, 1000, cfg, feb);
+    const masked = sampleHomes(cohorts, anchors, 1000, cfg, feb, mask);
+    let moved = 0;
+    masked.forEach((h, i) => {
+      expect(inWater(h.lat, h.lon, mask)).toBe(false);
+      if (h.lat !== plain[i].lat || h.lon !== plain[i].lon) { moved++; expect(inWater(plain[i].lat, plain[i].lon, mask)).toBe(true); }
+    });
+    expect(moved).toBeGreaterThan(0);
   });
 });
