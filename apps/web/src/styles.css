@@ -50,3 +50,81 @@ figcaption { font-size: 14px; line-height: 1.6; }
   .chart-container { height: 280px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* W1 operator workspace: both visual panels fit on a 1280 × 800 laptop. */
+.theme-dark .app-header { padding: 12px 24px; }
+.theme-dark .brand-mark { width: 40px; height: 40px; }
+.theme-dark .page-content { height: calc(100dvh - 104px); padding: 16px 24px; display: flex; flex-direction: column; }
+.theme-dark .app-footer { padding: 8px 24px; }
+.theme-dark .ops-heading { flex-shrink: 0; margin-bottom: 12px; }
+.theme-dark h1 { font-size: 24px; margin: 4px 0 0; }
+.clock-status { text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; }
+.clock-status span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.ops-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); gap: 16px; flex: 1; min-height: 0; }
+.ops-visuals { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; min-height: 0; min-width: 0; }
+.ops-side { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.ops-grid .panel { padding: 12px; min-width: 0; }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.panel-heading h2, .log-panel h2 { font-size: 15px; margin: 0; }
+.panel-heading > span { color: var(--muted); font-size: 11px; }
+.map-panel, .fleet-panel { display: flex; flex-direction: column; min-height: 0; }
+.map-frame { flex: 1; min-height: 100px; position: relative; overflow: hidden; border-radius: 8px; }
+.fleet-map, .map-loading, .map-fallback { width: 100%; height: 100%; background: #0B1220; }
+.map-loading { display: grid; place-items: center; color: var(--muted); }
+.map-fallback { position: relative; }
+.map-fallback > span { position: absolute; top: 8px; left: 8px; font-size: 11px; color: var(--muted); }
+.map-fallback svg { width: 100%; height: 100%; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; margin-top: 8px; color: var(--muted); }
+.map-legend span { display: flex; align-items: center; gap: 4px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #7A869A; }
+.dot.holding { background: #5BC0EB; }
+.dot.recovering { background: #F2A541; }
+.dot.overridden { border: 2px solid #9AA8BF; background: transparent; }
+.dot.exempt { border: 1px solid #9AA8BF; background: transparent; }
+.dot.household { width: 10px; height: 10px; border: 2px solid #5BC0EB; background: transparent; }
+.map-caption { color: var(--muted); font-size: 10px; margin: 6px 0 0; }
+.fleet-panel .chart-container { flex: 1; min-height: 100px; height: auto; margin: 4px 0; }
+.strategy-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; }
+.baseline-line { color: #9AA8BF; }.naive-line { color: #F2A541; }.sustain-line { color: #5BC0EB; }
+.chart-tabs { display: flex; gap: 4px; }
+button, select { border: 1px solid var(--border); border-radius: 6px; background: var(--background); color: var(--text); padding: 6px 8px; font: inherit; font-size: 12px; }
+button { cursor: pointer; }button:hover:not(:disabled), button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.timeline { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--muted); }
+.timeline input { flex: 1; }.timeline output { width: 32px; }
+input[type=range] { accent-color: #5BC0EB; width: 100%; height: 12px; cursor: pointer; }
+.fleet-panel figcaption { font-size: 10px; margin-top: 6px; line-height: 1.4; }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.metric { position: relative; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 8px 12px; }
+.metric-name { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 10px; color: var(--muted); }
+.metric-label { font-size: 9px; color: var(--muted); }
+.metric-value { font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.04em; margin-top: 4px; }
+.metric-value > span { font-size: 10px; letter-spacing: 0; margin-left: 4px; color: var(--muted); }
+.metric-tooltip { display: none; position: absolute; top: 100%; left: 0; width: 260px; padding: 12px; z-index: 1000; background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; color: var(--text); font-size: 12px; line-height: 1.5; }
+.metric:nth-child(even) .metric-tooltip { left: auto; right: 0; }
+.metric:hover .metric-tooltip, .metric:focus .metric-tooltip { display: block; }
+.controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.controls-grid label { display: flex; flex-direction: column; min-width: 0; font-size: 10px; color: var(--muted); }
+.controls-grid select { width: 100%; margin-top: 4px; padding: 4px; font-size: 10px; }
+.controls-grid output { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; margin: 2px 0; }
+.control-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }.control-actions button { font-size: 10px; }
+.control-note { color: var(--muted); font-size: 10px; margin: 6px 0 0; }
+.log-panel { flex: 1; min-height: 60px; overflow: auto; }.log-panel p { font-size: 11px; color: var(--muted); margin: 6px 0 0; line-height: 1.4; }.log-panel .shortfall { color: #F2A541; }
+.leaflet-control a { color: #172337; }
+@media (max-width: 1000px) { .theme-dark .page-content { height: auto; }.ops-grid { grid-template-columns: 1fr; }.ops-visuals { grid-template-rows: 300px 300px; }.ops-side { display: grid; grid-template-columns: 1fr 1fr; }.log-panel { grid-column: 1 / -1; }.clock-status { text-align: left; } }
+@media (max-width: 760px) { .ops-side { display: flex; }.theme-dark .page-content { padding: 16px; }.theme-dark .app-header { padding: 16px; }.map-legend { gap: 8px; }.metric-value { font-size: 32px; } }
+@media (min-width: 1001px) {
+  .metric { padding: 6px 10px; }
+  .metric-name { line-height: 1.2; }
+  .controls-grid { gap: 6px 12px; }
+  .controls-grid label, .controls-grid output { line-height: 1.2; }
+  .controls-grid output { margin: 1px 0; }
+  .controls-grid select { margin-top: 2px; }
+  .control-actions button { padding: 4px 6px; line-height: 1.2; }
+  .controls-panel .panel-heading { margin-bottom: 6px; }
+  .controls-panel .control-note { line-height: 1.2; }
+  .log-panel h2 { line-height: 1.2; }
+}
+@media (min-width: 1001px) {
+  .theme-dark .page-content { height: calc(100dvh - 112px); }
+}
