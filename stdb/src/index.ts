@@ -1,6 +1,6 @@
 // Thermal Reserve Spacetime module (Contract C, AGENTS.md Section 8).
 // S1: simulation clock and the baseline twin. S2: plans, simulated overrides, reassignment,
-// event log, operator passcode. Households (S3) are still stubs.
+// event log, operator passcode. S3: households.
 // Reducer exports are snake_case so the reducer names match the contract verbatim.
 import { ScheduleAt } from 'spacetimedb';
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
@@ -16,6 +16,9 @@ const SUBSTEPS_PER_HOUR = Math.round(1 / SUBSTEP_HOURS);
 const TICK_INTERVAL_MICROS = 1_000_000n;
 const FLOOR_MIN_F = 60;
 const MAX_HOMES_PER_CHUNK = 250;
+const NICKNAME_MAX = 24;
+// Fallback household position when no sample homes are loaded: the map center (Section 9).
+const MAP_CENTER = { lat: 61.2, lon: -149.9 };
 const STRATEGIES = ['BASELINE', 'NAIVE_4H', 'OPTIMIZED', 'MAX_RELIEF', 'SUSTAIN_STAGGER'];
 
 // ---------- helpers ----------
@@ -137,9 +140,39 @@ function initStates(ctx: Ctx, startIso: string) {
 function clearRun(ctx: Ctx) {
   stopSchedule(ctx);
   for (const row of [...ctx.db.aggregateHour.iter()]) ctx.db.aggregateHour.hour.delete(row.hour);
+  for (const row of [...ctx.db.eventLog.iter()]) ctx.db.eventLog.id.delete(row.id);
   for (const row of [...ctx.db.sampleHome.iter()]) {
     if (row.overridden) ctx.db.sampleHome.id.update({ ...row, overridden: false });
   }
+}
+
+// Households keep their enrollment but restart from their template cohort's state.
+function resetHouseholdStates(ctx: Ctx) {
+  for (const hh of [...ctx.db.household.iter()]) {
+    const cs = ctx.db.cohortState.cohort_id.find(hh.cohort_id) ?? [...ctx.db.cohortState.iter()][0];
+    if (!cs) continue;
+    ctx.db.household.identity.update({
+      ...hh,
+      cohort_id: cs.cohort_id,
+      ta_f: cs.ta_f,
+      tm_f: cs.tm_f,
+      base_ta_f: cs.base_ta_f,
+      base_tm_f: cs.base_tm_f,
+      target_f: cs.target_f,
+      overridden: false,
+      saved_cf: 0,
+    });
+  }
+}
+
+function setOnline(ctx: Ctx, online: boolean) {
+  const hh = ctx.db.household.identity.find(ctx.sender);
+  if (hh && hh.online !== online) ctx.db.household.identity.update({ ...hh, online });
+}
+
+// Plain text only: drop markup characters and control characters, collapse whitespace.
+function cleanText(v: string, max: number): string {
+  return v.replace(/[<>&"`\\]/g, '').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
 // ---------- lifecycle ----------
@@ -170,9 +203,9 @@ export const init = spacetimedb.init(ctx => {
   });
 });
 
-export const onConnect = spacetimedb.clientConnected(_ctx => {});
+export const onConnect = spacetimedb.clientConnected(ctx => setOnline(ctx, true));
 
-export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {});
+export const onDisconnect = spacetimedb.clientDisconnected(ctx => setOnline(ctx, false));
 
 // ---------- operator reducers ----------
 
@@ -277,6 +310,7 @@ export const load_scenario = spacetimedb.reducer(
     });
 
     initStates(ctx, startIso);
+    resetHouseholdStates(ctx);
     logEvent(ctx, 0, 'system', `Scenario loaded: ${str(sc.id, 'scenario.id')}`);
   }
 );
@@ -382,22 +416,93 @@ export const reset = spacetimedb.reducer(ctx => {
   const cfg = requireOperator(ctx);
   clearRun(ctx);
   initStates(ctx, cfg.start_iso);
+  resetHouseholdStates(ctx);
   ctx.db.simConfig.id.update({ ...cfg, status: 'idle', sim_hour: 0, updated_at: ctx.timestamp });
   logEvent(ctx, 0, 'system', 'Run reset');
 });
 
-export const reset_households = spacetimedb.reducer(_ctx => {});
+export const reset_households = spacetimedb.reducer(ctx => {
+  const cfg = requireOperator(ctx);
+  const all = [...ctx.db.household.iter()];
+  for (const hh of all) ctx.db.household.identity.delete(hh.identity);
+  logEvent(ctx, cfg.sim_hour, 'system', `Households reset (${all.length} removed)`);
+});
 
-// ---------- household reducers (S3) ----------
+// ---------- household reducers ----------
 
+// One household per identity; joining again updates the profile and keeps the state.
 export const join_household = spacetimedb.reducer(
   { nickname: t.string(), heating: t.string(), thermostat: t.string(), exempt: t.bool() },
-  (_ctx, _args) => {}
+  (ctx, { nickname, heating, thermostat, exempt }) => {
+    const cfg = getConfig(ctx);
+    const name = cleanText(nickname, NICKNAME_MAX) || `Home ${ctx.random.integerInRange(1000, 9999)}`;
+    const heat = heating === 'boiler' ? 'boiler' : heating === 'furnace' ? 'furnace' : 'other';
+    const stat = cleanText(thermostat, NICKNAME_MAX) || 'other';
+
+    const existing = ctx.db.household.identity.find(ctx.sender);
+    if (existing) {
+      ctx.db.household.identity.update({ ...existing, nickname: name, heating: heat, thermostat: stat, exempt, online: true });
+      return;
+    }
+
+    // Template: matching heating type (other uses furnace), steady schedule, average envelope, light mass.
+    const templateHeating = heat === 'boiler' ? 'boiler' : 'furnace';
+    const cohorts = [...ctx.db.cohort.iter()];
+    const template =
+      cohorts.find(c => c.key === `${templateHeating}-steady-average-light`) ??
+      cohorts.find(c => c.heating === templateHeating) ??
+      cohorts[0];
+    if (!template) throw new SenderError('no scenario loaded yet; try again in a moment');
+    const cs = ctx.db.cohortState.cohort_id.find(template.id);
+    if (!cs) throw new SenderError('no scenario loaded yet; try again in a moment');
+
+    // Jittered position near a random sample home (which sit near the placement anchors).
+    const homes = [...ctx.db.sampleHome.iter()];
+    const near = homes.length > 0 ? homes[ctx.random.integerInRange(0, homes.length - 1)] : MAP_CENTER;
+    const lat = near.lat + (ctx.random() - 0.5) * 0.006;
+    const lon = near.lon + (ctx.random() - 0.5) * 0.012;
+
+    ctx.db.household.insert({
+      identity: ctx.sender,
+      nickname: name,
+      heating: heat,
+      thermostat: stat,
+      exempt,
+      floor_f: cfg.floor_f,
+      cohort_id: template.id,
+      lat,
+      lon,
+      ta_f: cs.ta_f,
+      tm_f: cs.tm_f,
+      base_ta_f: cs.base_ta_f,
+      base_tm_f: cs.base_tm_f,
+      target_f: cs.target_f,
+      overridden: false,
+      saved_cf: 0,
+      joined_at: ctx.timestamp,
+      online: true,
+    });
+    logEvent(ctx, cfg.sim_hour, 'join', `${name} joined${exempt ? ' (exempt: needs steady heat)' : ''}`);
+  }
 );
 
-export const override = spacetimedb.reducer(_ctx => {});
+function setOverride(ctx: Ctx, overridden: boolean) {
+  const cfg = getConfig(ctx);
+  const hh = ctx.db.household.identity.find(ctx.sender);
+  if (!hh) throw new SenderError('join first');
+  if (hh.overridden === overridden) return;
+  ctx.db.household.identity.update({ ...hh, overridden });
+  logEvent(ctx, cfg.sim_hour, 'override', overridden ? `${hh.nickname} overrode: normal heat restored` : `${hh.nickname} rejoined the event`);
+  // The tick spreads an overridden household's setback over participating homes from its next run.
+  const cs = ctx.db.cohortState.cohort_id.find(hh.cohort_id);
+  if (overridden && !hh.exempt && cs && cs.mode === 'holding') {
+    logEvent(ctx, cfg.sim_hour, 'reassign', `${hh.nickname}'s setback reassigned across participating homes`);
+  }
+}
 
-export const cancel_override = spacetimedb.reducer(_ctx => {});
+export const override = spacetimedb.reducer(ctx => setOverride(ctx, true));
+
+export const cancel_override = spacetimedb.reducer(ctx => setOverride(ctx, false));
 
 // ---------- tick ----------
 
@@ -413,7 +518,8 @@ export const tick = spacetimedb.reducer(
 
     const cohorts = [...ctx.db.cohort.iter()].map(row => toParams(row));
     const states = new Map([...ctx.db.cohortState.iter()].map(s => [s.cohort_id, { ...s }]));
-    const households = ctx.db.household.count();
+    const byId = new Map(cohorts.map(c => [c.id, c]));
+    const households = [...ctx.db.household.iter()].map(h => ({ ...h }));
     const dt = SUBSTEP_HOURS;
     const hhv = cfg.hhv_btu_per_cf;
     const homesIn = (c: CohortParams) => cfg.enrolled_homes * c.share * (1 - cfg.exempt_share);
@@ -465,6 +571,10 @@ export const tick = spacetimedb.reducer(
         lostDepthHomes += homes * s.overridden_share * ((normals.get(c.id) ?? 0) - (targets.get(c.id) ?? 0));
         remainingHomes += homes * (1 - s.overridden_share);
       }
+      // Each overridden real household counts as one home.
+      for (const hh of households) {
+        if (hh.overridden && !hh.exempt) lostDepthHomes += (normals.get(hh.cohort_id) ?? 0) - (targets.get(hh.cohort_id) ?? 0);
+      }
       const boostF = remainingHomes > 0 ? lostDepthHomes / remainingHomes : 0;
 
       for (const c of cohorts) {
@@ -494,6 +604,30 @@ export const tick = spacetimedb.reducer(
         s.gas_cf_this_hour += gasCf(c, q, dt, hhv);
         s.base_gas_cf_this_hour += gasCf(c, qBase, dt, hhv);
         s.mode = target < normal - 1e-9 ? 'holding' : next.TaF < normal - 0.25 ? 'recovering' : 'normal';
+        targets.set(c.id, target);
+      }
+
+      // Households follow their template cohort's target; overridden or exempt ones stay normal.
+      for (const hh of households) {
+        const c = byId.get(hh.cohort_id);
+        if (!c) continue;
+        const normal = normals.get(c.id) ?? 0;
+        const cohortTarget = targets.get(c.id) ?? normal;
+        const target = hh.overridden || hh.exempt ? normal : Math.min(normal, Math.max(hh.floor_f, cohortTarget));
+
+        const actual: ThermalState = { TaF: hh.ta_f, TmF: hh.tm_f };
+        const q = heatToHold(c, actual, weather.outdoor_f, target, dt);
+        const next = stepState(c, actual, weather.outdoor_f, q, dt);
+        const base: ThermalState = { TaF: hh.base_ta_f, TmF: hh.base_tm_f };
+        const qBase = heatToHold(c, base, weather.outdoor_f, normal, dt);
+        const nextBase = stepState(c, base, weather.outdoor_f, qBase, dt);
+
+        hh.ta_f = next.TaF;
+        hh.tm_f = next.TmF;
+        hh.base_ta_f = nextBase.TaF;
+        hh.base_tm_f = nextBase.TmF;
+        hh.target_f = target;
+        hh.saved_cf += gasCf(c, qBase, dt, hhv) - gasCf(c, q, dt, hhv);
       }
 
       // Hour boundary: apply simulated overrides, write the aggregate, reset the accumulators.
@@ -545,8 +679,8 @@ export const tick = spacetimedb.reducer(
           relief_mmcf: baseline - fleet,
           min_ta_f: Number.isFinite(minTa) ? minTa : 0,
           share_at_floor: shareAtFloor,
-          overrides: Math.round(overriddenHomes),
-          households: Number(households),
+          overrides: Math.round(overriddenHomes) + households.filter(h => h.overridden).length,
+          households: households.length,
           strategy: cfg.strategy,
         };
         if (ctx.db.aggregateHour.hour.find(hourIdx)) ctx.db.aggregateHour.hour.update(agg);
@@ -573,6 +707,20 @@ export const tick = spacetimedb.reducer(
     }
 
     for (const s of states.values()) ctx.db.cohortState.cohort_id.update(s);
+    // Re-read each household so an override made during this tick is not overwritten.
+    for (const hh of households) {
+      const current = ctx.db.household.identity.find(hh.identity);
+      if (!current) continue;
+      ctx.db.household.identity.update({
+        ...current,
+        ta_f: hh.ta_f,
+        tm_f: hh.tm_f,
+        base_ta_f: hh.base_ta_f,
+        base_tm_f: hh.base_tm_f,
+        target_f: hh.target_f,
+        saved_cf: hh.saved_cf,
+      });
+    }
 
     const finished = k >= kEnd;
     ctx.db.simConfig.id.update({
