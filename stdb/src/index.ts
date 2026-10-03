@@ -581,6 +581,9 @@ export const tick = spacetimedb.reducer(
     const kEnd = cfg.hours * SUBSTEPS_PER_HOUR;
     const nSub = Math.max(1, Math.round(cfg.speed_hours_per_sec * SUBSTEPS_PER_HOUR));
 
+    // Homes override a setback; with no setback dispatched there is nothing to override (as in runPlan).
+    const planHasSetback = cfg.plan_id !== '' && [...ctx.db.planHour.plan_id.filter(cfg.plan_id)].length > 0;
+
     let plannedHour = -1;
     let planned = new Map<number, number>(); // cohort id -> planned target for plannedHour
 
@@ -692,7 +695,7 @@ export const tick = spacetimedb.reducer(
           if (home.exempt) continue;
           total.set(home.cohort_id, (total.get(home.cohort_id) ?? 0) + 1);
           let overridden = home.overridden;
-          if (!overridden && home.override_hour >= 0 && home.override_hour <= hourIdx + 1) {
+          if (planHasSetback && !overridden && home.override_hour >= 0 && home.override_hour <= hourIdx + 1) {
             overridden = true;
             newOverrides++;
             ctx.db.sampleHome.id.update({ ...home, overridden: true });
@@ -716,7 +719,8 @@ export const tick = spacetimedb.reducer(
           baseCf += homes * s.base_gas_cf_this_hour;
           overriddenHomes += homes * s.overridden_share;
           if (c.share > 0) minTa = Math.min(minTa, s.ta_f);
-          if (s.ta_f <= cfg.floor_f + 0.1) shareAtFloor += c.share * (1 - s.overridden_share);
+          // Only homes the program is holding down count; a normal night setpoint at the floor does not.
+          if (s.mode === 'holding' && s.ta_f <= cfg.floor_f + 0.1) shareAtFloor += c.share * (1 - s.overridden_share);
           s.gas_cf_this_hour = 0;
           s.base_gas_cf_this_hour = 0;
         }
