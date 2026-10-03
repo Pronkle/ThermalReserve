@@ -5,6 +5,7 @@ import constantsJson from '../../../data/constants.json';
 import cohortSpecJson from '../../../data/cohort_spec.json';
 import designJson from '../../../data/scenarios/design.json';
 import feb2024Json from '../../../data/scenarios/feb2024.json';
+import lastwinterJson from '../../../data/scenarios/lastwinter.json';
 import anchorsJson from '../../../data/anchors.json';
 import waterMaskJson from '../../../data/water_mask.json';
 
@@ -83,4 +84,25 @@ describe('real data files', () => {
       if (planned === 0) expect(actual).toBeLessThan(1e-6);
     }
   });
+
+  // The /ops sliders allow 1,000–50,000 homes, floor 60–66°F, depth 2–10°F, capacity ±30 MMcf/day. A full sweep of
+  // 486 combinations (2026-10-03) never fell back and peaked at 225 ms; these corners guard against regressions.
+  it('solver never falls back at the slider extremes, and never plans below the floor', async () => {
+    const corners = [
+      { enrolledHomes: 1000, floorF: 60, maxDepthF: 10, dc: -30 },
+      { enrolledHomes: 50000, floorF: 66, maxDepthF: 2, dc: 30 },
+      { enrolledHomes: 50000, floorF: 60, maxDepthF: 10, dc: -30 },
+    ];
+    for (const raw of [designJson, feb2024Json, lastwinterJson]) {
+      const sc = raw as unknown as Scenario;
+      for (const k of corners) for (const mode of ['OPTIMIZED', 'MAX_RELIEF'] as const) {
+        const c = { ...cfg, enrolledHomes: k.enrolledHomes, floorF: k.floorF, maxDepthF: k.maxDepthF, capacityMMcfd: sc.capacityMMcfd + k.dc };
+        const p = await solvePlan(sc, cohorts, c, mode, consts);
+        const label = `${sc.id} ${JSON.stringify(k)} ${mode}`;
+        expect(p.note, label).toBeUndefined();
+        expect(p.solveMs!, label).toBeLessThan(5000);
+        for (const v of p.targetsF.flat()) if (Number.isFinite(v)) expect(v, label).toBeGreaterThanOrEqual(k.floorF);
+      }
+    }
+  }, 60000);
 });
