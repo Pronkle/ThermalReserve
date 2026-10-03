@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "echo \"apps/web: placeholder until W0 scaffold\"",
-    "build": "echo \"apps/web: placeholder until W0 scaffold\""
+    "build": "node ../../scripts/placeholder-web.mjs"
   },
   "dependencies": {
     "@thermal-reserve/model": "*",
