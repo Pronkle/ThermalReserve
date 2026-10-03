@@ -40,13 +40,16 @@ Every link below was opened on 2026-10-03 and returned the page (HTTP 200). The 
 | ADN (Suzanna Caldwell), "Results are in for latest Southcentral Alaska Energy Watch drill", Nov 6, 2012. <https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/> | `avg_home_mcf_year`, `energy_watch_2012_pct` | "The average home consumes 149 thousand cubic feet (mcf) of natural gas a year"; the 2-hour drill on Oct 31 "reduced the area's energy load by 1.5 percent" |
 | Homer News, "Conservation drill cuts load by about 1.5 percent", Nov 15, 2012. <https://www.homernews.com/2012/11/15/conservation-drill-cuts-load-by-about-1-5-percent/> | `energy_watch_2012_pct` (corroboration) | "energy load reduction of 1.5 percent"; poll: "61.2 percent were aware of a possible natural gas delivery problem and more than 42 percent were aware of the … conservation test" |
 
-Range of average residential use (H1 decision: keep 149 as the model input):
+Range of average residential use (H1 decision: keep 149 as the model input). A ~140 Mcf/year Enstar estimate (KBBI 2019) was cited during review but no page containing it was found, so it is not listed.
 
 | Figure | Source | Note |
 | --- | --- | --- |
 | 149 Mcf/year | ADN, Nov 6, 2012 (above) | Used (`avg_home_mcf_year`) |
-| ~140 Mcf/year | Enstar estimate, KBBI 2019 (per H1) | Link not found: KBBI's Apr 17, 2019 rate-case article does not contain it |
 | 175.2 Mcf/year | RCA 2020 residential rate survey, 146 CCF/month (above) | Rate-class (G1) average used for sample bills; may include small commercial |
+
+Notes from re-checking both pages on 2026-10-03 (raw HTML, HTTP 200):
+- The 1.5% is a reduction in the area's **energy load** across utilities during a 2-hour drill, not a gas-only figure. Say "energy load", not "gas use".
+- ADN dates the drill to Oct 31, 2012; Homer News says Oct 30. Neither date is shown in the app.
 
 ## Dropped
 

@@ -8,7 +8,7 @@ Run by DATA with H3 at Checkpoint 3 (Sun 02:00–03:00), then the end-to-end tes
 
 | # | Item | Notes |
 | --- | --- | --- |
-| 0.1 | Devices | At least one iOS phone (Safari) and one Android phone (Chrome); one laptop with Chrome and Safari (or Chrome only if no Mac, noted) |
+| 0.1 | Devices | Team has: iPhone (Safari), Android phone (Chrome), Mac (Safari and Chrome for `/ops`), Windows and Linux laptops (Chrome; second `/ops` window for F5, and Edge/Firefox spot-check if time allows) |
 | 0.2 | Fresh state | Laptop: fresh browser profile. Phones: clear site data for the Vercel URL |
 | 0.3 | Operator passcode | From H1 in person; never typed into chat or the repo |
 | 0.4 | Database | `thermal-reserve` (production) unless H1 says otherwise |
