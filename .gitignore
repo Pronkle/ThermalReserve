@@ -1,0 +1,8 @@
+.mcp.json
+.codex/
+.claude/settings.local.json
+.vercel/
+*.token
+node_modules/
+dist/
+.env*
