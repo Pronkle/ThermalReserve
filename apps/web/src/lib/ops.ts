@@ -1,6 +1,7 @@
-import { buildCohorts, compareStrategies, homesPerDot, loadConstants, sampleHomes, type CohortSpec, type ConstantsJson, type FleetConfig, type RunResult, type Scenario, type SampleHome } from '@thermal-reserve/model';
+import { buildCohorts, compareStrategies, homesPerDot, loadConstants, sampleHomes, type WaterMask, type CohortSpec, type ConstantsJson, type FleetConfig, type RunResult, type Scenario, type SampleHome } from '@thermal-reserve/model';
 import raw from '../../../../data/constants.json';
 import spec from '../../../../data/cohort_spec.json';
+import mask from '../../../../data/water_mask.json';
 import anchors from '../../../../data/anchors.json';
 
 export const constants = loadConstants(raw as ConstantsJson);
@@ -8,13 +9,14 @@ export const cohorts = buildCohorts(spec as CohortSpec, constants.uaMeanBtuHPerF
 export const scenarios = Object.values(import.meta.glob<Scenario>('../../../../data/scenarios/*.json', { eager: true, import: 'default' }));
 export type PreviewStrategy = 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER';
 export const DOT_COUNT = 1000;
+export const waterMask = mask as WaterMask;
 export { anchors };
 export function defaultConfig(sc: Scenario): FleetConfig {
   return { enrolledHomes: 25000, exemptShare: constants.exemptShare, floorF: constants.floorDefaultF, maxDepthF: constants.maxDepthDefaultF, overrideRate: constants.overrideRate, capacityMMcfd: sc.capacityMMcfd, seed: 42 };
 }
 export function buildOpsData(sc: Scenario, cfg: FleetConfig) {
   const runs = compareStrategies(sc, cohorts, cfg, constants);
-  const homes = sampleHomes(cohorts, anchors, DOT_COUNT, cfg, sc);
+  const homes = sampleHomes(cohorts, anchors, DOT_COUNT, cfg, sc, waterMask);
   const chart = runs.BASELINE.hours.map((row, h) => ({
     hour: h, baseline: row.fleetGasMMcfh,
     naive: runs.NAIVE_4H.hours[h].fleetGasMMcfh,

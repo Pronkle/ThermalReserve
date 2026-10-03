@@ -9,6 +9,7 @@ interface Snapshot {
   households: Row<'household'>[];
   homes: Row<'sampleHome'>[];
   events: Row<'eventLog'>[];
+  plans: Row<'planHour'>[];
 }
 interface LiveState extends Snapshot {
   connection?: DbConnection;
@@ -17,7 +18,7 @@ interface LiveState extends Snapshot {
   database: string;
   error?: string;
 }
-const empty: LiveState = { cohorts: [], aggregates: [], households: [], homes: [], events: [], status: 'unconfigured', database: '' };
+const empty: LiveState = { cohorts: [], aggregates: [], households: [], homes: [], events: [], plans: [], status: 'unconfigured', database: '' };
 const Context = createContext<LiveState>(empty);
 
 export function databaseName(search: string, configured: string, storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>): string {
@@ -34,6 +35,7 @@ export function databaseName(search: string, configured: string, storage?: Pick<
 function snapshot(connection: DbConnection): Snapshot {
   return {
     config: [...connection.db.simConfig.iter()][0],
+    plans: [...connection.db.planHour.iter()],
     cohorts: [...connection.db.cohortState.iter()],
     aggregates: [...connection.db.aggregateHour.iter()].sort((a, b) => a.hour - b.hour),
     households: [...connection.db.household.iter()],
@@ -81,7 +83,7 @@ export function StdbProvider({ children }: { children: ReactNode }) {
           if (disposed || attempt !== generation) { conn.disconnect(); return; }
           try { localStorage.setItem(tokenKey, issuedToken); } catch { /* The connection still works without persistence. */ }
           setState(previous => ({ ...previous, identity: identity.toHexString() }));
-          for (const table of [conn.db.simConfig, conn.db.cohortState, conn.db.aggregateHour, conn.db.household, conn.db.sampleHome, conn.db.eventLog]) {
+          for (const table of [conn.db.simConfig, conn.db.cohortState, conn.db.aggregateHour, conn.db.household, conn.db.sampleHome, conn.db.eventLog, conn.db.planHour]) {
             table.onInsert(refresh); table.onUpdate(refresh); table.onDelete(refresh);
           }
           conn.subscriptionBuilder().onApplied(() => { ready = true; delay = 500; refresh(); })
