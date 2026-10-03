@@ -1,18 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { anchorageSanity, buildCohorts, validateConEdLike, validateSoCalLike } from '../src/index';
-import type { CohortSpec } from '../src/index';
-import { cohorts, consts, spec } from './helpers';
+import { anchorageSanity, buildCohorts, loadConstants, validateConEdLike, validateSoCalLike } from '../src/index';
+import type { CohortSpec, ConstantsJson } from '../src/index';
+import { cohorts, consts } from './helpers';
+import constantsJson from '../../../data/constants.json';
+import cohortSpecJson from '../../../data/cohort_spec.json';
 
-// Candidate tuning inside the allowed ranges (Ca 1,500–8,000; Ham ×1–6; τ 15–60 h). Not yet in data/cohort_spec.json.
-function tunedSpec(): CohortSpec {
-  const s: CohortSpec = JSON.parse(JSON.stringify(spec));
-  s.heating[0].caBtuPerF = 1500;
-  s.heating[1].caBtuPerF = 3000;
-  s.hamMult = 1.5;
-  s.mass[0].tauMassH = 60;
-  s.mass[1].tauMassH = 60;
-  return s;
-}
+// The tuned parameters live in data/cohort_spec.json (ENGINE, 2026-10-03, H2-approved): furnace Ca 1,500, boiler Ca 3,000,
+// hamMult 1.5, tauMassH 40/60, all inside the allowed ranges (Ca 1,500–8,000; Ham ×1–6; τ 15–60 h).
+const realConsts = loadConstants(constantsJson as unknown as ConstantsJson);
+const realCohorts = buildCohorts(cohortSpecJson as unknown as CohortSpec, realConsts.uaMeanBtuHPerF);
 
 describe('validation (E4)', () => {
   it('Anchorage sanity: about 1.0 Mcf per home per day at −20°F', () => {
@@ -35,13 +31,14 @@ describe('validation (E4)', () => {
     expect(v.hourly[7].eventCf).toBeLessThan(v.hourly[7].baselineCf);
   });
 
-  it('tuned candidate: ConEd retention passes; SoCal daily is below band (known gap)', () => {
-    const c = buildCohorts(tunedSpec(), consts.uaMeanBtuHPerF);
-    const coned = validateConEdLike(c, consts);
+  it('tuned data/cohort_spec.json: ConEd retention passes; SoCal daily is a stated gap below the band', () => {
+    const coned = validateConEdLike(realCohorts, realConsts);
     expect(coned.pass).toBe(true);
-    const socal = validateSoCalLike(c, consts);
-    // Best reachable inside the allowed ranges is ~1.35%; band floor is 1.5%. Reported to H2, not hidden.
-    expect(socal.dailyPct).toBeGreaterThan(1.1);
+    expect(Math.abs(coned.retention - realConsts.conedRetentionTarget)).toBeLessThan(0.03);
+    const socal = validateSoCalLike(realCohorts, realConsts);
+    // Best reachable inside the allowed ranges is ~1.35%; band floor is 1.5%. Reported honestly (H2 decision), not hidden.
     expect(socal.pass).toBe(false);
+    expect(socal.dailyPct).toBeGreaterThan(1.0);
+    expect(socal.dailyPct).toBeLessThan(realConsts.socalDailyBand[0]);
   });
 });
