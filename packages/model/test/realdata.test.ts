@@ -71,4 +71,16 @@ describe('real data files', () => {
     });
     expect(moved).toBeGreaterThan(0);
   });
+
+  it('with overrides on, the plan\'s shortfall matches the run (a "covered" plan stays covered)', async () => {
+    const feb = feb2024Json as unknown as Scenario;
+    for (const enrolledHomes of [25000, 50000]) {
+      const c = { ...cfg, enrolledHomes, capacityMMcfd: feb.capacityMMcfd }; // overrideRate from constants (0.06)
+      const p = await solvePlan(feb, cohorts, c, 'OPTIMIZED', consts);
+      const planned = p.shortfallMMcfd!.reduce((a, b) => a + b, 0);
+      const actual = gasDays(runPlan(feb, cohorts, c, p, consts)).reduce((a, d) => a + d.uncoveredMMcf, 0);
+      expect(Math.abs(planned - actual), `${enrolledHomes} homes`).toBeLessThan(0.05);
+      if (planned === 0) expect(actual).toBeLessThan(1e-6);
+    }
+  });
 });

@@ -80,8 +80,8 @@ limit (msg 32), so headline the tight day, not a multi-day average (msg 62).
 
 | KPI | Source | Note |
 | --- | --- | --- |
-| Relief on tightest day (MMcf/day) | `gasDays(run)`: `reliefMMcf` of the day with the largest `baselineSystemMMcf − capacityMMcf` | feb2024 at 25k homes, OPTIMIZED: 2.15 |
-| Uncovered shortfall (MMcf/day) | max over days of `uncoveredMMcf`; banner when > 0 | OPT 0.85 · SUSTAIN 1.64 · NAIVE 2.80 · none 3.00 |
+| Relief on tightest day (MMcf/day) | `gasDays(run)`: `reliefMMcf` of the day with the largest `baselineSystemMMcf − capacityMMcf` | feb2024 Demo preset (25k homes, 6% overrides), OPTIMIZED: 2.06 (2.15 with overrides off) |
+| Uncovered shortfall (MMcf/day) | max over days of `uncoveredMMcf`; banner when > 0 | Demo preset: OPT 0.94 · SUSTAIN 1.69 · NAIVE 2.80 · none 3.00 (overrides off: OPT 0.85, SUSTAIN 1.64) |
 | Peak-hour relief (MMcf/hour) | `totals.peakHourReliefMMcfh` | |
 | Minimum indoor (°F) | `hours[h].minTaF` | includes normal night setpoints (64°F) |
 | Homes at floor (%) | `hours[h].shareAtFloor` × 100 | only homes the program holds at the floor |
