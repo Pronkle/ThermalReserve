@@ -1,0 +1,51 @@
+# Thermal Reserve: one-pager
+
+> Draft v0 by DATA. Print layout: `docs/onepager.html` → `docs/onepager.pdf` (Letter, one page). **UNFINISHED** items are marked; H3 owns the final.
+
+## Thermal Reserve
+
+**Multi-day, snapback-aware thermostat setbacks that keep Southcentral Alaska's gas demand under the line on the coldest days.**
+
+Try it: **thermal-reserve.vercel.app/home** · [QR CODE: UNFINISHED, WEB supplies the final image]
+
+### The problem
+
+- Enstar's president told lawmakers the utility could enter this winter about **3 Bcf short**, the equivalent of **18 days** of winter supply (sourced).
+- Cook Inlet storage held **~6.54 Bcf on Aug 7, 2026** against 13 Bcf of working capacity (sourced).
+- On a shortage, Enstar would ask **large commercial and industrial users to cut first**, before homes (sourced). LNG imports may not be ready until **late 2029** (sourced).
+- Short thermostat events elsewhere mostly move gas use later: ConEd measured **52%** of savings lost to snapback (sourced).
+
+### What we built
+
+A simulation, not real thermostat control. An operator console plans and dispatches setbacks across a simulated fleet of Anchorage homes (24 home types, 1,000 map dots), solving a linear program for the least discomfort that keeps each gas day under capacity. Households join from a phone, see their indoor temperature and gas saved, and can override in one tap. A comfort floor of 62°F (never below 60°F) is enforced on the server, and households needing steady heat are exempt.
+
+### Honest impact
+
+Sustained setback at −20°F, automated homes only (derived: UA 415.2 BTU/(h·°F) from Enstar's 149 Mcf average home and 30 years of Anchorage degree-days; furnace efficiency 0.85 and 1,030 BTU/cf assumed).
+
+| Enrolled homes | 5°F setback | Share of the 20 MMcf/day needle-peak supply | Value at $17.50/Mcf |
+| --- | --- | --- | --- |
+| 10,000 | 0.57 MMcf/day | 2.8% | ~$10,000/day |
+| 25,000 | 1.42 MMcf/day | 7.1% | ~$24,900/day |
+| 50,000 | 2.85 MMcf/day | 14.2% | ~$49,800/day |
+
+**What it doesn't do:** fix the seasonal shortfall. Over 20 cold days, 25,000 homes save ~28 MMcf, under 1% of 3 Bcf. It is a deliverability tool for the worst days.
+
+### Validation: UNFINISHED
+
+Same physics, run under published pilot conditions. Final numbers come from ENGINE's test output; only claim a pass the test produced.
+
+| Test | Published | Ours | Band | Result |
+| --- | --- | --- | --- | --- |
+| ConEd-like snapback | retention 0.48 | [UNFINISHED] | 0.38–0.58 | [UNFINISHED] |
+| SoCalGas-like daily savings | 2.2% | [UNFINISHED] | 1.5–3.0% | [UNFINISHED] |
+
+### How it works
+
+Browser (React on Vercel): charts, map, what-if, and the HiGHS linear program in a Web Worker → dispatches a plan → SpacetimeDB on Maincloud: a scheduled reducer runs the two-node house physics every second for all home types and real phones → live updates to the console and every phone. One physics file runs in both places.
+
+### Team
+
+[H1 NAME] · [H2 NAME] · [H3 NAME] (UNFINISHED) · MHacks 2026
+
+Every number is labeled sourced, derived, or assumed; sources with links: `docs/sources.md`.
