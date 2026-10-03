@@ -56,3 +56,21 @@ describe('strategies and runner (E3)', () => {
     expect(Date.now() - t0).toBeLessThan(500);
   });
 });
+
+describe('runPlan display fields', () => {
+  it('BASELINE reports no overrides and no homes at floor, even with the floor at the night setpoint', () => {
+    const sc = designScenario();
+    const r = runPlan(sc, cohorts, { ...cfg, floorF: 64 }, planBaseline(sc, cohorts), consts);
+    for (const h of r.hours) {
+      expect(h.overrides).toBe(0);
+      expect(h.shareAtFloor).toBe(0);
+    }
+  });
+
+  it('SUSTAIN_STAGGER counts overrides and homes held at the floor during the event', () => {
+    const sc = designScenario();
+    const r = runPlan(sc, cohorts, cfg, planSustainStagger(sc, cohorts, cfg), consts);
+    expect(r.hours[60].overrides).toBeGreaterThan(0);
+    expect(Math.max(...r.hours.map((h) => h.shareAtFloor))).toBeGreaterThan(0);
+  });
+});

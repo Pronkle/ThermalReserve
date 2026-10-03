@@ -82,6 +82,7 @@ export function runPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig,
 
   const hours: HourResult[] = [];
   let degreeHours = 0;
+  const planHasSetback = plan.targetsF.some((row) => row.some(Number.isFinite));
 
   for (let h = 0; h < sc.hours; h++) {
     const outdoorF = sc.outdoorF[h];
@@ -112,7 +113,8 @@ export function runPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig,
       }
     }
 
-    const ovr = overriddenShareAt(sc, cfg, h + 1);
+    // Homes override a setback; with no setback dispatched (BASELINE) there is nothing to override.
+    const ovr = planHasSetback ? overriddenShareAt(sc, cfg, h + 1) : 0;
     let fleetCf = 0;
     let baseCf = 0;
     let minTaF = Infinity;
@@ -124,7 +126,8 @@ export function runPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig,
       baseCf += homes * gasBase[c.id];
       const s = act[c.id];
       if (c.share > 0) minTaF = Math.min(minTaF, s.TaF);
-      if (s.TaF <= cfg.floorF + 0.1) atFloor += c.share;
+      // Only homes the program is holding down count; a normal night setpoint at the floor is not curtailment.
+      if (holding[c.id] && s.TaF <= cfg.floorF + 0.1) atFloor += c.share;
       const normal = normalSetpointF(c, endClock);
       // Discomfort is measured against the baseline twin, so the program's own effect is counted, not night setbacks.
       degreeHours += c.share * (1 - ovr) * Math.max(0, base[c.id].TaF - s.TaF);
