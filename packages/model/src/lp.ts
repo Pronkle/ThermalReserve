@@ -9,7 +9,8 @@ import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, Thermal
 //   q_c_t            delivered heat during hour t, kBtu/h (constant over the hour)
 //   s_d              uncovered shortfall on gas day d, Mcf (slack)
 // Dynamics: exact hourly discretization. Bounds: max(floor, normal − maxDepth) ≤ ta ≤ normal, 0 ≤ q ≤ Qmax.
-// Capacity per gas day d (hours [24d, 24d+24)): Σ_t [Σ_c homes_c q_c_t / (eta_c HHV) + non-enrolled_t] − s_d ≤ capacity (Mcf).
+// Capacity per gas day d (hours [24d, 24d+24)): Σ_t [Σ_c homes_c ((1 − o_t) q_c_t / (eta_c HHV) + o_t base_c_t) + non-enrolled_t]
+//   − s_d ≤ capacity (Mcf), where o_t is the expected overridden share (overridden homes burn baseline gas).
 //   Hours of the day before `from` count at their no-program system demand; a partial last day gets a pro-rated limit.
 // Terminal: ta_c_H ≥ normal − 0.5.
 // Objective (OPTIMIZED): Σ homes (normal − ta) + 1e6 Σ s + 1e-6 Σ gas;  MAX_RELIEF swaps the first and last weights.
@@ -85,14 +86,27 @@ function defaultInitial(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig,
   return base.hours[from - 1].cohorts.map((s) => ({ TaF: s.TaF, TmF: s.TmF }));
 }
 
-function nonEnrolledMcfh(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, consts: ModelConstants): number[] {
+interface DemandInputs {
+  nonEnrolled: number[];     // [t] Mcf/h of system demand outside the enrolled, non-exempt fleet
+  baseCfPerHome: number[][]; // [t][c] baseline gas per home in hour t (what an overridden home burns)
+  overrideShare: number[];   // [t] expected share of homes that have overridden by the end of hour t
+}
+
+// Overrides follow the same expected ramp runPlan uses (overrideRate spread uniformly over the event), so the plan's
+// capacity accounting matches the run: overridden homes burn baseline gas, the rest follow the plan.
+function demandInputs(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, consts: ModelConstants): DemandInputs {
   const base = runPlan(sc, cohorts, { ...cfg, overrideRate: 0 }, planBaseline(sc, cohorts), consts);
-  return sc.systemMMcfh.map((sys, t) => (sys - base.hours[t].baselineFleetGasMMcfh) * 1000);
+  const len = sc.eventEndHour - sc.eventStartHour;
+  return {
+    nonEnrolled: sc.systemMMcfh.map((sys, t) => (sys - base.hours[t].baselineFleetGasMMcfh) * 1000),
+    baseCfPerHome: base.hours.map((h) => h.cohorts.map((c) => c.gasCfPerHome)),
+    overrideShare: sc.systemMMcfh.map((_, t) => (len <= 0 || t + 1 <= sc.eventStartHour ? 0 : cfg.overrideRate * Math.min(1, (t + 1 - sc.eventStartHour) / len))),
+  };
 }
 
 function buildLpText(
   sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, mode: 'OPTIMIZED' | 'MAX_RELIEF',
-  initial: ThermalState[], consts: ModelConstants, from: number, nonEnrolled: number[],
+  initial: ThermalState[], consts: ModelConstants, from: number, demand: DemandInputs,
 ): { text: string; layout: LpLayout } {
   const L = layoutOf(sc, cohorts, cfg, from, initial);
   const { H } = L;
@@ -141,8 +155,12 @@ function buildLpText(
     let row = ` cap_${d}:`;
     for (let t = start; t < end; t++) {
       if (t < from) { rhs -= sc.systemMMcfh[t] * 1000; continue; }
-      rhs -= nonEnrolled[t];
-      for (const c of cohorts) row += term(L.homes[c.id] / (c.eta * hhv), `q_${c.id}_${t}`);
+      rhs -= demand.nonEnrolled[t];
+      const ovr = demand.overrideShare[t];
+      for (const c of cohorts) {
+        rhs -= (L.homes[c.id] * ovr * demand.baseCfPerHome[t][c.id]) / 1000;
+        row += term((L.homes[c.id] * (1 - ovr)) / (c.eta * hhv), `q_${c.id}_${t}`);
+      }
     }
     row += ` - s_${d} <= ${fmtNum(rhs)}`;
     rows.push(row);
@@ -168,7 +186,7 @@ function buildLpText(
 }
 
 export function buildLp(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, mode: 'OPTIMIZED' | 'MAX_RELIEF', initial: ThermalState[], consts: ModelConstants): string {
-  return buildLpText(sc, cohorts, cfg, mode, initial, consts, 0, nonEnrolledMcfh(sc, cohorts, cfg, consts)).text;
+  return buildLpText(sc, cohorts, cfg, mode, initial, consts, 0, demandInputs(sc, cohorts, cfg, consts)).text;
 }
 
 // ---- HiGHS loading ----
@@ -221,7 +239,7 @@ export async function solvePlan(
   const from = Math.max(0, Math.min(sc.hours - 1, Math.floor(opts?.fromHour ?? 0)));
   try {
     const initial = opts?.initial ?? defaultInitial(sc, cohorts, cfg, consts, from);
-    const { text, layout } = buildLpText(sc, cohorts, cfg, mode, initial, consts, from, nonEnrolledMcfh(sc, cohorts, cfg, consts));
+    const { text, layout } = buildLpText(sc, cohorts, cfg, mode, initial, consts, from, demandInputs(sc, cohorts, cfg, consts));
     const highs = await getHighs();
     const remainingS = Math.max(0.1, (timeoutMs - (nowMs() - t0)) / 1000);
     // HiGHS's default path occasionally fails with status -1 on these models; presolve-off simplex and IPM
