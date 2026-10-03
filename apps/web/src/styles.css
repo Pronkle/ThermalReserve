@@ -135,3 +135,33 @@ input[type=range] { accent-color: #5BC0EB; width: 100%; height: 12px; cursor: po
 .live-line { color: #E6EDF7; }
 .fallback-banner, .shortfall-banner { flex-shrink: 0; padding: 6px 10px; margin: 0 0 8px; border: 1px solid #F2A541; border-radius: 8px; color: #F2A541; font-size: 12px; }
 .solve-status { font-size: 11px; color: var(--muted); margin: 6px 0 0; }
+.join-qr-button { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 10px; padding: 4px; }
+.join-qr-button svg { background: white; border-radius: 3px; }
+.join-qr-dialog { background: white; color: #172337; border: 1px solid #D6DFEA; border-radius: 12px; padding: 24px; max-width: min(380px, calc(100vw - 32px)); text-align: center; }
+.join-qr-dialog::backdrop { background: rgb(0 0 0 / .65); }
+.join-qr-dialog svg { display: block; margin: 16px auto; max-width: 100%; height: auto; }
+.join-qr-dialog a { display: block; overflow-wrap: anywhere; font-size: 12px; margin-bottom: 16px; color: #126187; }
+.join-qr-dialog button { display: block; margin: auto; padding: 8px 20px; min-height: 44px; color: #172337; background: white; }
+@media (min-width: 1001px) {
+  .theme-dark.app-shell { height: 100dvh; display: flex; flex-direction: column; }
+  .theme-dark .app-header, .theme-dark .app-footer { flex-shrink: 0; }
+  .theme-dark .page-content { flex: 1; height: auto; min-height: 0; width: 100%; }
+  .ops-side { overflow: hidden; }
+  .kpi-grid, .controls-panel { flex-shrink: 0; }
+  .log-panel { min-height: 48px; }
+}
+.household-map-dot { animation: household-pulse 1.8s ease-in-out infinite; }
+@keyframes household-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .45; stroke-width: 5; } }
+@media (min-width: 1001px) {
+  .ops-side .metric { padding: 4px 10px; }
+  .ops-side .metric-value { line-height: 1; }
+  .controls-panel { padding: 10px !important; }
+  .controls-panel .panel-heading h2 { line-height: 1.2; }
+  .controls-grid { gap: 4px 12px; }
+  .controls-grid label { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 4px; }
+  .controls-grid output { margin: 0; font-size: 10px; }
+  .controls-grid input, .controls-grid select { grid-column: 1 / -1; margin: 0; }
+  .controls-grid input[type=range] { height: 10px; }
+  .control-actions button { padding: 3px 5px; }
+  .log-panel { min-height: 72px; }
+}

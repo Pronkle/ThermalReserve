@@ -22,7 +22,7 @@ export function App() {
   }, [pathname]);
 
   return (
-    <div className={`app-shell ${dark ? 'theme-dark' : 'theme-light'}`}>
+    <div className={`app-shell ${dark ? 'theme-dark' : pathname === '/home' ? 'theme-light theme-household' : 'theme-light'}`}>
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="app-header">
         <NavLink className="brand" to="/ops" aria-label="Thermal Reserve operator console">

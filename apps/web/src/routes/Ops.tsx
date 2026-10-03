@@ -4,6 +4,7 @@ import { runPlan, gasDays, type Plan, type Strategy, type FleetConfig, type Scen
 import { useConnection, useSimConfig, useAggregates, useSampleHomes, useEventLog, useReducers } from '../lib/stdb';
 import { launchSolve } from '../lib/solver';
 import { loadPreset, dispatchPreview, dispatchPlan } from '../lib/operator';
+import { JoinQr } from '../components/JoinQr';
 import { MapPreview } from '../components/MapPreview';
 import { Metric } from '../components/Metric';
 import { buildOpsData, clockLabel, constants, cohorts, dailyShortfall, decimal, defaultConfig, integer, scenarios, temperature, type PreviewStrategy } from '../lib/ops';
@@ -136,6 +137,7 @@ export function Ops() {
     <div className="ops-heading">
       <div><p className="eyebrow">{connected ? `Live · ${live.database}` : live.status === 'unconfigured' ? 'Local model preview' : `Connecting · ${live.database}`}</p><h1>Operator console</h1></div>
       <div className="clock-status"><strong>{clockLabel(scenario, cursor)}</strong><span title={`${scenario.kind}: ${scenario.source}`}>{sim ? sim.status : playing ? 'Playing preview' : 'Preview paused'} · {scenario.name}</span></div>
+      <JoinQr />
     </div>
     {live.status === 'disconnected' && <p className="connection-banner" role="status">Disconnected — retrying{live.error ? ` · ${live.error}` : ''}</p>}
     {shortfall > 0 && <p className="shortfall-banner" role="status" title="Derived: largest daily sum of model system gas minus daily capacity.">Uncovered shortfall: {decimal.format(shortfall)} MMcf/day <span className="metric-label">derived · worst gas day</span></p>}
@@ -153,7 +155,7 @@ export function Ops() {
         </section>
         <figure className="panel fleet-panel" aria-labelledby="chart-title">
           <div className="panel-heading"><h2 id="chart-title">{view === 'fleet' ? 'Fleet gas demand' : 'Southcentral gas demand'}</h2><div className="chart-tabs" aria-label="Chart view"><button aria-pressed={view === 'fleet'} onClick={() => setView('fleet')}>Fleet</button><button aria-pressed={view === 'system'} onClick={() => setView('system')}>System</button></div></div>
-          <div className="strategy-legend">{view === 'fleet' ? <><span className="baseline-line">— No program</span><span className="naive-line">┄ NAIVE_4H</span><span className="sustain-line">— {activeName}</span></> : <><span className="baseline-line">— Without program</span><span className="sustain-line">— {activeName}</span><span className="naive-line">┄ Daily capacity average</span></>}{connected && <span className="live-line">— Live</span>}<span className="metric-label">derived · model</span></div>
+          <div className="strategy-legend">{view === 'fleet' ? <><span className="baseline-line">— No program</span><span className="naive-line">┄ Naive morning setback</span><span className="sustain-line">— {activeName}</span></> : <><span className="baseline-line">— Without program</span><span className="sustain-line">— {activeName}</span><span className="naive-line">┄ Daily capacity average</span></>}{connected && <span className="live-line">— Live</span>}<span className="metric-label">derived · model</span></div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={view === 'fleet' ? fleetChart : systemChart} margin={{ top: 4, right: 12, bottom: 16, left: 6 }} accessibilityLayer>
@@ -199,8 +201,8 @@ export function Ops() {
             <button disabled={!connected || busy} onClick={() => void command(api => api.resetHouseholds({}))}>Reset households</button>
             {connected && <button disabled={busy || !sim} onClick={() => void command(api => api.setParams({ configJson: JSON.stringify({ ...config, speedHoursPerSec: speed, homesPerDot: config.enrolledHomes / 1000 }) }))}>Apply inputs</button>}
           </div>
-          <p className="solve-status" aria-live="polite">{solving ? `Solving · ${(elapsedMs / 1000).toFixed(1)} s` : selectedPlan ? `${selectedPlan.note ?? strategyNames[selectedPlan.strategy]}${selectedPlan.solveMs !== undefined ? ` · ${decimal.format(selectedPlan.solveMs / 1000)} s` : ' · dispatched'}` : 'Choose Optimized or Max relief, then solve and dispatch.'}</p>
-          <p className="control-note">{connected ? busy ? 'Sending command…' : `Connected · ${live.database} · ${sim?.operator?.toHexString() === live.identity ? 'Operator; Start dispatches the selected rule-based plan if none is loaded' : 'Viewer; commands ask for passcode'}` : 'Local preview only · no live commands sent.'}</p>
+          <p className="solve-status" aria-live="polite">{solving ? `Solving · ${(elapsedMs / 1000).toFixed(1)} s` : selectedPlan ? `${selectedPlan.note ?? strategyNames[selectedPlan.strategy]}${selectedPlan.solveMs !== undefined ? ` · ${decimal.format(selectedPlan.solveMs / 1000)} s` : ' · dispatched'}` : ''}</p>
+          <p className="control-note">{connected ? busy ? 'Sending command…' : `Connected · ${live.database} · ${sim?.operator?.toHexString() === live.identity ? 'Operator' : 'Viewer' }` : 'Local preview only · no live commands sent.'}</p>
         </section>
         <section className="panel log-panel" aria-labelledby="log-title"><h2 id="log-title">Event log</h2>{events.length ? <ol className="event-list">{events.map(event => <li key={event.id.toString()}><time>{clockLabel(scenario, event.simHour)}</time><span>{event.message}</span></li>)}</ol> : <p>{connected ? 'No events yet. Load Demo preset to begin.' : 'Live joins, overrides and reassignment will appear when connected.'}</p>}</section>
       </aside>

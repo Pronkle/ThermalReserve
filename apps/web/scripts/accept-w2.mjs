@@ -18,7 +18,7 @@ try {
   }
   page.on('dialog', dialog => dialog.accept(passcode));
   await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
-  await page.getByText(/Operator; Start/).waitFor();
+  await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor();
   await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('idle') && document.querySelectorAll('.map-fallback circle[r="2"]').length === 1000);
   await other.waitForFunction(() => document.querySelectorAll('.map-fallback circle[r="2"]').length === 1000);
   const colorsBefore = await page.locator('.map-fallback circle[r="2"][fill="#5BC0EB"]').count();
@@ -39,11 +39,11 @@ try {
   assert(chart.y + chart.height <= 800, 'Live chart fits at 1280×800');
   await page.screenshot({ path: '/tmp/thermal-reserve-w2-live.png', fullPage: true });
   await page.reload();
-  await page.getByText(/Operator; Start/).waitFor({ timeout: 30000 });
+  await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   assert(await page.evaluate(() => sessionStorage.getItem('thermal-reserve.database') === 'thermal-reserve-dev'), 'Database override retained');
   await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
   await page.getByText(/Disconnected — retrying/).waitFor();
-  await page.getByText(/Operator; Start/).waitFor({ timeout: 30000 });
+  await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('idle'));
   assert.equal(errors.length, 0, errors.join('\n'));

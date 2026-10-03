@@ -19,7 +19,7 @@ try {
   await page.goto(`${process.env.WEB_URL || 'http://127.0.0.1:5173'}/ops?db=thermal-reserve-dev`);
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
-  await page.getByText(/Operator; Start/).waitFor();
+  await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor();
   await page.waitForFunction(() => !document.querySelector('.control-note')?.textContent.includes('Sending'));
   await page.getByLabel('Strategy', { exact: true }).selectOption('OPTIMIZED');
   await page.evaluate(() => { window.frameTimes = []; function frame(time) { window.frameTimes.push(time); window.frameTest = requestAnimationFrame(frame); } window.frameTest = requestAnimationFrame(frame); });

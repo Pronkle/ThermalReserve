@@ -1,8 +1,95 @@
+import { useEffect, useRef, useState } from 'react';
+import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
+import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
+import { eventCountdown, heatStatus } from '../lib/household';
+import './home.css';
+
+const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 export function Home() {
-  return <section className="panel public-page">
-    <p className="eyebrow">Household app</p>
+  const live = useConnection();
+  const config = useSimConfig();
+  const home = useMyHousehold();
+  const reducers = useReducers();
+  const aggregates = useAggregates();
+  const [step, setStep] = useState(0);
+  const [nickname, setNickname] = useState('');
+  const [heating, setHeating] = useState('furnace');
+  const [thermostat, setThermostat] = useState('other');
+  const [exempt, setExempt] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const connected = live.status === 'connected';
+  const previouslyJoined = useRef(false);
+  useEffect(() => {
+    if (home) previouslyJoined.current = true;
+    else if (connected && previouslyJoined.current) { previouslyJoined.current = false; setStep(0); }
+  }, [home, connected]);
+  const scenario = scenarios.find(item => item.id === config?.scenarioId);
+  const maxDepthF = config?.maxDepthF ?? constants.maxDepthDefaultF;
+  const consentFloorF = constants.floorDefaultF;
+  async function act(action: (api: NonNullable<typeof reducers>) => Promise<void>) {
+    if (!reducers || busy) return;
+    setBusy(true); setError('');
+    try { await action(reducers); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
+    finally { setBusy(false); }
+  }
+  const dayStart = Math.floor((config?.simHour ?? 0) / 24) * 24;
+  const today = aggregates.filter(row => row.hour >= dayStart && row.hour < dayStart + 24);
+  const communitySavedMMcf = today.reduce((sum, row) => sum + row.reliefMmcf, 0);
+  const baselineTodayMMcf = scenario?.systemMMcfh.slice(dayStart, dayStart + 24).reduce((sum, demand) => sum + demand, 0) ?? 0;
+  const targetMMcf = Math.max(0, baselineTodayMMcf - (config?.capacityMmcfd ?? 0));
+  const status = home ? heatStatus(home) : undefined;
+  return <section className="household-page">
+    <p className="eyebrow">Thermal Reserve · household demo</p>
     <h1>Your home</h1>
-    <p>Help your community through a gas emergency while keeping control of your heat.</p>
-    <div className="empty-state">Household enrollment is being prepared. Joining and overriding will be available when the live simulation is connected.</div>
+    {live.status !== 'connected' && <p className="home-connection" role="status">{live.status === 'unconfigured' ? 'Live connection is not configured.' : live.status === 'connecting' ? 'Connecting to the community…' : 'Disconnected — retrying. Your heat controls return when connected.'}</p>}
+    {error && <p className="home-error" role="alert">{error}</p>}
+    {home && status ? <>
+      <div className={`panel heat-card ${status.mode}`}>
+        <div className="home-card-heading"><h2>{home.nickname}</h2><span className="heat-status" role="status">{status.name}</span></div>
+        <p className="indoor-temperature" title="Derived: simulated household indoor air temperature from the server thermal model.">{temperature.format(home.taF)}<span>°F</span></p>
+        <p className="home-temperature-label">Indoor temperature <span className="label-chip">derived · simulated</span></p>
+        <p className="setpoint" title="Derived: current heat target; exempt and overridden households follow their normal setpoint.">Setpoint <strong>{temperature.format(status.targetF)}°F</strong></p>
+        {config && scenario && <div className="home-clock"><time>{clockLabel(scenario, config.simHour)}</time><span>{config.status} · {eventCountdown(config.simHour, config.eventStartHour, config.eventEndHour)}</span></div>}
+        {home.exempt ? <p className="steady-heat">Your home keeps steady heat. You are exempt from setbacks.</p> : <button className="override-button" disabled={!connected || busy} onClick={() => void act(api => home.overridden ? api.cancelOverride({}) : api.override({}))}>{busy ? 'Updating…' : home.overridden ? 'Rejoin event' : 'Override'}</button>}
+        {home.overridden && !home.exempt && <p className="steady-heat">Normal heat restored. You can rejoin when ready.</p>}
+        <p className="home-limit" title={`${constants.raw.max_depth_default_f.label}: operator-selected setback limit; household comfort floor.`}>Program limit: up to {temperature.format(maxDepthF)}°F lower, never below {temperature.format(Math.max(home.floorF, constants.floorDefaultF))}°F <span className="metric-label">assumed</span></p>
+      </div>
+      <section className="panel home-savings" aria-labelledby="savings-title">
+        <h2 id="savings-title">Your contribution</h2>
+        <div className="home-savings-grid">
+          <div title="Derived: cumulative baseline household gas minus actual household gas since joining or reset. Recovery can reduce this total."><strong>{decimal.format(home.savedCf)} <span>cf</span></strong><span>Net gas saved this event</span><span className="metric-label">derived · includes recovery</span></div>
+          <div title={`Derived: saved cf ÷ 1,000 × $${constants.marginalPriceUsdPerMcf}/Mcf. ${constants.raw.marginal_price_usd_mcf.label}: ${constants.raw.marginal_price_usd_mcf.source}`}><strong>{dollars.format(home.savedCf / 1000 * constants.marginalPriceUsdPerMcf)}</strong><span>Gas value, not a bill credit</span><span className="metric-label">derived</span></div>
+        </div>
+        <h3>Community today</h3>
+        <p title="Derived: sum of completed hourly baseline fleet gas minus actual fleet gas in this simulation day."><strong>{decimal.format(communitySavedMMcf)} MMcf</strong> net saved <span className="metric-label">derived</span></p>
+        {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
+        <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>
+      </section>
+    </> : step === 0 ? <div className="panel enrollment-intro">
+      <h2>Steady heat. A stronger community.</h2>
+      <p>Try an Anchorage home in our cold-snap simulation. You stay in control of your heat.</p>
+      <button className="home-primary" onClick={() => setStep(1)}>Join as an Anchorage home</button>
+      <p className="home-limit">This is a demo. It does not connect to your thermostat.</p>
+    </div> : step === 1 ? <form className="panel enrollment-form" onSubmit={event => { event.preventDefault(); setStep(2); }}>
+      <p className="home-step">Home details · next: consent</p>
+      <h2>Tell us about your home</h2>
+      <label>Nickname <span className="muted">(optional)</span><input aria-label="Nickname (optional)" value={nickname} maxLength={24} autoComplete="nickname" placeholder="A name you will spot on the map" onChange={event => setNickname(event.target.value)} /></label>
+      <label>Heating type<select aria-label="Heating type" value={heating} onChange={event => setHeating(event.target.value)}><option value="furnace">Furnace</option><option value="boiler">Boiler</option><option value="other">Other</option></select></label>
+      <label>Thermostat<select aria-label="Thermostat" value={thermostat} onChange={event => setThermostat(event.target.value)}><option value="nest">Nest</option><option value="ecobee">ecobee</option><option value="honeywell">Honeywell</option><option value="other">Other</option><option value="none">None</option></select></label>
+      <label className="steady-checkbox"><input type="checkbox" checked={exempt} onChange={event => setExempt(event.target.checked)} /><span>Someone here needs steady heat <span className="muted">(infant, elderly, medical)</span></span></label>
+      <button className="home-primary" type="submit">Continue</button>
+      <button className="home-back" type="button" onClick={() => setStep(0)}>Back</button>
+    </form> : <div className="panel enrollment-consent">
+      <p className="home-step">Your choice · join when ready</p>
+      <h2>You keep control</h2>
+      {exempt ? <p>Your home is exempt. Your heat will stay at its normal setting during events.</p> : <p title="Assumed: operator-selected maximum setback and household comfort floor.">During a gas emergency your heat may be lowered up to {integer.format(maxDepthF)}°F, never below {integer.format(consentFloorF)}°F. Override any time.</p>}
+      <p>This demo simulates your heat and savings. No real thermostat is controlled.</p>
+      <button className="home-primary" disabled={!connected || !config?.hours || busy} onClick={() => void act(api => api.joinHousehold({ nickname, heating, thermostat, exempt }))}>{busy ? 'Joining…' : 'Join'}</button>
+      {!config?.hours && <p className="home-limit">The operator needs to load a scenario before you can join.</p>}
+      <button className="home-back" onClick={() => setStep(1)}>Back</button>
+    </div>}
+    <details className="why-heat panel"><summary>Why this matters</summary><p>Businesses can be curtailed before homes during a gas shortage. Saving heat demand helps keep gas available for the community, including local businesses.</p><p>Thermal Reserve simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
   </section>;
 }
