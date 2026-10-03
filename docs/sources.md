@@ -62,6 +62,17 @@ These stay labeled "assumed" (values unchanged, AGENTS.md rule 11); the data bel
 | `eta_furnace` = 0.85 | U.S. DOE, "Energy Conservation Standards for Consumer Furnaces," final rule, Federal Register, Dec 18, 2023 (document 2023-25514). <https://www.govinfo.gov/content/pkg/FR-2023-12-18/html/2023-25514.htm> | Current standard table: "Non-weatherized Gas ... 80 11/19/2015" (AFUE %); "Compliance with the amended standards ... is required on and after December 18, 2028" (95% AFUE) |
 | Note | — | Efficiency and heat content cancel out of gas savings because UA is calibrated from gas burned; only `space_heat_share` scales the headline numbers (0.72 would lower them about 4%) |
 
+## Curtailment order and rolling blackouts ("Why this matters" copy, H1, Oct 3 evening)
+
+| Source | Supports | Supporting text (short) |
+| --- | --- | --- |
+| ADN / Alaska Beacon (James Brooks), "As winter approaches, Southcentral Alaska utilities are worried about running short of gas", Jul 29, 2026. <https://www.adn.com/business-economy/energy/2026/07/29/as-winter-approaches-southcentral-alaska-utilities-are-worried-about-running-short-of-gas/> (also Peninsula Clarion, Jul 28, 2026: <https://www.peninsulaclarion.com/2026/07/28/as-winter-approaches-kenai-peninsula-utilities-worried-about-running-short-of-gas/>) | Curtailment order | "Under Enstar's current plan, listed on the 162nd page of a filing with the Regulatory Commission of Alaska, industrial facilities would be cut off first, then businesses. Churches, schools, hospitals and homes would be last." |
+| Homer News, Sep 10, 2026 (link above) | Curtailment order | Enstar "would first look to large commercial and industrial users for reductions before residential customers"; reductions "phased by customer class under the utility's tariff", human-needs facilities highest priority |
+| KTNA / Mat-Su Sentinel, "MEA says Rolling Blackouts Possible under Worst-Case Winter Gas Shortage", Aug 4, 2026. <https://ktna.org/mea-says-rolling-blackouts-possible-under-worst-case-winter-gas-shortage/> | Rolling blackouts (worst case) | MEA "could institute rolling half-hour power blackouts this winter as a worst-case scenario response if extremely cold weather leaves natural gas utility Enstar unable to meet demand" (MEA would divert its gas to Enstar and run diesel at Eklutna) |
+| Alaska Public Media (Ava White, Ashlyn O'Hara), "What to know about the Southcentral Alaska gas crunch", Sep 9, 2026. <https://alaskapublic.org/programs/alaska-economic-report/2026-09-09/what-to-know-about-the-southcentral-alaska-gas-crunch> | Context | Southcentral relies on gas for more than 70% of its electricity (ISER); MEA warned of possible rolling blackouts; "Chugach Electric is not planning blackouts this winter" |
+
+**Not confirmed:** the exact tier definitions in Enstar's RCA filing. The filing the articles link (<https://rca.alaska.gov/RCAWeb/ViewFile.aspx?id=c78d5fe5-cc6f-493e-ba77-817d24463670>) is behind a captcha and could not be opened on 2026-10-03, so page 162 was not read. "Small voluntary reductions at home make those cuts smaller" is an inference with no source. Reported to H1 (rule: don't change the wording ourselves).
+
 ## Weather
 
 | Source | Supports |
