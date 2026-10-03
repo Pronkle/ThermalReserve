@@ -109,20 +109,23 @@ function stopSchedule(ctx: Ctx) {
   }
 }
 
-// Both twins start at the normal setpoint for the scenario's first clock hour.
+// Both twins start with air at the normal setpoint for the scenario's first clock hour and
+// the mass at its steady-state temperature for hour 0's outdoor temperature, as runPlan does.
 function initStates(ctx: Ctx, startIso: string) {
   for (const row of [...ctx.db.cohortState.iter()]) ctx.db.cohortState.cohort_id.delete(row.cohort_id);
   const clock = clockHour(startIso, 0);
+  const outdoor0 = ctx.db.weatherHour.hour.find(0)?.outdoor_f;
   for (const row of [...ctx.db.cohort.iter()]) {
     const sp = normalSetpointF(toParams(row), clock);
+    const tm = outdoor0 === undefined ? sp : (row.ham * sp + row.umo * outdoor0) / (row.ham + row.umo);
     ctx.db.cohortState.insert({
       cohort_id: row.id,
       ta_f: sp,
-      tm_f: sp,
+      tm_f: tm,
       q_btuh: 0,
       target_f: sp,
       base_ta_f: sp,
-      base_tm_f: sp,
+      base_tm_f: tm,
       gas_cf_this_hour: 0,
       base_gas_cf_this_hour: 0,
       overridden_share: 0,
@@ -419,7 +422,7 @@ export const tick = spacetimedb.reducer(
         s.base_tm_f = nextBase.TmF;
         s.gas_cf_this_hour += gasCf(params, q, dt, hhv);
         s.base_gas_cf_this_hour += gasCf(params, qBase, dt, hhv);
-        s.mode = target < normal - 0.05 ? 'holding' : next.TaF < nextBase.TaF - 0.25 ? 'recovering' : 'normal';
+        s.mode = target < normal - 1e-9 ? 'holding' : next.TaF < normal - 0.25 ? 'recovering' : 'normal';
       }
 
       // Hour boundary: write the aggregate and reset the hourly accumulators.
@@ -436,7 +439,7 @@ export const tick = spacetimedb.reducer(
           fleetCf += homes * ((1 - s.overridden_share) * s.gas_cf_this_hour + s.overridden_share * s.base_gas_cf_this_hour);
           baseCf += homes * s.base_gas_cf_this_hour;
           minTa = Math.min(minTa, s.ta_f);
-          if (s.ta_f <= cfg.floor_f + 0.05) shareAtFloor += params.share;
+          if (s.ta_f <= cfg.floor_f + 0.1) shareAtFloor += params.share;
           s.gas_cf_this_hour = 0;
           s.base_gas_cf_this_hour = 0;
         }

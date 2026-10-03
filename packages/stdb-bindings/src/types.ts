@@ -131,6 +131,8 @@ export const SimConfig = __t.object("SimConfig", {
   homesPerDot: __t.f64(),
   operator: __t.option(__t.identity()),
   updatedAt: __t.timestamp(),
+  startIso: __t.string(),
+  hhvBtuPerCf: __t.f64(),
 });
 export type SimConfig = __Infer<typeof SimConfig>;
 
