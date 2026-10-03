@@ -1,12 +1,12 @@
 # Thermal Reserve: one-pager, draft 2
 
-> Draft 2 by DATA (draft 1 is kept in `onepager.md` / `.html` / `.pdf`). Print layout: `onepager-v2.html` → `onepager-v2.pdf` (one Letter page). In the PDF, every sourced number links to its source, and the numbered list at the bottom repeats the links. **UNFINISHED:** QR code, team names. H3 owns the final.
+> Draft 2 by DATA (draft 1 is kept in `onepager.md` / `.html` / `.pdf`). Print layout: `onepager-v2.html` → `onepager-v2.pdf` (one Letter page). In the PDF, every sourced number links to its source, and the numbered list at the bottom repeats the links. **UNFINISHED:** team names. H3 owns the final.
 
 ## Thermal Reserve
 
 **Coordinated thermostat setbacks that keep Southcentral Alaska's gas demand under supply on the coldest days of a multi-day cold snap.**
 
-Join from your phone: [thermal-reserve.vercel.app/home](https://thermal-reserve.vercel.app/home) · [QR CODE: UNFINISHED]
+Join from your phone: [thermal-reserve.vercel.app/home](https://thermal-reserve.vercel.app/home) · QR code: `apps/web/public/household-join.svg` (embedded in the HTML)
 
 ### The problem
 
