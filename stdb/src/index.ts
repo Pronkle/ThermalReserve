@@ -17,6 +17,9 @@ const TICK_INTERVAL_MICROS = 1_000_000n;
 const FLOOR_MIN_F = 60;
 const MAX_HOMES_PER_CHUNK = 250;
 const NICKNAME_MAX = 24;
+// The /home consent screen promises "never below 62°F" (AGENTS.md Section 3). Real households
+// keep that floor even when the operator sets a lower floor for the simulated fleet.
+const HOUSEHOLD_FLOOR_F = 62;
 // S5 input limits (AGENTS.md §12 S5; ranges set by H1 via STDB's request).
 const FLOOR_MAX_F = 70;
 const ENROLLED_MIN = 1_000;
@@ -520,7 +523,7 @@ export const join_household = spacetimedb.reducer(
       heating: heat,
       thermostat: stat,
       exempt,
-      floor_f: cfg.floor_f,
+      floor_f: Math.max(HOUSEHOLD_FLOOR_F, cfg.floor_f),
       cohort_id: template.id,
       lat,
       lon,
@@ -668,7 +671,7 @@ export const tick = spacetimedb.reducer(
         if (!c) continue;
         const normal = normals.get(c.id) ?? 0;
         const cohortTarget = targets.get(c.id) ?? normal;
-        const target = hh.overridden || hh.exempt ? normal : Math.min(normal, Math.max(hh.floor_f, cohortTarget));
+        const target = hh.overridden || hh.exempt ? normal : Math.min(normal, Math.max(HOUSEHOLD_FLOOR_F, hh.floor_f, cohortTarget));
 
         const actual: ThermalState = { TaF: hh.ta_f, TmF: hh.tm_f };
         const q = heatToHold(c, actual, weather.outdoor_f, target, dt);
