@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH);
+const browser = await chromium.launch({ headless: true });
+try {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('http://127.0.0.1:5173/ops');
+  await page.waitForSelector('.recharts-line-curve');
+  await page.waitForSelector('.leaflet-container canvas');
+  const map = await page.locator('.map-panel').boundingBox();
+  const chart = await page.locator('.fleet-panel').boundingBox();
+  assert(map && chart);
+  assert(map.y >= 0 && map.y + map.height <= 800, 'map fits vertically');
+  assert(chart.y >= 0 && chart.y + chart.height <= 800, 'chart fits vertically');
+  const dimensions = await page.evaluate(() => ({ height: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth }));
+  await page.screenshot({ path: '/tmp/thermal-reserve-w1-1280.png', fullPage: true });
+  console.log(JSON.stringify({ map, chart, dimensions }));
+  assert(dimensions.height <= 800, `No vertical scrolling: ${dimensions.height}`);
+  assert(dimensions.width <= 1280, 'No horizontal scrolling');
+  assert.equal(await page.locator('.recharts-line-curve').count(), 3);
+  assert.equal(await page.locator('.metric').count(), 6);
+  await page.locator('.metric').first().focus();
+  assert(await page.locator('.metric-tooltip').first().isVisible(), 'formula tooltip keyboard accessible');
+  const enrollment = page.getByLabel('Enrolled homes', { exact: true });
+  await enrollment.focus();
+  await enrollment.press('Home');
+  for (let i = 0; i < 9; i++) await enrollment.press('ArrowRight');
+  await page.waitForFunction(() => document.querySelector('.panel-heading')?.textContent.includes('10 homes'));
+  await page.getByRole('button', { name: 'System', exact: true }).click();
+  assert(await page.getByText('Daily capacity ÷ 24 (average)', { exact: true }).isVisible());
+  await page.getByRole('button', { name: 'Start preview', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('Playing preview'));
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  // Check tiles-blocked fallback still displays every sampled home.
+  const fallback = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await fallback.route('https://tile.openstreetmap.org/**', route => route.abort());
+  await fallback.goto('http://127.0.0.1:5173/ops');
+  await fallback.waitForSelector('.map-fallback', { timeout: 10000 });
+  assert.equal(await fallback.locator('.map-fallback circle').count(), 1000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Fleet', exact: true }).click();
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= 390), 'Mobile preview has no horizontal overflow');
+  assert.equal(errors.length, 0, errors.join('\n'));
+  console.log(JSON.stringify({ map, chart, dimensions, lines: 3, metrics: 6, fallbackDots: 1000, pageErrors: errors }));
+} finally { await browser.close(); }
