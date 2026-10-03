@@ -88,3 +88,25 @@ limit (msg 32), so headline the tight day, not a multi-day average (msg 62).
 | Overrides | `hours[h].overrides` | 0 when no setback is dispatched |
 | Value ($/day) | tightest-day `reliefMMcf` × 1,000 × `marginal_price_usd_mcf` | nearest $100 |
 | Net over the whole run | `totals.netSavedMMcf` | secondary detail only: includes snapback days |
+
+## `/home` (for W4)
+
+Reads `sim_config`, the caller's own `household` row, and aggregates (Section 9). A household follows its template
+cohort (`<heating>-steady-average-light`; "other" heating uses furnace) and is never held below 62°F (server-side,
+`household.floor_f`, H1 decision msg 123).
+
+| On screen | Source | Format / label | Note |
+| --- | --- | --- | --- |
+| Indoor temperature | `household.ta_f` | °F, 1 dp, derived | |
+| Setpoint | `household.target_f` | °F, 1 dp | |
+| Status | exempt → Exempt; overridden → Overridden; `target_f < normal − 0.05` → "Holding −X°F" (X = normal − target_f, 1 dp); `ta_f < normal − 0.25` → Recovering; else Normal | text | normal = `normalSetpointF(templateCohort, clockHourAt(sc, sim_hour))`: build the template from the `cohort` row, never hard-code 70 |
+| Countdown to event end | (`event_end_hour` − `sim_hour`) simulated hours | "h:mm sim time" | label it simulated so a 2 h/s clock isn't mistaken for real time |
+| Gas saved this event | `household.saved_cf` | cf, whole number, derived | **net of reheating**: it rises while holding and falls during recovery (snapback). Caption it: "Net, after your home reheats." |
+| Dollars | `saved_cf ÷ 1,000 × marginal_price_usd_mcf` | $, 2 dp (amounts are small), derived from `marginal_price_usd_mcf` (sourced) | the nearest-$100 rule is for fleet-scale values |
+| Community relief so far | Σ `aggregate_hour.relief_mmcf` for completed hours | MMcf, 2 dp, derived | also net of snapback |
+| Day's relief target (bar) | current gas day d: max(0, Σ_{h in d} `weather_hour.system_mmcfh` − `capacity_mmcfd`) | MMcf, 2 dp, derived | the no-program shortfall for that gas day; progress = Σ `relief_mmcf` for the day's completed hours. On days with no shortfall, hide the bar and say "No shortfall today" |
+
+Expected magnitudes (feb2024 Demo preset, OPTIMIZED, a household joining at the start): about 95 cf saved on Feb 2
+and about 64 cf net over the whole run, roughly $1.10. Feb 2's target is 3.00 MMcf; the fleet relieves 2.06 with 6%
+overrides. Per-home numbers are small by design. The pitch is the fleet total, so show the community bar
+prominently. A household that joins mid-run counts savings from its join time.
