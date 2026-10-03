@@ -60,22 +60,38 @@ Run on each phone; record iOS and Android results separately.
 
 ## 4. Numbers
 
-Every number on screen must trace to `data/constants.json` or a model function, with a label (AGENTS.md Section 2). For each row, compare the screen value with the reference; tolerance is display rounding unless stated.
+Every number on screen must trace to `data/constants.json` or a model function, with a label (AGENTS.md Section 2). "Expected" values were computed on `main` 615b4d6 (UA 398.3, HHV 988, tuned `cohort_spec.json`) and match ENGINE's `packages/model/NUMBERS.md`; if a constant changes, recompute them from the reference. Tolerance is display rounding (MMcf/day 2 dp, °F 1 dp, % 1 dp, $ nearest 100) unless stated.
 
-| # | Where | Value on screen | Reference | Result |
+| # | Where | Expected on screen | Reference | Result |
 | --- | --- | --- | --- | --- |
-| N1 | `/whatif` defaults (16.7%, 5°F, −20°F, 3 days, Tier 2 0%) | MMcf/day | `whatIf()` with the same inputs and `constants.json` | |
-| N2 | `/whatif` "Show the math" | Every formula line | Each constant's value and label in `constants.json` | |
-| N3 | `/whatif` % of needle peak, % of 2024 deliverability loss, % of 3 Bcf, $/day | | `whatIf()`; `needle_peak_mmcfd`, `deliverability_loss_mmcfd`, `shortfall_bcf`, `marginal_price_usd_mcf` | |
-| N4 | `/ops` KPIs: net relief, peak-hour relief, min indoor °F, % at floor, overrides, value | | `runPlan` totals for the active plan; value uses `marginal_price_usd_mcf` | |
-| N5 | `/ops` capacity default per scenario | MMcf/day | `capacityMMcfd` in `data/scenarios/<id>.json` | |
-| N6 | `/validation` ConEd card | retention, band, pass/fail | `validateConEdLike()`; band from `validation_coned_band` | |
-| N7 | `/validation` SoCal card | r, event %, daily %, band, pass/fail | `validateSoCalLike()`; band from `validation_socal_daily_band` | |
-| N8 | `/validation` Anchorage sanity | Mcf/home/day at −20°F | `anchorageSanity()` | |
-| N9 | `/validation` parameter table | Every tuned parameter | `data/cohort_spec.json` | |
+| N1 | `/whatif` defaults (16.7%, 5°F, −20°F, 3 days, Tier 2 0%) | **1.43 MMcf/day** | `whatIf().mmcfPerDay` | |
+| N2 | `/whatif` "Show the math" | 9 formula lines, printed verbatim, each constant with its label in brackets (e.g. "UA 398 BTU/(h·°F) [derived]", "HHV 988 BTU/cf [sourced]") | `whatIf().formulaLines` | |
+| N3 | `/whatif` shares and value at defaults | **7.1%** of needle peak · **5.0%** of 2024 deliverability loss · **0.14%** of 3 Bcf (3 days) · **$24,900/day** | `whatIf()` fields | |
+| N3b | `/whatif` copy | Changing outdoor °F does **not** change the result, and the page doesn't imply colder = more savings | NUMBERS.md note | |
+| N4 | `/ops` KPIs, `feb2024`, 25,000 homes, OPTIMIZED dispatched, run finished | Relief on the tightest day (Feb 2) **2.15 MMcf/day** · uncovered shortfall **0.85 MMcf/day** · value = tightest-day relief × $17.50/Mcf (~$37,600/day) | `gasDays(runPlan(...))` | |
+| N4b | Same, uncovered shortfall per strategy | none **3.00** · NAIVE_4H **2.80** · SUSTAIN_STAGGER **1.64** · OPTIMIZED **0.85** MMcf/day | `gasDays()` | |
+| N4c | `/ops` minimum indoor and homes at floor | Min indoor may read 64.0°F (night setback homes); homes at floor counts only program-held homes; overrides 0 under BASELINE | NUMBERS.md `/ops` table | |
+| N5 | `/ops` capacity default per scenario | design **292.5** · feb2024 **265.0** · lastwinter **251.3** MMcf/day | `capacityMMcfd` in `data/scenarios/<id>.json` | |
+| N6 | `/validation` ConEd card | retention **0.465** (shown 0.47 at 2 dp), target 0.48, band 0.38–0.58, **pass** | `validateConEdLike()` | |
+| N7 | `/validation` SoCal card | r **0.30**, event **15.1%**, daily **1.14%** vs 2.2% published, band 1.5–3.0%, **gap** in amber (not a red fail) | `validateSoCalLike()` | |
+| N8 | `/validation` Anchorage sanity | **1.04 Mcf/home/day** at −20°F, 70°F | `anchorageSanity()` | |
+| N9 | `/validation` parameter table | Ca **1,500 / 3,000** BTU/°F · Ham ×**1.5** · τ **40 / 60** h, all labeled assumed, with allowed ranges | `data/cohort_spec.json` | |
 | N10 | Labels | Every number shows a sourced / derived / assumed chip | `label` in `constants.json` | |
 | N11 | Removed numbers | `needle_peak_days` (25 days) appears nowhere | `docs/sources.md` "Dropped" | |
-| N12 | Copy | No "AI-powered", "first gas demand response", "cheap", or penetration figures; °F and MMcf/day units visible | AGENTS.md Sections 2–3 | |
+| N11b | Energy Watch wording | If the 1.5% appears, it says "energy load", not gas use | `docs/sources.md` | |
+| N12 | Copy | No "AI-powered", "first gas demand response", "cheap", or penetration figures; °F and MMcf/day units visible; plain words, not code names like `NAIVE_4H` | AGENTS.md Sections 2–3 | |
+
+### Pre-check on production, Sat 17:50 (DATA, headless Chromium, no login)
+
+| Check | Result |
+| --- | --- |
+| All five routes return 200 | PASS |
+| `/ops` at 1280×800 and 1440×900: map and fleet chart fully visible, no scroll | PASS |
+| Connected to `thermal-reserve`; KPI label chips; units; "No real thermostats are controlled" footer | PASS |
+| N4: KPIs headline a 4-day average ("Net relief 0.21 MMcf/day", "Gas value $3,600/day"), not the tightest day | FAIL, filed to WEB (planned in W3) |
+| N12: chart legend shows `BASELINE`, `NAIVE_4H`, `SUSTAIN_STAGGER` | FAIL, filed to WEB |
+| Water mask not yet used for map dots | Pending WEB |
+| QR code in header | Pending W4 |
 
 ## 5. Failure modes
 
