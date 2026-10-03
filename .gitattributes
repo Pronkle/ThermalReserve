@@ -1,1 +1,4 @@
 * text=auto eol=lf
+# Append-only shared logs: keep lines from both sides instead of conflicting.
+docs/AI_LOG.md merge=union
+docs/COORDINATION.md merge=union
