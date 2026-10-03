@@ -31,6 +31,7 @@ describe('E0 scaffold', () => {
       expect(Number.isFinite(r[k].totals.netSavedMMcf)).toBe(true);
     }
     expect(r.BASELINE.totals.netSavedMMcf).toBeCloseTo(0, 9);
+    expect(r.BASELINE.totals.degreeHoursBelowNormal).toBeCloseTo(0, 9);
   });
 
   it('solvePlan stub returns a shaped plan', async () => {

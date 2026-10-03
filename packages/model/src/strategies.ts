@@ -126,7 +126,8 @@ export function runPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig,
       if (c.share > 0) minTaF = Math.min(minTaF, s.TaF);
       if (s.TaF <= cfg.floorF + 0.1) atFloor += c.share;
       const normal = normalSetpointF(c, endClock);
-      degreeHours += c.share * Math.max(0, normal - s.TaF);
+      // Discomfort is measured against the baseline twin, so the program's own effect is counted, not night setbacks.
+      degreeHours += c.share * (1 - ovr) * Math.max(0, base[c.id].TaF - s.TaF);
       const mode: 'normal' | 'holding' | 'recovering' = holding[c.id] ? 'holding' : s.TaF < normal - 0.25 ? 'recovering' : 'normal';
       return { TaF: s.TaF, TmF: s.TmF, qBtuH: qSum[c.id] / subPerHour, gasCfPerHome: gasAct[c.id], mode };
     });
