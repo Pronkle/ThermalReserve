@@ -7,6 +7,7 @@
 //   baseline   S1: no plan; every hour within 1% of runPlan(BASELINE)
 //   naive      S2: NAIVE_4H dispatched, override rate 0; every hour within 2% of runPlan(NAIVE_4H)
 //   overrides  S2: NAIVE_4H with simulated overrides; reassignment logged, nothing below the floor
+//   household  S3: the caller joins as a household, overrides mid-event, then rejoins
 //
 // STDB_PASSCODE is the operator passcode (the first claim on a fresh database sets it).
 import { execFileSync } from 'node:child_process';
@@ -21,8 +22,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const db = process.argv[2];
 const mode = process.argv[3];
 const speed = Number(process.argv[4] ?? 4);
-if (!db || !['baseline', 'naive', 'overrides'].includes(mode)) {
-  console.error('usage: accept.ts <database> <baseline|naive|overrides> [speedHoursPerSec]');
+if (!db || !['baseline', 'naive', 'overrides', 'household'].includes(mode)) {
+  console.error('usage: accept.ts <database> <baseline|naive|overrides|household> [speedHoursPerSec]');
   process.exit(2);
 }
 const passcode = process.env.STDB_PASSCODE;
@@ -89,11 +90,30 @@ const plan = mode === 'baseline' ? planBaseline(scenario, cohorts) : planNaive4h
 // JSON.stringify turns NaN (follow normal setpoint) into null, which set_plan expects.
 if (mode !== 'baseline') call('set_plan', plan.id, plan.strategy, JSON.stringify(plan.targetsF));
 
+if (mode === 'household') {
+  call('reset_households');
+  call('join_household', 'Test <b>Home</b>', 'furnace', 'Nest', false);
+}
+
 call('start');
 const t0 = Date.now();
 let status = '';
+let overrode = false;
+let rejoined = false;
 while (Date.now() - t0 < 240_000) {
   await sleep(3000);
+  if (mode === 'household') {
+    // Override during the first morning setback, rejoin a simulated day later.
+    const simHour = Number(sqlRows('SELECT sim_hour FROM sim_config')[0]?.[0]);
+    const cs = sqlRows('SELECT mode FROM cohort_state')[0]?.[0] ?? '';
+    if (!overrode && cs.includes('holding')) {
+      call('override');
+      overrode = true;
+    } else if (overrode && !rejoined && simHour >= 48) {
+      call('cancel_override');
+      rejoined = true;
+    }
+  }
   status = sqlRows('SELECT status FROM sim_config')[0]?.[0]?.replaceAll('"', '') ?? '';
   if (status === 'finished') break;
 }
@@ -110,7 +130,15 @@ console.log(`database ${db}, mode ${mode}: ${live.size} aggregate rows in ${elap
 let ok = live.size === scenario.hours;
 const expected = runPlan(scenario, cohorts, cfg, plan, consts);
 
-if (mode === 'overrides') {
+if (mode === 'household') {
+  const hh = sqlRows('SELECT nickname, saved_cf, overridden, ta_f, cohort_id FROM household');
+  const kinds = sqlRows('SELECT kind FROM event_log').map(r => r[0].replaceAll('"', ''));
+  const count = (k: string) => kinds.filter(x => x === k).length;
+  const savedCf = Number(hh[0]?.[1]);
+  console.log(`household: ${hh[0]?.join(' | ')}`);
+  console.log(`override sent: ${overrode}, rejoin sent: ${rejoined}; events: ${count('join')} join, ${count('override')} override, ${count('reassign')} reassign`);
+  ok = ok && hh.length === 1 && hh[0][0] === '"Test bHome/b"' && savedCf > 0 && overrode && rejoined && count('join') === 1 && count('override') === 2 && count('reassign') >= 1;
+} else if (mode === 'overrides') {
   const minTa = Math.min(...[...live.values()].map(r => r.minTa));
   const lastOverrides = live.get(scenario.hours - 1)?.overrides ?? 0;
   const kinds = sqlRows('SELECT kind FROM event_log').map(r => r[0].replaceAll('"', ''));
