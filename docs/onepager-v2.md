@@ -23,7 +23,7 @@ Households join from a phone, see their indoor temperature and gas saved, and ca
 
 ### Honest impact
 
-A sustained setback at −20°F outside, automated homes only (derived). Each home's heat loss is calibrated from Enstar's 149 Mcf average home [4], 30 years of Anchorage weather [5], and Alaska's gas energy content, 988 BTU per cubic foot [6]. Furnace efficiency 0.85 (assumed).
+A sustained setback at −20°F outside, automated homes only (derived). Each home's heat loss is calibrated from Enstar's 149 Mcf average home [4], 30 years of Anchorage weather [5], and Alaska's gas energy content, 988 BTU per cubic foot [6].
 
 | Enrolled homes | Gas saved, 5°F setback | Share of Enstar's 20 MMcf/day peak supply [7] | Value at $17.50/Mcf [1] |
 | --- | --- | --- | --- |
@@ -32,6 +32,10 @@ A sustained setback at −20°F outside, automated homes only (derived). Each ho
 | 50,000 | 2.85 MMcf/day | 14.2% | ~$49,800/day |
 
 Peak supply: extra gas Enstar's supply contract lets it buy on the coldest winter days. $17.50/Mcf: the price producer HEX offered Enstar for extra gas in 2026.
+
+**Two assumptions, checked against data (assumed):**
+- **75% of a home's gas goes to space heating.** EIA's 2020 household survey puts Alaska at 72–74% [9]. At 72%, every savings figure above would be about 4% lower.
+- **Furnace efficiency 0.85.** Gas furnaces must be at least 80% efficient (federal minimum since 2015; 95% from Dec 2028) [10], and Anchorage homes mix older and newer units. It doesn't change the gas numbers: we calibrate from gas actually burned, so efficiency cancels out.
 
 **What it doesn't do:** close the seasonal shortfall. Over 20 cold days, 25,000 homes save about 28 MMcf, under 1% of 3 Bcf. Thermal Reserve helps on the coldest days, when businesses would otherwise be cut.
 
@@ -44,7 +48,7 @@ We ran the same physics under each pilot's conditions (derived).
 | Savings kept after reheating (ConEd-like) | 48% [3] | 46.5% | 38–58% | Pass |
 | Net daily savings (SoCalGas-like) | 2.2% [8] | 1.14% | 1.5–3.0% | Gap |
 
-We show the gap instead of tuning it away. The two pilots imply different amounts of snapback, and on daily savings our model errs low.
+Pass bands are our own choice, set around each published value before testing. We show the gap instead of tuning it away: the two pilots imply different amounts of snapback, and on daily savings our model errs low.
 
 ### How it works
 
@@ -60,5 +64,7 @@ Browser (React app on Vercel: charts, map, what-if, and the optimizer) → Space
 6. U.S. Energy Information Administration, "Heat Content of Natural Gas Delivered to Consumers," Alaska, 2025. <https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm>
 7. Petroleum News, "New Enstar supplies," Mar 6, 2016. <https://www.petroleumnews.com/pntruncate/978589605.shtml>
 8. CALMAC SCG0224, "2018-2019 Winter Load Impact Evaluation of SoCalGas Smart Therm Program," Oct 24, 2019. <https://www.calmac.org/publications/SoCalGas_2019_DR_Evaluation_Report_-_PUBLIC_FINAL.pdf>
+9. EIA, 2020 Residential Energy Consumption Survey, Table CE5.4.ST (Alaska row: natural gas use per household by end use). <https://www.eia.gov/consumption/residential/data/2020/state/pdf/ce5.4.st.pdf>
+10. U.S. Department of Energy, consumer furnace standards final rule, Federal Register, Dec 18, 2023 (document 2023-25514). <https://www.govinfo.gov/content/pkg/FR-2023-12-18/html/2023-25514.htm>
 
 MHacks 2026 · Team: [H1 NAME], [H2 NAME], [H3 NAME] (UNFINISHED). Every number is labeled sourced, derived, or assumed.
