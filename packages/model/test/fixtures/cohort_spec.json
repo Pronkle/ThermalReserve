@@ -1,0 +1,22 @@
+{
+  "heating": [
+    {"key": "furnace", "share": 0.70, "eta": 0.85, "caBtuPerF": 3000, "qmaxMult": 1.0},
+    {"key": "boiler",  "share": 0.30, "eta": 0.82, "caBtuPerF": 6000, "qmaxMult": 0.8}
+  ],
+  "schedule": [
+    {"key": "night",  "share": 0.40, "setpointNightF": 64},
+    {"key": "steady", "share": 0.60, "setpointNightF": 70}
+  ],
+  "envelope": [
+    {"key": "tight",   "share": 0.25, "uaMult": 0.75},
+    {"key": "average", "share": 0.50, "uaMult": 1.00},
+    {"key": "leaky",   "share": 0.25, "uaMult": 1.35}
+  ],
+  "mass": [
+    {"key": "light", "share": 0.60, "tauMassH": 25},
+    {"key": "heavy", "share": 0.40, "tauMassH": 45}
+  ],
+  "setpointDayF": 70, "nightStartHour": 22, "nightEndHour": 6,
+  "uaSplitAo": 0.5, "hamMult": 3.0,
+  "qmaxFloorBtuH": 60000, "qmaxDesignMult": 1.6, "designDeltaF": 100
+}
