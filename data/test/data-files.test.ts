@@ -7,6 +7,7 @@ import cohortSpecJson from '../cohort_spec.json';
 import demandShapeJson from '../demand_shape.json';
 import anchorsJson from '../anchors.json';
 import designJson from '../scenarios/design.json';
+import calibrationJson from '../calibration.json';
 
 import {
   REQUIRED_CONSTANT_KEYS,
@@ -135,5 +136,23 @@ describe('scenarios', () => {
     expect(Math.min(...d.outdoorF.slice(12, 84))).toBeGreaterThanOrEqual(-25);
     expect(Math.max(...d.outdoorF.slice(12, 84))).toBeLessThanOrEqual(-15);
     expect(d.outdoorF[95]).toBe(5);
+  });
+});
+
+describe('calibration.json (D1)', () => {
+  it('comes from Anchorage International via ACIS, with the raw file saved', async () => {
+    const { readFileSync } = await import('node:fs');
+    const raw = JSON.parse(readFileSync(new URL('../raw/acis_panc_1996_2025.json', import.meta.url), 'utf8')) as {
+      meta: { name: string }; data: unknown[];
+    };
+    expect(raw.meta.name).toMatch(/ANCHORAGE.*INTERNATIONAL/);
+    expect(calibrationJson.station.name).toBe(raw.meta.name);
+    expect(calibrationJson.hdd.perYear).toHaveLength(30);
+  });
+
+  it('constants.json carries the calibrated HDD and UA', () => {
+    expect(constants.hdd_annual.value).toBe(calibrationJson.hdd.annualMean);
+    expect(constants.ua_mean_btuh_per_f.value).toBe(calibrationJson.ua.valueBtuHPerF);
+    expect(constants.hdd_annual.label).toBe('derived');
   });
 });
