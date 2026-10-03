@@ -35,7 +35,7 @@ Run on each phone; record iOS and Android results separately.
 | --- | --- | --- | --- | --- |
 | P1 | Open `/home` from the QR code | Screen 1 names the product in one line; one button "Join as an Anchorage home" | | |
 | P2 | Join with defaults | Nickname defaults to "Home NNNN"; heating and thermostat pickers work; "steady heat" checkbox present | | |
-| P3 | Consent screen | Says heat may be lowered up to N°F, never below the floor **in force (62°F with the Demo preset)**, override any time; no exclamation marks | | |
+| P3 | Consent screen | Says heat may be lowered up to N°F, **never below 62°F** (server-enforced for real households since 0502d71), override any time; no exclamation marks | | |
 | P4 | Enroll timing | Under 20 s from scan to live card | | |
 | P5 | Live card | Indoor °F (large), setpoint, status, sim clock, countdown to event end | | |
 | P6 | Override, then Rejoin | Status changes both ways; `/ops` log shows both | | |
@@ -44,6 +44,7 @@ Run on each phone; record iOS and Android results separately.
 | P9 | "Why this matters" sheet | Opens and closes; text matches Section 3 | | |
 | P10 | Width 360–430 px | No horizontal scroll; text readable | | |
 | P11 | "Steady heat" household | Shows Exempt; never set back | | |
+| P12 | Operator floor set to 60°F (study setting), then a phone joins | The phone's household still never goes below 62°F | | |
 
 ## 3. Browsers (`/ops`)
 
