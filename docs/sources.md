@@ -52,6 +52,16 @@ Each page opened on 2026-10-03; none of these feed a constant.
 | --- | --- |
 | OpenStreetMap via the Overpass API (<https://overpass-api.de/>), retrieved 2026-10-03; © OpenStreetMap contributors, ODbL 1.0 (<https://www.openstreetmap.org/copyright>). Raw responses in `data/raw/osm_water_*.json` | `data/water_mask.json`: keeps sample homes out of lakes, Knik and Turnagain Arm, and tidal flats (32 of 1,000 homes were in water before) |
 
+## Checked assumptions
+
+These stay labeled "assumed" (values unchanged, AGENTS.md rule 11); the data below shows they are reasonable.
+
+| Assumption | Evidence | Supporting text (short) |
+| --- | --- | --- |
+| `space_heat_share` = 0.75 | EIA, 2020 Residential Energy Consumption Survey, Table CE5.4.ST, released Jun 2023. <https://www.eia.gov/consumption/residential/data/2020/state/pdf/ce5.4.st.pdf> | Alaska, natural gas per household using each end use (hundred cubic feet): space heating 969, water heating 336, clothes dryers 23, cooking 23 → space heating 71.7–74.2% (RSE 4.2% / 4.9%). Total ≈ 135 Mcf/year, consistent with the 149 Mcf average home |
+| `eta_furnace` = 0.85 | U.S. DOE, "Energy Conservation Standards for Consumer Furnaces," final rule, Federal Register, Dec 18, 2023 (document 2023-25514). <https://www.govinfo.gov/content/pkg/FR-2023-12-18/html/2023-25514.htm> | Current standard table: "Non-weatherized Gas ... 80 11/19/2015" (AFUE %); "Compliance with the amended standards ... is required on and after December 18, 2028" (95% AFUE) |
+| Note | — | Efficiency and heat content cancel out of gas savings because UA is calibrated from gas burned; only `space_heat_share` scales the headline numbers (0.72 would lower them about 4%) |
+
 ## Weather
 
 | Source | Supports |

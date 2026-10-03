@@ -7,13 +7,13 @@
      chromium --headless --no-pdf-header-footer --print-to-pdf=docs/onepager-v2.pdf docs/onepager-v2.html
      Every sourced number links to its source; the numbered list at the bottom repeats the URLs. -->
 <style>
-  @page { size: Letter; margin: 0.4in 0.5in; }
+  @page { size: Letter; margin: 0.35in 0.45in; }
   :root { --ink: #0B1220; --muted: #4A5568; --rule: #D5DCE6; --ice: #1F7FA8; --amber: #B26A00; --green: #1F7A4D; --bg-soft: #F3F6FA; }
   * { box-sizing: border-box; }
-  body { margin: 0; color: var(--ink); font: 9.2pt/1.36 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #fff; }
+  body { margin: 0; color: var(--ink); font: 8.9pt/1.32 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #fff; }
   a { color: var(--ice); text-decoration: none; }
   h1 { font-size: 21pt; margin: 0; letter-spacing: -0.01em; }
-  h2 { font-size: 10pt; margin: 9px 0 3px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ice); }
+  h2 { font-size: 9.6pt; margin: 7px 0 3px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ice); }
   p { margin: 0 0 5px; }
   ul { margin: 0 0 3px; padding-left: 15px; }
   li { margin: 0 0 2px; }
@@ -37,12 +37,16 @@
   .box { border: 1px solid var(--rule); border-radius: 8px; padding: 5px 7px; }
   .box b { display: block; font-size: 8.3pt; }
   .arrow { color: var(--ice); font-weight: 700; }
-  .sources { margin-top: 8px; border-top: 1px solid var(--rule); padding-top: 5px; font-size: 7.1pt; line-height: 1.3; color: var(--muted); columns: 2; column-gap: 16px; }
+  .assume { border: 1px solid var(--rule); border-radius: 8px; padding: 4px 8px; margin-top: 4px; font-size: 8pt; color: var(--muted); }
+  .assume b:first-child { color: var(--ink); }
+  .assume ul { margin: 2px 0 0; padding-left: 13px; }
+  .assume li { margin-bottom: 1.5px; }
+  .sources { margin-top: 6px; border-top: 1px solid var(--rule); padding-top: 4px; font-size: 6.8pt; line-height: 1.25; color: var(--muted); columns: 2; column-gap: 16px; }
   .sources h2 { column-span: all; margin: 0 0 3px; font-size: 8pt; }
   .sources ol { margin: 0; padding-left: 14px; }
   .sources li { break-inside: avoid; margin-bottom: 1.5px; }
   .sources a { word-break: break-all; }
-  .foot { margin-top: 6px; display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted); }
+  .foot { margin-top: 4px; display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -51,7 +55,7 @@
   <div>
     <h1>Thermal Reserve</h1>
     <div class="pitch">Coordinated thermostat setbacks that keep Southcentral Alaska's gas demand under supply on the coldest days of a multi-day cold snap.</div>
-    <div class="url">Join from your phone: <a href="https://thermal-reserve.vercel.app/home">thermal-reserve.vercel.app/home</a></div>
+    <div class="url">Join from your phone: <a href="https://thermal-reserve.vercel.app/home">thermal-reserve.vercel.app/home</a> · MHacks 2026 · Team: [H1 NAME], [H2 NAME], [H3 NAME] <span class="todo">UNFINISHED</span></div>
   </div>
   <div class="qr">QR code<br>UNFINISHED<br>(WEB supplies)</div>
 </div>
@@ -67,7 +71,7 @@
     </ul>
 
     <h2>What we built</h2>
-    <p>A <b>simulation</b>, not control of real thermostats. An operator console plans setbacks for a simulated fleet of Anchorage homes (24 home types, shown as 1,000 dots on a map). An optimizer picks the smallest total temperature drop that keeps each day's gas demand under supply, planning across the whole cold snap so reheating lands on days with spare gas.</p>
+    <p>A <b>simulation</b>, not control of real thermostats. An operator console plans setbacks for a simulated fleet of Anchorage homes (24 home types, shown as 1,000 dots on a map). An optimizer picks the smallest total temperature drop that keeps each day's demand under supply, planning across the whole cold snap so reheating lands on days with spare gas.</p>
     <p>Households join from a phone, see their indoor temperature and gas saved, and can opt out with one tap. The server never lets a home drop below <b>62°F</b> (60°F at the lowest setting), and homes that need steady heat are exempt.</p>
 
     <h2>How it works</h2>
@@ -78,12 +82,13 @@
       <div class="arrow">→</div>
       <div class="box"><b>Every screen</b>Console and phones update live</div>
     </div>
-    <p class="note" style="margin-top:3px">The browser and the server run the same physics file, and a test checks that they agree.</p>
+    <p class="note" style="margin-top:3px">Browser and server run the same physics file; a test checks they agree.</p>
+    <div class="callout" style="margin-top:8px"><b>What it doesn't do:</b> close the seasonal shortfall. Over 20 cold days, 25,000 homes save about 28 MMcf, under 1% of 3 Bcf. Thermal Reserve helps on the coldest days, when businesses would otherwise be cut.</div>
   </div>
 
   <div>
     <h2>Honest impact</h2>
-    <p class="note">A sustained setback at −20°F outside, automated homes only. <span class="chip">derived</span> Each home's heat loss is calibrated from Enstar's 149 Mcf average home,<sup><a href="https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/">4</a></sup> 30 years of Anchorage weather,<sup><a href="https://www.rcc-acis.org/docs_webservices.html">5</a></sup> and Alaska's gas energy content (988 BTU per cubic foot).<sup><a href="https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm">6</a></sup> Furnace efficiency 0.85 <span class="chip">assumed</span></p>
+    <p class="note">A sustained setback at −20°F outside, automated homes only. <span class="chip">derived</span> Each home's heat loss is calibrated from Enstar's 149 Mcf average home,<sup><a href="https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/">4</a></sup> 30 years of Anchorage weather,<sup><a href="https://www.rcc-acis.org/docs_webservices.html">5</a></sup> and Alaska's gas energy content (988 BTU per cubic foot).<sup><a href="https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm">6</a></sup></p>
     <table>
       <tr><th>Enrolled homes</th><th>Gas saved, 5°F setback</th><th>Share of Enstar's 20 MMcf/day peak supply<sup><a href="https://www.petroleumnews.com/pntruncate/978589605.shtml">7</a></sup></th><th>Value at $17.50/Mcf<sup><a href="https://www.adn.com/opinions/editorials/2026/08/08/editorial-the-winter-nobody-wants-to-imagine/">1</a></sup></th></tr>
       <tr><td>10,000</td><td class="n">0.57 MMcf/day</td><td class="n">2.8%</td><td class="n">~$10,000/day</td></tr>
@@ -91,7 +96,12 @@
       <tr><td>50,000</td><td class="n">2.85 MMcf/day</td><td class="n">14.2%</td><td class="n">~$49,800/day</td></tr>
     </table>
     <p class="note">Peak supply: extra gas Enstar's supply contract lets it buy on the coldest winter days. $17.50/Mcf: the price producer HEX offered Enstar for extra gas in 2026.</p>
-    <div class="callout"><b>What it doesn't do:</b> close the seasonal shortfall. Over 20 cold days, 25,000 homes save about 28 MMcf, under 1% of 3 Bcf. Thermal Reserve helps on the coldest days, when businesses would otherwise be cut.</div>
+    <div class="assume"><b>Two assumptions, checked against data</b> <span class="chip">assumed</span>
+      <ul>
+        <li><b>75% of a home's gas goes to space heating.</b> EIA's 2020 household survey puts Alaska at 72–74%.<sup><a href="https://www.eia.gov/consumption/residential/data/2020/state/pdf/ce5.4.st.pdf">9</a></sup> At 72%, every savings figure above would be about 4% lower.</li>
+        <li><b>Furnace efficiency 0.85.</b> Gas furnaces must be at least 80% efficient (federal minimum since 2015; 95% from Dec 2028),<sup><a href="https://www.govinfo.gov/content/pkg/FR-2023-12-18/html/2023-25514.htm">10</a></sup> and Anchorage homes mix older and newer units. It doesn't change the gas numbers: we calibrate from gas actually burned, so efficiency cancels out.</li>
+      </ul>
+    </div>
 
     <h2>Does the model match real pilots?</h2>
     <p class="note">We ran the same physics under each pilot's conditions. <span class="chip">derived</span></p>
@@ -100,28 +110,26 @@
       <tr><td>Savings kept after reheating (ConEd-like)</td><td class="n">48%<sup><a href="https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B7FA119BD-B04D-4378-95A3-BB26697815AC%7D">3</a></sup></td><td class="n">46.5%</td><td class="n">38–58%</td><td><b style="color:var(--green)">Pass</b></td></tr>
       <tr><td>Net daily savings (SoCalGas-like)</td><td class="n">2.2%<sup><a href="https://www.calmac.org/publications/SoCalGas_2019_DR_Evaluation_Report_-_PUBLIC_FINAL.pdf">8</a></sup></td><td class="n">1.14%</td><td class="n">1.5–3.0%</td><td><b style="color:var(--amber)">Gap</b></td></tr>
     </table>
-    <p class="note">We show the gap instead of tuning it away. The two pilots imply different amounts of snapback, and on daily savings our model errs low.</p>
+    <p class="note">Pass bands are our own choice, set around each published value before testing. We show the gap instead of tuning it away: the two pilots imply different amounts of snapback, and on daily savings our model errs low.</p>
   </div>
 </div>
 
 <div class="sources">
-  <h2>Sources (every link opened and checked on Oct 3, 2026)</h2>
+  <h2>Sources (each link opened and checked Oct 3, 2026) · every number is labeled sourced, derived, or assumed</h2>
   <ol>
     <li>Anchorage Daily News editorial board, "The winter nobody wants to imagine," Aug 8, 2026. <a href="https://www.adn.com/opinions/editorials/2026/08/08/editorial-the-winter-nobody-wants-to-imagine/">adn.com/opinions/editorials/2026/08/08/editorial-the-winter-nobody-wants-to-imagine</a></li>
     <li>Homer News, "Winter gas shortfall comes into sharper focus for Southcentral Alaska," Sep 10, 2026. <a href="https://www.homernews.com/2026/09/10/winter-gas-shortfall-comes-into-sharper-focus-for-southcentral-alaska/">homernews.com/2026/09/10/winter-gas-shortfall-comes-into-sharper-focus-for-southcentral-alaska</a></li>
-    <li>Con Edison, "Gas Demand Response Report on Pilot Performance – 2019/2020," Jul 1, 2020 (NY PSC Case 17-G-0606). <a href="https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B7FA119BD-B04D-4378-95A3-BB26697815AC%7D">documents.dps.ny.gov (DocRefId 7FA119BD-B04D-4378-95A3-BB26697815AC)</a></li>
+    <li>Con Edison, "Gas Demand Response Report on Pilot Performance – 2019/2020," Jul 1, 2020. <a href="https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B7FA119BD-B04D-4378-95A3-BB26697815AC%7D">documents.dps.ny.gov (DocRefId 7FA119BD-B04D-4378-95A3-BB26697815AC)</a></li>
     <li>Anchorage Daily News, "Results are in for latest Southcentral Alaska Energy Watch drill," Nov 6, 2012. <a href="https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/">adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06</a></li>
-    <li>ACIS Web Services, Regional Climate Centers: daily data for Anchorage Ted Stevens International Airport, 1996–2025. <a href="https://www.rcc-acis.org/docs_webservices.html">rcc-acis.org/docs_webservices.html</a></li>
-    <li>U.S. Energy Information Administration, "Heat Content of Natural Gas Delivered to Consumers," Alaska, 2025. <a href="https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm">eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm</a></li>
+    <li>ACIS (Regional Climate Centers), Anchorage airport daily data, 1996–2025. <a href="https://www.rcc-acis.org/docs_webservices.html">rcc-acis.org/docs_webservices.html</a></li>
+    <li>EIA, "Heat Content of Natural Gas Delivered to Consumers," Alaska, 2025. <a href="https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm">eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm</a></li>
     <li>Petroleum News, "New Enstar supplies," Mar 6, 2016. <a href="https://www.petroleumnews.com/pntruncate/978589605.shtml">petroleumnews.com/pntruncate/978589605.shtml</a></li>
     <li>CALMAC SCG0224, "2018-2019 Winter Load Impact Evaluation of SoCalGas Smart Therm Program," Oct 24, 2019. <a href="https://www.calmac.org/publications/SoCalGas_2019_DR_Evaluation_Report_-_PUBLIC_FINAL.pdf">calmac.org/publications/SoCalGas_2019_DR_Evaluation_Report_-_PUBLIC_FINAL.pdf</a></li>
+    <li>EIA, 2020 Residential Energy Consumption Survey, Table CE5.4.ST (Alaska row). <a href="https://www.eia.gov/consumption/residential/data/2020/state/pdf/ce5.4.st.pdf">eia.gov/consumption/residential/data/2020/state/pdf/ce5.4.st.pdf</a></li>
+    <li>U.S. DOE, consumer furnace standards final rule, Federal Register, Dec 18, 2023. <a href="https://www.govinfo.gov/content/pkg/FR-2023-12-18/html/2023-25514.htm">govinfo.gov/content/pkg/FR-2023-12-18/html/2023-25514.htm</a></li>
   </ol>
 </div>
 
-<div class="foot">
-  <div>MHacks 2026 · Team: [H1 NAME], [H2 NAME], [H3 NAME] <span class="todo">UNFINISHED</span></div>
-  <div>Every number is labeled sourced, derived, or assumed.</div>
-</div>
 
 </body>
 </html>
