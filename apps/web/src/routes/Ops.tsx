@@ -1,6 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { FleetConfig, Scenario } from '@thermal-reserve/model';
+import { useConnection, useSimConfig, useAggregates, useSampleHomes, useEventLog, useReducers } from '../lib/stdb';
+import { loadPreset, dispatchPreview } from '../lib/operator';
 import { MapPreview } from '../components/MapPreview';
 import { Metric } from '../components/Metric';
 import { buildOpsData, clockLabel, constants, dailyShortfall, decimal, defaultConfig, integer, scenarios, temperature, type PreviewStrategy } from '../lib/ops';
@@ -10,6 +12,15 @@ const initialScenario = scenarios.find(sc => sc.id === 'design') ?? scenarios[0]
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
 export function Ops() {
+  const live = useConnection();
+  const sim = useSimConfig();
+  const aggregates = useAggregates();
+  const samples = useSampleHomes();
+  const events = useEventLog(12);
+  const reducers = useReducers();
+  const [busy, setBusy] = useState(false);
+  const [commandError, setCommandError] = useState('');
+  const connected = live.status === 'connected';
   const [scenario, setScenario] = useState<Scenario>(initialScenario);
   const [config, setConfig] = useState(() => defaultConfig(initialScenario));
   const deferredConfig = useDeferredValue(config);
@@ -20,11 +31,46 @@ export function Ops() {
   const [view, setView] = useState<'fleet' | 'system'>('fleet');
   const data = useMemo(() => buildOpsData(scenario, deferredConfig), [scenario, deferredConfig]);
   const run = data.runs[strategy];
+  const liveRows = new Map(aggregates.map(row => [row.hour, row]));
+  const fleetChart = data.chart.map(row => ({ ...row, live: liveRows.get(row.hour)?.fleetGasMmcf }));
+  const mapHomes = sim && samples.length ? samples.map(home => ({ ...home, overrideHour: home.overridden ? 0 : null })) : data.homes;
+  const serializedConfig = sim ? JSON.stringify({ enrolledHomes: sim.enrolledHomes, exemptShare: sim.exemptShare, floorF: sim.floorF, maxDepthF: sim.maxDepthF, capacityMMcfd: sim.capacityMmcfd, overrideRate: sim.overrideRate, seed: 42 }) : '';
+  useEffect(() => {
+    if (!sim) return;
+    const sc = scenarios.find(item => item.id === sim.scenarioId);
+    if (sc) setScenario(sc);
+    setHour(sim.simHour);
+    setPlaying(false);
+
+  }, [sim?.scenarioId, sim?.simHour, sim?.speedHoursPerSec]);
+  useEffect(() => { if (sim) setSpeed(sim.speedHoursPerSec); }, [sim?.speedHoursPerSec]);
+  useEffect(() => {
+    if (sim?.planId && (sim.strategy === 'BASELINE' || sim.strategy === 'NAIVE_4H' || sim.strategy === 'SUSTAIN_STAGGER')) setStrategy(sim.strategy);
+  }, [sim?.strategy, sim?.planId]);
+  useEffect(() => { if (serializedConfig) setConfig(JSON.parse(serializedConfig) as FleetConfig); }, [serializedConfig]);
+  async function command(action: (api: NonNullable<typeof reducers>) => Promise<void>) {
+    if (!reducers || busy) return;
+    setBusy(true); setCommandError('');
+    try {
+      if (sim?.operator?.toHexString() !== live.identity) {
+        const passcode = window.prompt('Operator passcode');
+        if (passcode === null) return;
+        await reducers.claimOperator({ passcode });
+      }
+      await action(reducers);
+    } catch (error) { setCommandError(error instanceof Error ? error.message : String(error)); }
+    finally { setBusy(false); }
+  }
+  function demo() {
+    if (!connected) { preset(); return; }
+    const sc = scenarios.find(item => item.id === 'feb2024') ?? initialScenario;
+    void command(api => loadPreset(api, sc, defaultConfig(sc)));
+  }
   const cursor = Math.min(Math.floor(hour), scenario.hours - 1);
   const current = run.hours[cursor];
   const shortfall = dailyShortfall(run, deferredConfig.capacityMMcfd);
   const recoveryPeak = Math.max(...data.chart.map(row => row.naive - row.baseline));
-  const systemChart = run.hours.map((row, h) => ({ ...data.chart[h], system: row.systemMMcfh, baselineSystem: scenario.systemMMcfh[h], reliefBand: row.systemMMcfh <= scenario.systemMMcfh[h] ? [row.systemMMcfh, scenario.systemMMcfh[h]] : undefined }));
+  const systemChart = run.hours.map((row, h) => ({ ...data.chart[h], live: liveRows.get(h)?.systemMmcf, system: row.systemMMcfh, baselineSystem: scenario.systemMMcfh[h], reliefBand: row.systemMMcfh <= scenario.systemMMcfh[h] ? [row.systemMMcfh, scenario.systemMMcfh[h]] : undefined }));
   const overCapacityDays = Array.from({ length: Math.ceil(scenario.hours / 24) }, (_, day) => day).filter(day => run.hours.slice(day * 24, day * 24 + 24).reduce((sum, row) => sum + row.systemMMcfh, 0) > deferredConfig.capacityMMcfd);
   useEffect(() => {
     if (!playing) return;
@@ -46,36 +92,39 @@ export function Ops() {
   ];
   return <>
     <div className="ops-heading">
-      <div><p className="eyebrow">Local model preview</p><h1>Operator console</h1></div>
-      <div className="clock-status"><strong>{clockLabel(scenario, cursor)}</strong><span title={`${scenario.kind}: ${scenario.source}`}>{playing ? 'Playing preview' : 'Preview paused'} · {scenario.name}</span></div>
+      <div><p className="eyebrow">{connected ? `Live · ${live.database}` : live.status === 'unconfigured' ? 'Local model preview' : `Connecting · ${live.database}`}</p><h1>Operator console</h1></div>
+      <div className="clock-status"><strong>{clockLabel(scenario, cursor)}</strong><span title={`${scenario.kind}: ${scenario.source}`}>{sim ? sim.status : playing ? 'Playing preview' : 'Preview paused'} · {scenario.name}</span></div>
     </div>
+    {live.status === 'disconnected' && <p className="connection-banner" role="status">Disconnected — retrying{live.error ? ` · ${live.error}` : ''}</p>}
+    {commandError && <p className="connection-banner" role="alert">{commandError}</p>}
     <div className="ops-grid">
       <div className="ops-visuals">
         <section className="panel map-panel" aria-labelledby="map-title">
-          <div className="panel-heading"><h2 id="map-title">Anchorage fleet</h2><span title="Assumed: enrolled homes divided by sampled dots.">Each dot ≈ {integer.format(data.homesPerDot)} homes <span className="metric-label">assumed</span></span></div>
-          <div className="map-frame"><MapPreview homes={data.homes} run={run} hour={cursor} /></div>
+          <div className="panel-heading"><h2 id="map-title">Anchorage fleet</h2><span title="Assumed: enrolled homes divided by sampled dots.">Each dot ≈ {integer.format(sim?.homesPerDot ?? data.homesPerDot)} homes <span className="metric-label">assumed</span></span></div>
+          <div className="map-frame"><MapPreview homes={mapHomes} run={run} hour={cursor} /></div>
           <div className="map-legend" aria-label="Map legend">
             <span><i className="dot normal" />Normal</span><span><i className="dot holding" />Holding setback</span><span><i className="dot recovering" />Recovering</span><span><i className="dot overridden" />Overridden</span><span><i className="dot exempt" />Exempt</span><span><i className="dot household" />Real household</span>
           </div>
-          <p className="map-caption">Deterministic sample locations; real households appear after live connection.</p>
+          <p className="map-caption">Deterministic sample locations; larger dots show enrolled demo households.</p>
         </section>
         <figure className="panel fleet-panel" aria-labelledby="chart-title">
           <div className="panel-heading"><h2 id="chart-title">{view === 'fleet' ? 'Fleet gas demand' : 'Southcentral gas demand'}</h2><div className="chart-tabs" aria-label="Chart view"><button aria-pressed={view === 'fleet'} onClick={() => setView('fleet')}>Fleet</button><button aria-pressed={view === 'system'} onClick={() => setView('system')}>System</button></div></div>
-          <div className="strategy-legend">{view === 'fleet' ? <><span className="baseline-line">— BASELINE</span><span className="naive-line">┄ NAIVE_4H</span><span className="sustain-line">— SUSTAIN_STAGGER</span></> : <><span className="baseline-line">— Without program</span><span className="sustain-line">— {strategy}</span><span className="naive-line">┄ Daily capacity average</span></>}<span className="metric-label">derived · model</span></div>
+          <div className="strategy-legend">{view === 'fleet' ? <><span className="baseline-line">— BASELINE</span><span className="naive-line">┄ NAIVE_4H</span><span className="sustain-line">— SUSTAIN_STAGGER</span></> : <><span className="baseline-line">— Without program</span><span className="sustain-line">— {strategy}</span><span className="naive-line">┄ Daily capacity average</span></>}{connected && <span className="live-line">— LIVE</span>}<span className="metric-label">derived · model</span></div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={view === 'fleet' ? data.chart : systemChart} margin={{ top: 4, right: 12, bottom: 16, left: 6 }} accessibilityLayer>
+              <ComposedChart data={view === 'fleet' ? fleetChart : systemChart} margin={{ top: 4, right: 12, bottom: 16, left: 6 }} accessibilityLayer>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
                 <XAxis dataKey="hour" type="number" domain={[0, scenario.hours - 1]} ticks={[0, 24, 48, 72, scenario.hours - 1]} stroke="var(--muted)" tick={{ fontSize: 10 }} tickFormatter={value => clockLabel(scenario, Number(value)).split(', ').slice(1).join(' ')} label={{ value: 'Anchorage time', position: 'bottom', fill: 'var(--muted)', fontSize: 11 }} />
                 <YAxis stroke="var(--muted)" width={56} tickFormatter={value => decimal.format(Number(value))} label={{ value: 'MMcf/hour', angle: -90, position: 'insideLeft', fill: 'var(--muted)', fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }} formatter={value => `${decimal.format(Number(value))} MMcf/hour · derived`} labelFormatter={value => clockLabel(scenario, Number(value))} />
                 <ReferenceArea x1={scenario.eventStartHour} x2={scenario.eventEndHour} fill="#5BC0EB" fillOpacity={0.06} />
                 {view === 'fleet' ? <><Line name="BASELINE" dataKey="baseline" stroke="#7A869A" dot={false} isAnimationActive={false} /><Line name="NAIVE_4H" dataKey="naive" stroke="#F2A541" strokeDasharray="5 3" strokeWidth={2} dot={false} isAnimationActive={false} /><Line name="SUSTAIN_STAGGER" dataKey="sustain" stroke="#5BC0EB" strokeWidth={2} dot={false} isAnimationActive={false} /></> : <><Area name="Relief" dataKey="reliefBand" fill="#30A46C" fillOpacity={0.35} stroke="none" isAnimationActive={false} /><Line name={`${strategy} system demand`} dataKey="system" stroke="#5BC0EB" dot={false} isAnimationActive={false} /><Line name="Without program" dataKey="baselineSystem" stroke="#7A869A" dot={false} isAnimationActive={false} />{overCapacityDays.map(day => <ReferenceArea key={day} x1={day * 24} x2={Math.min(scenario.hours - 1, day * 24 + 23)} fill="#E5484D" fillOpacity={0.08} />)}<ReferenceLine y={deferredConfig.capacityMMcfd / 24} stroke="#F2A541" strokeDasharray="5 3" label={{ value: 'Daily capacity ÷ 24 (average)', position: 'insideTopRight', fill: '#F2A541', fontSize: 10 }} /></>}
+                <Line name="LIVE" dataKey="live" stroke="#E6EDF7" strokeWidth={3} dot={false} connectNulls={false} isAnimationActive={false} />
                 <ReferenceLine x={cursor} stroke="#E6EDF7" strokeDasharray="2 3" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <label className="timeline">Preview hour <input aria-label="Preview hour" type="range" min={0} max={scenario.hours - 1} step={1} value={cursor} onChange={event => { setPlaying(false); setHour(Number(event.target.value)); }} /><output title="Assumed: selected simulation hour.">{cursor} h</output></label>
+          <label className="timeline">Preview hour <input disabled={Boolean(sim)} aria-label="Preview hour" type="range" min={0} max={scenario.hours - 1} step={1} value={cursor} onChange={event => { setPlaying(false); setHour(Number(event.target.value)); }} /><output title="Assumed: selected simulation hour.">{cursor} h</output></label>
           <figcaption>{view === 'fleet' ? `Naive setbacks shift gas use into recovery; largest rebound is ${decimal.format(recoveryPeak)} MMcf/hour above baseline (derived). Net daily savings include recovery.` : `${(scenario as Scenario & { placeholder?: boolean }).placeholder ? 'System demand is assumed placeholder data. ' : ''}Red shading marks days over capacity. Within-day swings covered by linepack/storage is assumed.`}</figcaption>
         </figure>
       </div>
@@ -89,17 +138,26 @@ export function Ops() {
           <Metric name="Gas value" value={money.format(Math.round(run.totals.netSavedMMcfdDuringEvent * 1000 * constants.marginalPriceUsdPerMcf / 100) * 100)} unit="/day" formula={`Net relief (MMcf/day) × 1,000 Mcf/MMcf × $${constants.marginalPriceUsdPerMcf}/Mcf; rounded to $100. ${constants.raw.marginal_price_usd_mcf.label}: ${constants.raw.marginal_price_usd_mcf.source}`} />
         </section>
         <section className="panel controls-panel" aria-labelledby="controls-title">
-          <div className="panel-heading"><h2 id="controls-title">Preview controls</h2><span className="metric-label">assumed inputs</span></div>
+          <div className="panel-heading"><h2 id="controls-title">{connected ? 'Operator controls' : 'Preview controls'}</h2><span className="metric-label">assumed inputs</span></div>
           <div className="controls-grid">
-            <label>Scenario<select value={scenario.id} onChange={event => selectScenario(scenarios.find(sc => sc.id === event.target.value)!)}>{scenarios.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}</select></label>
+            <label>Scenario<select value={scenario.id} onChange={event => { const sc = scenarios.find(item => item.id === event.target.value)!; if (connected) void command(api => loadPreset(api, sc, defaultConfig(sc))); else selectScenario(sc); }}>{scenarios.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}</select></label>
             <label>Strategy<select value={strategy} onChange={event => setStrategy(event.target.value as PreviewStrategy)}>{Object.entries(strategyNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}<option disabled>Optimized · solver pending</option><option disabled>Max relief · solver pending</option></select></label>
             {ranges.map(range => <label key={range.key} title={range.note}>{range.label}<output>{(range.unit === '°F' ? temperature : range.unit === 'MMcf/day' ? decimal : integer).format(config[range.key])} {range.unit}</output><input type="range" aria-label={range.label} min={range.min} max={range.max} step={range.step} value={config[range.key]} onChange={event => parameter(range.key, Number(event.target.value))} /></label>)}
             <label title="Assumed: local preview playback speed.">Speed<output>{speed} h/s</output><input type="range" aria-label="Speed" min={0.5} max={4} step={0.5} value={speed} onChange={event => setSpeed(Number(event.target.value))} /></label>
           </div>
-          <div className="control-actions"><button onClick={preset}>Demo preset</button><button disabled title="Plan solver is added in W3">Solve plan</button><button disabled title="Live dispatch is added with the connection">Dispatch</button><button onClick={() => { if (hour >= scenario.hours - 1) setHour(0); setPlaying(true); }}>Start preview</button><button onClick={() => setPlaying(false)}>Pause</button><button onClick={() => { setPlaying(false); setHour(0); }}>Reset</button><button disabled title="No connected households in local preview">Reset households</button></div>
-          <p className="control-note">Local preview only · no live commands sent.</p>
+          <div className="control-actions">
+            <button disabled={busy || (live.status !== 'unconfigured' && !connected)} onClick={demo}>Demo preset</button>
+            <button disabled title="Plan solver is added in W3">Solve plan</button>
+            <button disabled={!connected || !sim || busy} onClick={() => void command(api => dispatchPreview(api, scenario, config, strategy))}>Dispatch</button>
+            <button disabled={busy || (live.status !== 'unconfigured' && (!connected || !sim))} onClick={() => connected ? void command(async api => { if (!sim?.planId) await dispatchPreview(api, scenario, config, strategy); await api.start({}); }) : setPlaying(true)}>{connected ? 'Start' : 'Start preview'}</button>
+            <button disabled={busy} onClick={() => connected ? void command(api => api.pause({})) : setPlaying(false)}>Pause</button>
+            <button disabled={busy} onClick={() => connected ? void command(api => api.reset({})) : (setPlaying(false), setHour(0))}>Reset</button>
+            <button disabled={!connected || busy} onClick={() => void command(api => api.resetHouseholds({}))}>Reset households</button>
+            {connected && <button disabled={busy || !sim} onClick={() => void command(api => api.setParams({ configJson: JSON.stringify({ ...config, speedHoursPerSec: speed, homesPerDot: config.enrolledHomes / 1000 }) }))}>Apply inputs</button>}
+          </div>
+          <p className="control-note">{connected ? busy ? 'Sending command…' : `Connected · ${live.database} · ${sim?.operator?.toHexString() === live.identity ? 'Operator; Start dispatches the selected rule-based plan if none is loaded' : 'Viewer; commands ask for passcode'}` : 'Local preview only · no live commands sent.'}</p>
         </section>
-        <section className="panel log-panel" aria-labelledby="log-title"><h2 id="log-title">Event log</h2><p>Live joins, overrides and reassignment will appear when connected.</p>{shortfall > 0 && <p className="shortfall" title="Derived: largest daily sum of model system gas minus daily capacity.">Uncovered shortfall: {decimal.format(shortfall)} MMcf/day <span className="metric-label">derived</span></p>}</section>
+        <section className="panel log-panel" aria-labelledby="log-title"><h2 id="log-title">Event log</h2>{events.length ? <ol className="event-list">{events.map(event => <li key={event.id.toString()}><time>{clockLabel(scenario, event.simHour)}</time><span>{event.message}</span></li>)}</ol> : <p>{connected ? 'No events yet. Load Demo preset to begin.' : 'Live joins, overrides and reassignment will appear when connected.'}</p>}{shortfall > 0 && <p className="shortfall" title="Derived: largest daily sum of model system gas minus daily capacity.">Uncovered shortfall: {decimal.format(shortfall)} MMcf/day <span className="metric-label">derived</span></p>}</section>
       </aside>
     </div>
   </>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildOpsData, constants, dailyShortfall, defaultConfig, scenarios } from './ops';
+import { buildOpsData, constants, dailyShortfall, defaultConfig, homeMode, scenarios } from './ops';
 
 describe('W1 model presentation', () => {
   const sc = scenarios.find(sc => sc.id === 'design')!;
@@ -24,6 +24,11 @@ describe('W1 model presentation', () => {
     expect(cfg.floorF).toBe(constants.floorDefaultF);
     expect(cfg.maxDepthF).toBe(constants.maxDepthDefaultF);
     expect(cfg.overrideRate).toBe(constants.overrideRate);
+  });
+  it('keeps baseline dots normal when a simulated override is scheduled', () => {
+    const home = { ...data.homes[0], exempt: false, overrideHour: 0 };
+    expect(homeMode(home, data.runs.BASELINE, 12)).not.toBe('overridden');
+    expect(homeMode(home, data.runs.SUSTAIN_STAGGER, 12)).toBe('overridden');
   });
   it('does not treat hourly swings as a daily capacity breach', () => {
     const baseline = data.runs.BASELINE;

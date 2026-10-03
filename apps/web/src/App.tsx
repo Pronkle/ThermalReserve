@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useLocation, Outlet } from 'react-router-dom';
+import { StdbProvider } from './lib/stdb';
 import { Ops } from './routes/Ops';
 import { Home } from './routes/Home';
 import { WhatIf } from './routes/WhatIf';
@@ -35,8 +36,10 @@ export function App() {
       <main id="main" tabIndex={-1} className="page-content">
         <Routes>
           <Route path="/" element={<Navigate to="/ops" replace />} />
-          <Route path="/ops" element={<Ops />} />
-          <Route path="/home" element={<Home />} />
+          <Route element={<StdbProvider><Outlet /></StdbProvider>}>
+            <Route path="/ops" element={<Ops />} />
+            <Route path="/home" element={<Home />} />
+          </Route>
           <Route path="/whatif" element={<WhatIf />} />
           <Route path="/validation" element={<Validation />} />
           <Route path="*" element={<section className="panel"><h1>Page not found</h1><NavLink to="/ops">Open the operator console</NavLink></section>} />
