@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "test": "tsc --noEmit -p tsconfig.json && vitest run",
-    "data": "tsx scripts/make-design.ts"
+    "data": "tsx scripts/build.ts"
   },
   "devDependencies": {
     "@types/node": "22.19.0",
     "tsx": "4.23.15",
-    "typescript": "7.0.2",
+    "typescript": "5.9.3",
     "vitest": "5.0.3"
   }
 }
