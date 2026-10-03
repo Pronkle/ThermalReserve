@@ -19,7 +19,7 @@ Join from your phone: [thermal-reserve.vercel.app/home](https://thermal-reserve.
 
 A **simulation**, not control of real thermostats. An operator console plans setbacks for a simulated fleet of Anchorage homes (24 home types, shown as 1,000 dots on a map). An optimizer picks the smallest total temperature drop that keeps each day's gas demand under supply, planning across the whole cold snap so reheating lands on days with spare gas.
 
-Households join from a phone, see their indoor temperature and gas saved, and can opt out with one tap. The server never lets a home drop below **62°F** (60°F at the lowest setting), and homes that need steady heat are exempt.
+Households join from a phone, see their indoor temperature and gas saved, and can opt out with one tap. The server never lets a home drop below **62°F**, and homes that need steady heat are exempt.
 
 ### Honest impact
 

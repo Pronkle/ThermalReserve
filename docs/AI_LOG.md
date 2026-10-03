@@ -33,3 +33,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-03T17:57 | WEB (OpenAI Codex, ChatGPT Pro, gpt-6.1-sol) | W3: worker solving, optimized dispatch, daily KPIs, fallback/uncovered banners, water mask, plain chart names; 15 tests, 96-hour Maincloud W3 acceptance | reviewed by H2
 2026-10-03T19:20 | DATA (Claude Code, Pro, Opus 5.5) | Merge duty: engine/e7 (d2063c7) and web/w3 (70a157b) merged through the gate; test plan demo values updated for 6% overrides | reviewed by H3 (pending)
 2026-10-03T19:30 | DATA (Claude Code, Pro, Opus 5.5) | Q&A lines for the space-heat share (H1 kept 0.75, RECS range 72-74%) and furnace efficiency | reviewed by H3 (pending)
+2026-10-03T19:40 | DATA (Claude Code, Pro, Opus 5.5) | Comfort floor wording per H3: 62°F in all copy and the demo; 60°F described as a study-only simulator setting (qa #7, devpost, one-pager v2, test plan E1/P3) | reviewed by H3

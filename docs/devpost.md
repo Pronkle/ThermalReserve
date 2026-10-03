@@ -25,7 +25,7 @@ Smart-thermostat demand response already exists elsewhere, but short events most
 Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat setbacks to keep total gas demand under a daily capacity line. It's a simulation: it does not control real thermostats.
 
 - **Operator console (`/ops`).** Load a cold-snap scenario, compare three strategies (no program, a naive 4-hour morning setback, and an optimized plan), solve and dispatch the plan, and watch the live run on a map of 1,000 sample homes, a fleet chart, and KPIs with formulas and labels. [SCREENSHOT: ops console mid-event]
-- **Household app (`/home`).** Scan a QR code, join in three taps, and see your indoor temperature, setpoint, status, and gas saved. Override any time; your share moves to other homes, never below the comfort floor. [SCREENSHOT: phone app]
+- **Household app (`/home`).** Scan a QR code, join in three taps, and see your indoor temperature, setpoint, status, and gas saved. Override any time; your share moves to other homes, never below the 62°F comfort floor. [SCREENSHOT: phone app]
 - **What-if calculator (`/whatif`).** Pick participation, setback depth, outdoor temperature, and days; see MMcf/day, share of the needle-peak supply, and value, with every formula and constant shown. [SCREENSHOT]
 - **Validation (`/validation`).** The same physics run under ConEd-like and SoCalGas-like conditions, next to the published results, with pass bands. [SCREENSHOT: validation page]
 
