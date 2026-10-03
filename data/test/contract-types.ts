@@ -48,7 +48,7 @@ export const REQUIRED_CONSTANT_KEYS = [
   'annual_bcf', 'deliverability_loss_mmcfd', 'needle_peak_mmcfd', 'marginal_price_usd_mcf',
   'avg_home_mcf_year', 'customers', 'lng_earliest',
   'socal_event_pct', 'socal_daily_pct', 'coned_snapback_pct', 'winter_optout_pct',
-  'socal_cost_usd_therm', 'rebate_upfront_usd', 'rebate_annual_usd',
+  'socal_cost_usd_therm', 'rebate_upfront_usd', 'rebate_annual_usd', 'energy_watch_2012_pct',
   'hhv_btu_per_cf', 'space_heat_share', 'eta_furnace', 'eta_boiler', 'hdd_annual',
   'ua_mean_btuh_per_f', 'setpoint_day_f', 'floor_default_f', 'floor_min_f', 'max_depth_default_f',
   'exempt_share', 'tier2_effectiveness', 'override_rate',
