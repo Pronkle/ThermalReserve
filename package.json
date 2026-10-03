@@ -1,0 +1,30 @@
+{
+  "name": "thermal-reserve",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "stdb",
+    "data"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build -w apps/web",
+    "dev": "npm run dev -w apps/web",
+    "sync-physics": "node scripts/sync-physics.mjs",
+    "check-physics": "node scripts/sync-physics.mjs --check",
+    "data": "tsx data/scripts/build.ts",
+    "stdb:publish": "spacetime publish thermal-reserve --module-path stdb --yes",
+    "stdb:generate": "spacetime generate --lang typescript --out-dir packages/stdb-bindings/src --module-path stdb"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  }
+}
