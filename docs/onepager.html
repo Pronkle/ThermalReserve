@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thermal Reserve one-pager</title>
+<!-- Print layout of docs/onepager.md (keep the two in sync). Export:
+     chromium --headless --no-pdf-header-footer --print-to-pdf=docs/onepager.pdf docs/onepager.html -->
+<style>
+  @page { size: Letter; margin: 0.45in 0.55in; }
+  :root { --ink: #0B1220; --muted: #4A5568; --rule: #D5DCE6; --ice: #1F7FA8; --amber: #B26A00; --green: #1F7A4D; --bg-soft: #F3F6FA; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); font: 9.6pt/1.38 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #fff; }
+  h1 { font-size: 22pt; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 10.5pt; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ice); }
+  p { margin: 0 0 6px; }
+  ul { margin: 0 0 4px; padding-left: 16px; }
+  li { margin: 0 0 2px; }
+  .head { display: grid; grid-template-columns: 1fr 1.05in; gap: 16px; align-items: center; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+  .pitch { font-size: 11.5pt; font-weight: 600; margin-top: 4px; }
+  .url { color: var(--muted); margin-top: 4px; }
+  .url b { color: var(--ink); }
+  .qr { width: 1.05in; height: 1.05in; border: 1.5px dashed var(--amber); border-radius: 8px; display: grid; place-items: center; text-align: center; font-size: 7.5pt; color: var(--amber); padding: 6px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 2px 0 4px; }
+  th, td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 8pt; color: var(--muted); font-weight: 600; }
+  td.n { text-align: right; white-space: nowrap; }
+  .chip { display: inline-block; font-size: 7pt; padding: 0 5px; border-radius: 6px; border: 1px solid var(--rule); color: var(--muted); vertical-align: 1px; }
+  .note { font-size: 8.4pt; color: var(--muted); }
+  .todo { border: 1.5px dashed var(--amber); color: var(--amber); border-radius: 6px; padding: 1px 6px; font-weight: 600; font-size: 8pt; }
+  .callout { background: var(--bg-soft); border-radius: 10px; padding: 7px 10px; margin-top: 6px; }
+  .arch { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; align-items: center; font-size: 8.2pt; }
+  .box { border: 1px solid var(--rule); border-radius: 8px; padding: 6px 8px; background: #fff; }
+  .box b { display: block; font-size: 8.6pt; }
+  .arrow { color: var(--ice); font-weight: 700; }
+  .foot { margin-top: 10px; border-top: 1px solid var(--rule); padding-top: 6px; display: flex; justify-content: space-between; font-size: 8.4pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div>
+    <h1>Thermal Reserve</h1>
+    <div class="pitch">Multi-day, snapback-aware thermostat setbacks that keep Southcentral Alaska's gas demand under the line on the coldest days.</div>
+    <div class="url">Try it on your phone: <b>thermal-reserve.vercel.app/home</b></div>
+  </div>
+  <div class="qr">QR code<br>UNFINISHED<br>(WEB supplies)</div>
+</div>
+
+<div class="cols">
+  <div>
+    <h2>The problem</h2>
+    <ul>
+      <li>Enstar's president told lawmakers the utility could enter this winter about <b>3 Bcf short</b>, about <b>18 days</b> of winter supply. <span class="chip">sourced</span></li>
+      <li>Cook Inlet storage held <b>~6.54 Bcf</b> on Aug 7, 2026, of 13 Bcf working capacity. <span class="chip">sourced</span></li>
+      <li>In a shortage, Enstar would ask <b>large commercial and industrial users to cut first</b>, before homes. LNG imports may not be ready until <b>late 2029</b>. <span class="chip">sourced</span></li>
+      <li>Short thermostat events elsewhere mostly shift gas use later: ConEd measured <b>52%</b> of savings lost to snapback. <span class="chip">sourced</span></li>
+    </ul>
+
+    <h2>What we built</h2>
+    <p>A <b>simulation</b>, not real thermostat control. An operator console plans and dispatches setbacks across a simulated fleet of Anchorage homes (24 home types, 1,000 map dots), solving a linear program for the least discomfort that keeps each gas day under capacity.</p>
+    <p>Households join from a phone, see indoor temperature and gas saved, and can override in one tap. A <b>62°F comfort floor</b> (never below 60°F) is enforced on the server; households needing steady heat are exempt.</p>
+
+    <h2>How it works</h2>
+    <div class="arch">
+      <div class="box"><b>Browser</b>React on Vercel: charts, map, what-if, HiGHS linear program</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>SpacetimeDB</b>Maincloud: scheduled reducer runs house physics every second</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>Every screen</b>Console and phones update live</div>
+    </div>
+    <p class="note" style="margin-top:4px">One physics file runs in the browser and on the server; a test checks they match.</p>
+  </div>
+
+  <div>
+    <h2>Honest impact</h2>
+    <p class="note">Sustained setback at −20°F, automated homes only. <span class="chip">derived</span> UA 415.2 BTU/(h·°F) from Enstar's 149 Mcf average home and 30 years of Anchorage degree-days; efficiency 0.85 and 1,030 BTU/cf <span class="chip">assumed</span></p>
+    <table>
+      <tr><th>Enrolled homes</th><th>5°F setback</th><th>Share of 20 MMcf/day needle peak</th><th>Value at $17.50/Mcf</th></tr>
+      <tr><td>10,000</td><td class="n">0.57 MMcf/day</td><td class="n">2.8%</td><td class="n">~$10,000/day</td></tr>
+      <tr><td>25,000</td><td class="n">1.42 MMcf/day</td><td class="n">7.1%</td><td class="n">~$24,900/day</td></tr>
+      <tr><td>50,000</td><td class="n">2.85 MMcf/day</td><td class="n">14.2%</td><td class="n">~$49,800/day</td></tr>
+    </table>
+    <div class="callout"><b>What it doesn't do:</b> fix the seasonal shortfall. Over 20 cold days, 25,000 homes save ~28 MMcf, under 1% of 3 Bcf. It's a deliverability tool for the worst days.</div>
+
+    <h2>Validation <span class="todo">UNFINISHED</span></h2>
+    <p class="note">Same physics, run under published pilot conditions. Only results the final test produced will be shown.</p>
+    <table>
+      <tr><th>Test</th><th>Published</th><th>Ours</th><th>Band</th><th>Result</th></tr>
+      <tr><td>ConEd-like snapback</td><td>retention 0.48</td><td><span class="todo">TBD</span></td><td class="n">0.38–0.58</td><td><span class="todo">TBD</span></td></tr>
+      <tr><td>SoCalGas-like daily</td><td>2.2%</td><td><span class="todo">TBD</span></td><td class="n">1.5–3.0%</td><td><span class="todo">TBD</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="foot">
+  <div>Team: [H1 NAME] · [H2 NAME] · [H3 NAME] <span class="todo">UNFINISHED</span> · MHacks 2026</div>
+  <div>Every number labeled sourced, derived, or assumed · sources: docs/sources.md</div>
+</div>
+
+</body>
+</html>
