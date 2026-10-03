@@ -35,3 +35,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-03T19:30 | DATA (Claude Code, Pro, Opus 5.5) | Q&A lines for the space-heat share (H1 kept 0.75, RECS range 72-74%) and furnace efficiency | reviewed by H3 (pending)
 2026-10-03T19:40 | DATA (Claude Code, Pro, Opus 5.5) | Comfort floor wording per H3: 62°F in all copy and the demo; 60°F described as a study-only simulator setting (qa #7, devpost, one-pager v2, test plan E1/P3) | reviewed by H3
 2026-10-03T18:32 | STDB (Claude Code, Pro, Opus 5.5) | Household floor: real households never below 62°F regardless of the operator floor; verified live on the dev database | reviewed by H1
+2026-10-03T19:50 | DATA (Claude Code, Pro, Opus 5.5) | Merged stdb/household-floor (H1: real households never below 62°F; 60°F only for the simulated fleet, for study); qa #7 and test plan P3/P12 updated | reviewed by H3 (pending)
