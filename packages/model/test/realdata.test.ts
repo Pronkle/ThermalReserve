@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { anchorageSanity, buildCohorts, compareStrategies, loadConstants, solvePlan, whatIf } from '../src/index';
+import { anchorageSanity, buildCohorts, compareStrategies, gasDays, loadConstants, runPlan, solvePlan, whatIf } from '../src/index';
 import type { CohortSpec, ConstantsJson, Scenario } from '../src/index';
 import constantsJson from '../../../data/constants.json';
 import cohortSpecJson from '../../../data/cohort_spec.json';
 import designJson from '../../../data/scenarios/design.json';
+import feb2024Json from '../../../data/scenarios/feb2024.json';
 
 // Smoke test against DATA's live files (fixtures pin the numbers; this catches drift between them).
 const consts = loadConstants(constantsJson as unknown as ConstantsJson);
@@ -34,5 +35,23 @@ describe('real data files', () => {
     const expected = ((consts.uaMeanBtuHPerF * 5 * 24) / (consts.etaFurnace * consts.hhvBtuPerCf)) * homes / 1e6;
     const w = whatIf({ participationPct: (homes / consts.customers) * 100, setbackF: 5, outdoorF: -20, days: 3, tier2Pct: 0 }, consts);
     expect(Math.abs(w.mmcfPerDay - expected) / expected).toBeLessThanOrEqual(0.03);
+  });
+
+  it('feb2024 demo preset: OPTIMIZED relieves the over-capacity day and moves snapback to a day with headroom', async () => {
+    const feb = feb2024Json as unknown as Scenario;
+    const c = { ...cfg, overrideRate: 0, capacityMMcfd: feb.capacityMMcfd };
+    const p = await solvePlan(feb, cohorts, c, 'OPTIMIZED', consts);
+    expect(p.note).toBeUndefined();
+    expect(p.solveMs!).toBeLessThan(5000);
+    const opt = gasDays(runPlan(feb, cohorts, c, p, consts));
+    const sus = gasDays(compareStrategies(feb, cohorts, c, consts).SUSTAIN_STAGGER);
+    const tight = opt.filter((d) => d.overCapacityWithoutProgram);
+    expect(tight.length).toBeGreaterThan(0);
+    for (const d of tight) {
+      expect(d.reliefMMcf).toBeGreaterThan(sus[d.day].reliefMMcf);
+      expect(d.uncoveredMMcf).toBeLessThan(sus[d.day].uncoveredMMcf);
+    }
+    // Snapback (negative relief) only lands on days that stay under capacity.
+    for (const d of opt) if (d.reliefMMcf < 0) expect(d.uncoveredMMcf).toBe(0);
   });
 });
