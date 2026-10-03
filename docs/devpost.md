@@ -43,15 +43,15 @@ Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat s
 
 ## 4. Validation
 
-⏳ Fill from ENGINE's final test output. Claim a pass only where the test produced one.
+Results from ENGINE's validation tests (E4, `engine/e4` f591cc5, after tuning only Ca, Ham and the mass time constant within their allowed ranges). ⏳ Re-read from the test output once that commit is on `main`.
 
 | Test | Conditions (assumed) | Published | Our model | Band | Result |
 | --- | --- | --- | --- | --- | --- |
-| ConEd-like snapback | 30°F outside, 70°F, −4°F from 06:00 to 10:00 | 52% of savings lost (retention 0.48) | [RETENTION] | 0.38–0.58 | [PASS/FAIL] |
-| SoCalGas-like daily savings | 45°F outside, 68°F, −4°F from 06:00 to 10:00; response rate fitted to the 15.1% event-hour cut | 2.2% net daily | [DAILY %] | 1.5–3.0% | [PASS/FAIL] |
-| Anchorage sanity | −20°F outside, 70°F | ~1.0 Mcf/home/day (derived) | [MCF/DAY] | — | — |
+| ConEd-like snapback | 30°F outside, 70°F, −4°F from 06:00 to 10:00 | 52% of savings lost (retention 0.48) | retention 0.473 (derived) | 0.38–0.58 | **Pass** |
+| SoCalGas-like daily savings | 45°F outside, 68°F, −4°F from 06:00 to 10:00; response rate fitted to the 15.1% event-hour cut (r = 0.30) | 2.2% net daily | 1.16% (derived) | 1.5–3.0% | **Gap**: below the band |
+| Anchorage sanity | −20°F outside, 70°F | ~1.0 Mcf/home/day (derived from 149 Mcf/year) | 1.04 Mcf/home/day (derived) | — | Consistent |
 
-[IF A BAND IS MISSED: one honest sentence saying our model is more pessimistic or optimistic than measured, and that we apply the measured value as a correction factor.]
+**The gap, stated plainly.** Our model reproduces ConEd's snapback but is more pessimistic than SoCalGas on daily savings: 1.16% against a published 2.2% (best reachable within the allowed parameter ranges was about 1.35%). The two pilots imply very different retention (about 48% for ConEd, about 87% for SoCalGas), and one physical model can't match both. We show the gap on the validation page instead of tuning past physically plausible values; if anything, our daily-savings numbers err low.
 
 ## 5. Honest impact
 
@@ -74,7 +74,7 @@ What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,0
 
 ## 7. Accomplishments, what we learned, and what's next
 
-[ACCOMPLISHMENTS: fill after the end-to-end test, e.g. live run tracking the optimized plan within X% per hour.]
+On the Feb 2024 replay with 25,000 homes, only Feb 2 exceeds the (hypothetical) capacity line, by 3.00 MMcf. The optimized plan cuts that day's uncovered shortfall to 0.86 MMcf, against 1.64 for a rule-based staggered plan and 2.80 for a naive 4-hour morning setback; its snapback lands on Feb 3, which has spare capacity (all derived from the model). [ADD: live run tracking the optimized plan within X% per hour, after the end-to-end test.]
 
 **Learned:** short events mostly move gas use around; multi-day planning with staggered recovery is where net daily savings come from.
 
