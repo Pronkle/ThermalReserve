@@ -121,7 +121,7 @@ Four routes in one React app, all reading one Spacetime database: `/ops` (operat
 3. Screen 3 (consent): "During a gas emergency your heat may be lowered up to N°F, never below 62°F. Override any time." Button: "Join".
 4. Live card: indoor °F (big), setpoint, status (Normal / Holding −5°F / Recovering / Exempt / Overridden), sim clock, countdown to event end, **Override** button (red outline; becomes "Rejoin event" after use).
 5. Savings: cubic feet saved this event, dollars at $17.50/Mcf, community total and a bar toward the day's relief target.
-6. Footer: "Why this matters" sheet: businesses are curtailed before homes; your saving keeps one open.
+6. Footer: "Why this matters" sheet: "If gas runs short, Enstar's plan cuts large commercial and industrial customers first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time."
 
 **What-if `/whatif` (public, mobile-first).** Inputs: participation % of \~150,000 customers (0–50), setback °F (1–10), outdoor °F (−40 to 30), days (1–10), Tier 2 pledged homes % (0–50) at 30% effectiveness (assumed). Outputs: MMcf/day, % of needle peak, % of 2024 deliverability loss, % of 3 Bcf over the days chosen, $/day. A "Show the math" expander prints each formula with constants and labels.
 
