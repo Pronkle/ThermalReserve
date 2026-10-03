@@ -40,6 +40,14 @@ describe('strategies and runner (E3)', () => {
     expect(r.totals.netSavedMMcf).toBeGreaterThan(0);
   });
 
+  it('uncovered shortfall is per gas day, not per hour', () => {
+    const sc = designScenario(); // 265 MMcf every day, peaking at 5.4% in one hour
+    const r = compareStrategies(sc, cohorts, { ...cfg, capacityMMcfd: 266 }, consts);
+    expect(r.BASELINE.totals.uncoveredShortfallMMcf).toBe(0); // hourly peaks exceed 266 ÷ 24, the days do not
+    const tight = compareStrategies(sc, cohorts, { ...cfg, capacityMMcfd: 264 }, consts);
+    expect(tight.BASELINE.totals.uncoveredShortfallMMcf).toBeCloseTo(4, 6);
+  });
+
   it('compareStrategies on 96 hours runs under 500 ms', () => {
     const sc = designScenario();
     compareStrategies(sc, cohorts, cfg, consts);

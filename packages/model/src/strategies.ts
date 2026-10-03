@@ -152,18 +152,25 @@ export function runPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig,
 }
 
 function totalsOf(sc: Scenario, hours: HourResult[], degreeHoursBelowNormal: number): RunResult['totals'] {
-  let fleet = 0, baseline = 0, eventHourSaved = 0, uncovered = 0;
+  let fleet = 0, baseline = 0, eventHourSaved = 0;
   let peakIdx = -1, peakBase = -Infinity;
   for (const r of hours) {
     fleet += r.fleetGasMMcfh;
     baseline += r.baselineFleetGasMMcfh;
     if (r.cohorts.some((c) => c.mode === 'holding')) eventHourSaved += r.baselineFleetGasMMcfh - r.fleetGasMMcfh;
-    uncovered += Math.max(0, r.systemMMcfh - r.capacityMMcfh);
     const sysBase = r.systemMMcfh - r.fleetGasMMcfh + r.baselineFleetGasMMcfh;
     if (r.hour >= sc.eventStartHour && r.hour < sc.eventEndHour && sysBase > peakBase) {
       peakBase = sysBase;
       peakIdx = r.hour;
     }
+  }
+  // Capacity is a daily limit per gas day (hours [24d, 24d+24)); a partial last day gets a pro-rated limit.
+  let uncovered = 0;
+  for (let d = 0; d * 24 < hours.length; d++) {
+    const day = hours.slice(d * 24, d * 24 + 24);
+    const total = day.reduce((s, r) => s + r.systemMMcfh, 0);
+    const cap = day.reduce((s, r) => s + r.capacityMMcfh, 0);
+    uncovered += Math.max(0, total - cap);
   }
   const eventDays = Math.max(1e-9, (sc.eventEndHour - sc.eventStartHour) / 24);
   const peak = peakIdx >= 0 ? hours[peakIdx] : undefined;
