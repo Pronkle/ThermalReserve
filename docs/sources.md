@@ -27,6 +27,19 @@ Every link below was opened on 2026-10-03 and returned the page (HTTP 200). The 
 | SoCalGas, Demand Response application A.23-01, Chapter 1 (Darren Hanway), Jan 6, 2023. <https://www.socalgas.com/sites/default/files/2023-01/DR_Application_Chapter_1_Policy.pdf> | `socal_cost_usd_therm` | Proposed pilots: "average levelized cost of $17.65/therm shifted or shed" (a projection) |
 | SoCalGas press release, "SoCalGas Makes Energy Saving This Winter Even Smarter with New Smart Therm Program", Dec 20, 2018. <https://www.prnewswire.com/news-releases/socalgas-makes-energy-saving-this-winter-even-smarter-with-new-smart-therm-program-300769742.html> | `rebate_upfront_usd`, `rebate_annual_usd` | "$50 incentive, plus an additional $25 for staying enrolled through April 1, 2019" |
 
+## Context used in the Q&A (`docs/qa.md`)
+
+Each page opened on 2026-10-03; none of these feed a constant.
+
+| Source | Supports | Supporting text (short) |
+| --- | --- | --- |
+| Homer News (Jeffrey Kennett), Sep 10, 2026 (link above) | Curtailment order; Kenai mayor (Q&A 13) | Enstar "would first look to large commercial and industrial users for reductions before residential customers"; Knackstedt offered to share conservation information "if Enstar develops guidance showing how measures such as lowering thermostats could help" |
+| ADN (Suzanna Caldwell), Nov 6, 2012 (link above) | Earlier Energy Watch results (Q&A 1) | "In past years, the reduction was between 2 to 4 percent" |
+| Must Read Alaska (Todd M Lindley), "Analysis: Hilcorp, HEX, and Chugach tell lawmakers this winter can be covered, 2029 cannot", Sep 11, 2026. <https://mustreadalaska.com/analysis-hilcorp-hex-and-chugach-tell-lawmakers-this-winter-can-be-covered-2029-cannot/> | Q&A 19 | Hilcorp storage gas "can be available today if contracts are adjusted"; "Come winter 2029 we will need LNG imports or access to North Slope gas" |
+| Alaska Public Media (Kavitha George), "Railbelt electric utilities are facing a major energy crunch. Renewables may be the answer.", Apr 9, 2024. <https://alaskapublic.org/2024/04/09/railbelt-electric-utilities-are-facing-a-major-energy-crunch-renewables-may-be-the-answer/> | Q&A 14 | "Two-thirds of the region's electricity is currently generated from Cook Inlet natural gas" |
+| Google, Device Access registration. <https://developers.google.com/nest/device-access/registration>; thermostat setpoint trait (SetHeat): <https://developers.google.com/nest/device-access/traits/device/thermostat-temperature-setpoint> | Q&A 6 | "a one-time, non-refundable fee (US$5) per account"; `SetHeat` sets the heat setpoint in HEAT mode |
+| ecobee, Developer API page. <https://www.ecobee.com/en-us/developers/> | Q&A 6 | "we are not currently accepting new developer registrations at this time" (no date on the page) |
+
 ## Weather
 
 | Source | Supports |
