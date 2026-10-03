@@ -60,7 +60,7 @@ Run on each phone; record iOS and Android results separately.
 
 ## 4. Numbers
 
-Every number on screen must trace to `data/constants.json` or a model function, with a label (AGENTS.md Section 2). "Expected" values were computed on `main` 615b4d6 (UA 398.3, HHV 988, tuned `cohort_spec.json`) and match ENGINE's `packages/model/NUMBERS.md`; if a constant changes, recompute them from the reference. Tolerance is display rounding (MMcf/day 2 dp, °F 1 dp, % 1 dp, $ nearest 100) unless stated.
+Every number on screen must trace to `data/constants.json` or a model function, with a label (AGENTS.md Section 2). "Expected" values were computed on `main` (615b4d6; demo values updated for 6% overrides per ENGINE, d29e79e) (UA 398.3, HHV 988, tuned `cohort_spec.json`) and match ENGINE's `packages/model/NUMBERS.md`; if a constant changes, recompute them from the reference. Tolerance is display rounding (MMcf/day 2 dp, °F 1 dp, % 1 dp, $ nearest 100) unless stated.
 
 | # | Where | Expected on screen | Reference | Result |
 | --- | --- | --- | --- | --- |
@@ -68,8 +68,8 @@ Every number on screen must trace to `data/constants.json` or a model function, 
 | N2 | `/whatif` "Show the math" | 9 formula lines, printed verbatim, each constant with its label in brackets (e.g. "UA 398 BTU/(h·°F) [derived]", "HHV 988 BTU/cf [sourced]") | `whatIf().formulaLines` | |
 | N3 | `/whatif` shares and value at defaults | **7.1%** of needle peak · **5.0%** of 2024 deliverability loss · **0.14%** of 3 Bcf (3 days) · **$24,900/day** | `whatIf()` fields | |
 | N3b | `/whatif` copy | Changing outdoor °F does **not** change the result, and the page doesn't imply colder = more savings | NUMBERS.md note | |
-| N4 | `/ops` KPIs, `feb2024`, 25,000 homes, OPTIMIZED dispatched, run finished | Relief on the tightest day (Feb 2) **2.15 MMcf/day** · uncovered shortfall **0.85 MMcf/day** · value = tightest-day relief × $17.50/Mcf (~$37,600/day) | `gasDays(runPlan(...))` | |
-| N4b | Same, uncovered shortfall per strategy | none **3.00** · NAIVE_4H **2.80** · SUSTAIN_STAGGER **1.64** · OPTIMIZED **0.85** MMcf/day | `gasDays()` | |
+| N4 | `/ops` KPIs after **Demo preset** (`feb2024`, 25,000 homes, 6% overrides), OPTIMIZED dispatched | Relief on the tightest day (Feb 2) **2.06 MMcf/day** · uncovered shortfall **0.94 MMcf/day** · value **$36,100/day** (tightest-day relief × $17.50/Mcf). With overrides set to 0: 2.15 / 0.85 / $37,600 | `gasDays(runPlan(...))`; NUMBERS.md | |
+| N4b | Same (Demo preset, 6% overrides), uncovered shortfall per strategy | none **3.00** · naive **2.80** · staggered **1.69** · optimized **0.94** MMcf/day (overrides 0: 3.00 / 2.80 / 1.64 / 0.85) | `gasDays()`; NUMBERS.md | |
 | N4c | `/ops` minimum indoor and homes at floor | Min indoor may read 64.0°F (night setback homes); homes at floor counts only program-held homes; overrides 0 under BASELINE | NUMBERS.md `/ops` table | |
 | N5 | `/ops` capacity default per scenario | design **292.5** · feb2024 **265.0** · lastwinter **251.3** MMcf/day | `capacityMMcfd` in `data/scenarios/<id>.json` | |
 | N6 | `/validation` ConEd card | retention **0.465** (shown 0.47 at 2 dp), target 0.48, band 0.38–0.58, **pass** | `validateConEdLike()` | |
