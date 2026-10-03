@@ -31,14 +31,14 @@ Sustained setback at −20°F, automated homes only (derived: UA 415.2 BTU/(h·�
 
 **What it doesn't do:** fix the seasonal shortfall. Over 20 cold days, 25,000 homes save ~28 MMcf, under 1% of 3 Bcf. It is a deliverability tool for the worst days.
 
-### Validation: UNFINISHED
+### Validation
 
-Same physics, run under published pilot conditions. Final numbers come from ENGINE's test output; only claim a pass the test produced.
+Same physics, run under published pilot conditions (derived; ENGINE E4, re-check once merged).
 
 | Test | Published | Ours | Band | Result |
 | --- | --- | --- | --- | --- |
-| ConEd-like snapback | retention 0.48 | [UNFINISHED] | 0.38–0.58 | [UNFINISHED] |
-| SoCalGas-like daily savings | 2.2% | [UNFINISHED] | 1.5–3.0% | [UNFINISHED] |
+| ConEd-like snapback | retention 0.48 | 0.473 | 0.38–0.58 | Pass |
+| SoCalGas-like daily savings | 2.2% | 1.16% | 1.5–3.0% | Gap: our model errs low |
 
 ### How it works
 

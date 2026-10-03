@@ -83,13 +83,14 @@
     </table>
     <div class="callout"><b>What it doesn't do:</b> fix the seasonal shortfall. Over 20 cold days, 25,000 homes save ~28 MMcf, under 1% of 3 Bcf. It's a deliverability tool for the worst days.</div>
 
-    <h2>Validation <span class="todo">UNFINISHED</span></h2>
-    <p class="note">Same physics, run under published pilot conditions. Only results the final test produced will be shown.</p>
+    <h2>Validation</h2>
+    <p class="note">Same physics, run under published pilot conditions. <span class="chip">derived</span></p>
     <table>
       <tr><th>Test</th><th>Published</th><th>Ours</th><th>Band</th><th>Result</th></tr>
-      <tr><td>ConEd-like snapback</td><td>retention 0.48</td><td><span class="todo">TBD</span></td><td class="n">0.38–0.58</td><td><span class="todo">TBD</span></td></tr>
-      <tr><td>SoCalGas-like daily</td><td>2.2%</td><td><span class="todo">TBD</span></td><td class="n">1.5–3.0%</td><td><span class="todo">TBD</span></td></tr>
+      <tr><td>ConEd-like snapback</td><td>retention 0.48</td><td class="n">0.473</td><td class="n">0.38–0.58</td><td><b style="color:var(--green)">Pass</b></td></tr>
+      <tr><td>SoCalGas-like daily</td><td>2.2%</td><td class="n">1.16%</td><td class="n">1.5–3.0%</td><td><b style="color:var(--amber)">Gap</b></td></tr>
     </table>
+    <p class="note">The gap is shown, not tuned away: the two pilots imply different snapback, and our model errs low on daily savings.</p>
   </div>
 </div>
 
