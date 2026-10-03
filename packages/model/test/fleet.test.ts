@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildCohorts, sampleHomes } from '../src/index';
-import type { Anchor } from '../src/index';
+import { buildCohorts, inWater, sampleHomes } from '../src/index';
+import type { Anchor, WaterMask } from '../src/index';
 import { cfg, consts, designScenario, spec } from './helpers';
 
 const anchors: Anchor[] = [
@@ -50,5 +50,34 @@ describe('fleet (E2)', () => {
     const exempt = a.filter((h) => h.exempt).length / a.length;
     expect(exempt).toBeGreaterThan(0.05);
     expect(exempt).toBeLessThan(0.11);
+  });
+});
+
+describe('sampleHomes water mask', () => {
+  const cohorts = buildCohorts(spec, consts.uaMeanBtuHPerF);
+  // A box covering the western half of the Downtown anchor's jitter circle.
+  const mask: WaterMask = [[[61.20, -149.96], [61.24, -149.96], [61.24, -149.8997], [61.20, -149.8997]]];
+
+  it('inWater handles inside, outside and multiple rings', () => {
+    expect(inWater(61.22, -149.93, mask)).toBe(true);
+    expect(inWater(61.22, -149.88, mask)).toBe(false);
+    expect(inWater(61.5, -149.93, [...mask, [[61.4, -150], [61.6, -150], [61.6, -149.9], [61.4, -149.9]]])).toBe(true);
+  });
+
+  it('moves only homes in water, keeps them near their anchor, and is deterministic', () => {
+    const sc = designScenario();
+    const plain = sampleHomes(cohorts, anchors, 1000, cfg, sc);
+    const masked = sampleHomes(cohorts, anchors, 1000, cfg, sc, mask);
+    expect(sampleHomes(cohorts, anchors, 1000, cfg, sc, mask)).toEqual(masked);
+    let moved = 0;
+    plain.forEach((h, i) => {
+      const m = masked[i];
+      expect(inWater(m.lat, m.lon, mask)).toBe(false);
+      expect({ ...m, lat: 0, lon: 0 }).toEqual({ ...h, lat: 0, lon: 0 });
+      if (inWater(h.lat, h.lon, mask)) moved++;
+      else expect(m).toEqual(h);
+      expect(Math.min(...anchors.map((x) => km(x, m)))).toBeLessThanOrEqual(3);
+    });
+    expect(moved).toBeGreaterThan(0);
   });
 });

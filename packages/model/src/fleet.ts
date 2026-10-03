@@ -64,12 +64,30 @@ function pickWeighted<T>(items: T[], weight: (t: T) => number, u: number): numbe
   return items.length - 1;
 }
 
+/** Polygon rings as [lat, lon] vertices (data/water_mask.json). */
+export type WaterMask = [number, number][][];
+
+/** Ray-casting point-in-polygon on [lat, lon] rings (fine at city scale). */
+export function inWater(lat: number, lon: number, mask: WaterMask): boolean {
+  for (const ring of mask) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [yi, xi] = ring[i], [yj, xj] = ring[j];
+      if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    if (inside) return true;
+  }
+  return false;
+}
+
+const WATER_RETRIES = 20;
+
 /**
  * Deterministic sample homes for the map. Placed near weighted anchors (uniform within 2 km),
  * cohort drawn by share, exempt with probability exemptShare, and overrideRate of non-exempt homes
- * get an overrideHour uniform within the event window.
+ * get an overrideHour uniform within the event window. With `waterMask`, points that land in water are re-drawn.
  */
-export function sampleHomes(cohorts: CohortParams[], anchors: Anchor[], n: number, cfg: FleetConfig, sc: Scenario): SampleHome[] {
+export function sampleHomes(cohorts: CohortParams[], anchors: Anchor[], n: number, cfg: FleetConfig, sc: Scenario, waterMask?: WaterMask): SampleHome[] {
   const rng = mulberry32(cfg.seed);
   const homes: SampleHome[] = [];
   const eventLen = sc.eventEndHour - sc.eventStartHour;
@@ -77,10 +95,19 @@ export function sampleHomes(cohorts: CohortParams[], anchors: Anchor[], n: numbe
     // Fixed draw order per home keeps results stable.
     const uAnchor = rng(), uR = rng(), uTheta = rng(), uCohort = rng(), uExempt = rng(), uOverride = rng(), uHour = rng();
     const a = anchors[pickWeighted(anchors, (x) => x.weight, uAnchor)];
-    const rKm = JITTER_MAX_KM * Math.sqrt(uR);
-    const theta = 2 * Math.PI * uTheta;
-    const lat = a.lat + (rKm * Math.cos(theta)) / KM_PER_DEG_LAT;
-    const lon = a.lon + (rKm * Math.sin(theta)) / (KM_PER_DEG_LAT * Math.cos((a.lat * Math.PI) / 180));
+    const place = (ur: number, ut: number): [number, number] => {
+      const rKm = JITTER_MAX_KM * Math.sqrt(ur);
+      const theta = 2 * Math.PI * ut;
+      return [a.lat + (rKm * Math.cos(theta)) / KM_PER_DEG_LAT, a.lon + (rKm * Math.sin(theta)) / (KM_PER_DEG_LAT * Math.cos((a.lat * Math.PI) / 180))];
+    };
+    let [lat, lon] = place(uR, uTheta);
+    if (waterMask && inWater(lat, lon, waterMask)) {
+      // Re-draw from a per-home stream so homes on land keep their positions; fall back to the anchor (on land).
+      const retry = mulberry32((cfg.seed ^ Math.imul(id + 1, 0x9e3779b1)) >>> 0);
+      let k = 0;
+      do { [lat, lon] = place(retry(), retry()); } while (inWater(lat, lon, waterMask) && ++k < WATER_RETRIES);
+      if (inWater(lat, lon, waterMask)) [lat, lon] = [a.lat, a.lon];
+    }
     const cohortId = cohorts[pickWeighted(cohorts, (c) => c.share, uCohort)].id;
     const exempt = uExempt < cfg.exemptShare;
     const overrideHour = !exempt && uOverride < cfg.overrideRate ? sc.eventStartHour + uHour * eventLen : null;
