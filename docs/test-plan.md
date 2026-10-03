@@ -105,6 +105,17 @@ Production bundle `index-CMwD9--i.js` = main a60e3e3.
 | `/ops` Staggered preview, feb2024, 25k: tightest-day relief 1.31, value $22,900 (= 1.31 × $17,500), uncovered 1.69 (matches NUMBERS.md, 6% overrides) | PASS |
 | Join flow, override, reload (P2–P9, P11, P12) | Not run (would add a household to production); real phones at 02:00 |
 
+### Run 0: H1's real-phone check on production, Sat ~18:45 (reported by STDB msg 132, ENGINE msg 134)
+
+| Check | Result |
+| --- | --- |
+| Two real phones joined via https://thermal-reserve.vercel.app/home and ticked through a `feb2024` OPTIMIZED run to hour 96 | PASS (H1 reports it worked; server shows 2 households) |
+| Household floor 62°F on both (P12 server side) | PASS (`floor_f` = 62 each) |
+| Live household saving vs model | PASS: `saved_cf` ≈ 63 cf vs NUMBERS.md ~64 cf (steady-average-light template) |
+| Event log: dispatch, 2 joins, override and reassign entries (E5, E6) | PASS (server side); which override entries came from the phones is not distinguishable |
+| Devices (one iOS, one Android?) | **Unknown: H1 to confirm.** Run 1 at 02:00 covers both explicitly |
+| Join time, map-dot timing, reload persistence, consent text (P1–P11) | Not recorded; covered in Run 1 |
+
 ## 5. Failure modes
 
 | # | How to cause it | Expected | Result |
