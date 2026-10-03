@@ -10,6 +10,7 @@ import designJson from '../scenarios/design.json';
 import feb2024Json from '../scenarios/feb2024.json';
 import lastwinterJson from '../scenarios/lastwinter.json';
 import systemFitJson from '../system_fit.json';
+import waterMaskJson from '../water_mask.json';
 import calibrationJson from '../calibration.json';
 
 import {
@@ -202,4 +203,42 @@ describe('system_fit.json and scenario demand (D2)', () => {
       });
     }
   }
+});
+
+describe('water_mask.json', () => {
+  // ENGINE's WaterMask: rings of [lat, lon]; a point is water if inside any ring.
+  const mask: [number, number][][] = waterMaskJson as [number, number][][];
+  const inRing = (lat: number, lon: number, ring: [number, number][]): boolean => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [yi, xi] = ring[i];
+      const [yj, xj] = ring[j];
+      if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
+
+  it('is a non-empty array of closed [lat, lon] rings near the anchors', () => {
+    expect(mask.length).toBeGreaterThan(0);
+    for (const ring of mask) {
+      expect(ring.length).toBeGreaterThanOrEqual(4);
+      expect(ring[0]).toEqual(ring[ring.length - 1]);
+      for (const [lat, lon] of ring) {
+        expect(lat).toBeGreaterThan(60);
+        expect(lat).toBeLessThan(62);
+        expect(lon).toBeGreaterThan(-152);
+        expect(lon).toBeLessThan(-148.5);
+      }
+    }
+  });
+
+  it('leaves every anchor on land', () => {
+    for (const a of anchors) expect(mask.some((r) => inRing(a.lat, a.lon, r)), a.name).toBe(false);
+  });
+
+  it('covers the water points found in the 2026-10-03 check (Knik Arm, Lake Hood, tidal flats)', () => {
+    for (const [lat, lon] of [[61.2309, -149.913], [61.1799, -149.961], [61.2018, -149.9533], [61.2098, -149.9239]]) {
+      expect(mask.some((r) => inRing(lat, lon, r)), `${lat},${lon}`).toBe(true);
+    }
+  });
 });

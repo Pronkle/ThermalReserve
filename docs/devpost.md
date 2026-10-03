@@ -34,7 +34,7 @@ Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat s
 [ARCHITECTURE DIAGRAM: export from `docs/architecture.md`]
 
 - **Physics.** Each home type is a two-node thermal model (indoor air and building mass), solved exactly with a 2×2 matrix exponential and run in 5-minute steps. 24 home types cover furnace or boiler, night setback or not, three envelope tightness levels, and light or heavy mass.
-- **Calibration.** The average heat-loss coefficient comes from Enstar's 149 Mcf average home and 30 years (1996–2025) of Anchorage airport degree-days from ACIS: 9,818.5 °F·days per year, giving UA = 415.2 BTU/(h·°F) (derived).
+- **Calibration.** The average heat-loss coefficient comes from Enstar's 149 Mcf average home and 30 years (1996–2025) of Anchorage airport degree-days from ACIS: 9,818.5 °F·days per year, giving UA = 398.3 BTU/(h·°F) (derived) with Alaska's delivered gas at 988 BTU/cf (EIA, 2025).
 - **System demand.** Daily Southcentral demand = a + b × degree-days, fitted to two sourced anchors: January 2024's 5.6 Bcf and the 268 MMcf record day. The fit implies 35.0 Bcf a year, close to Enstar's forecast of 33.6. The 24-hour demand shape is assumed and illustrative.
 - **Optimizer.** A linear program over 24 home types and 96 hours finds the least total discomfort that keeps each gas day under capacity, solved in the browser with HiGHS (WebAssembly) in a Web Worker. If it fails or times out, a rule-based staggered plan runs and the console says so.
 - **Live simulation.** A SpacetimeDB TypeScript module on Maincloud runs the clock as a scheduled reducer, integrates every home type plus a no-program "twin," applies overrides and reassignment, and holds all shared state. The browser and the server run the same physics file, and a test checks they match hour by hour.
@@ -43,19 +43,19 @@ Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat s
 
 ## 4. Validation
 
-Results from ENGINE's validation tests (E4, `engine/e4` f591cc5, after tuning only Ca, Ham and the mass time constant within their allowed ranges). ⏳ Re-read from the test output once that commit is on `main`.
+Results from ENGINE's validation tests (E4, after tuning only Ca, Ham and the mass time constant within their allowed ranges), recomputed by DATA on `main` with the final constants.
 
 | Test | Conditions (assumed) | Published | Our model | Band | Result |
 | --- | --- | --- | --- | --- | --- |
-| ConEd-like snapback | 30°F outside, 70°F, −4°F from 06:00 to 10:00 | 52% of savings lost (retention 0.48) | retention 0.473 (derived) | 0.38–0.58 | **Pass** |
-| SoCalGas-like daily savings | 45°F outside, 68°F, −4°F from 06:00 to 10:00; response rate fitted to the 15.1% event-hour cut (r = 0.30) | 2.2% net daily | 1.16% (derived) | 1.5–3.0% | **Gap**: below the band |
+| ConEd-like snapback | 30°F outside, 70°F, −4°F from 06:00 to 10:00 | 52% of savings lost (retention 0.48) | retention 0.465 (derived) | 0.38–0.58 | **Pass** |
+| SoCalGas-like daily savings | 45°F outside, 68°F, −4°F from 06:00 to 10:00; response rate fitted to the 15.1% event-hour cut (r = 0.30) | 2.2% net daily | 1.14% (derived) | 1.5–3.0% | **Gap**: below the band |
 | Anchorage sanity | −20°F outside, 70°F | ~1.0 Mcf/home/day (derived from 149 Mcf/year) | 1.04 Mcf/home/day (derived) | — | Consistent |
 
-**The gap, stated plainly.** Our model reproduces ConEd's snapback but is more pessimistic than SoCalGas on daily savings: 1.16% against a published 2.2% (best reachable within the allowed parameter ranges was about 1.35%). The two pilots imply very different retention (about 48% for ConEd, about 87% for SoCalGas), and one physical model can't match both. We show the gap on the validation page instead of tuning past physically plausible values; if anything, our daily-savings numbers err low.
+**The gap, stated plainly.** Our model reproduces ConEd's snapback but is more pessimistic than SoCalGas on daily savings: 1.14% against a published 2.2% (best reachable within the allowed parameter ranges was about 1.35%). The two pilots imply very different retention (about 48% for ConEd, about 87% for SoCalGas), and one physical model can't match both. We show the gap on the validation page instead of tuning past physically plausible values; if anything, our daily-savings numbers err low.
 
 ## 5. Honest impact
 
-Steady-state savings from a sustained setback at −20°F, automated homes only (derived from UA 415.2 BTU/(h·°F), furnace efficiency 0.85 and gas at 1,030 BTU/cf, both assumed):
+Steady-state savings from a sustained setback at −20°F, automated homes only (derived from UA 398.3 BTU/(h·°F) and gas at 988 BTU/cf, sourced from EIA; furnace efficiency 0.85, assumed):
 
 | Enrolled homes | 5°F setback | 8°F setback | 5°F as share of the 20 MMcf/day needle peak | 5°F value at $17.50/Mcf |
 | --- | --- | --- | --- | --- |
@@ -74,7 +74,7 @@ What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,0
 
 ## 7. Accomplishments, what we learned, and what's next
 
-On the Feb 2024 replay with 25,000 homes, only Feb 2 exceeds the (hypothetical) capacity line, by 3.00 MMcf. The optimized plan cuts that day's uncovered shortfall to 0.86 MMcf, against 1.64 for a rule-based staggered plan and 2.80 for a naive 4-hour morning setback; its snapback lands on Feb 3, which has spare capacity (all derived from the model). [ADD: live run tracking the optimized plan within X% per hour, after the end-to-end test.]
+On the Feb 2024 replay with 25,000 homes, only Feb 2 exceeds the (hypothetical) capacity line, by 3.00 MMcf. The optimized plan cuts that day's uncovered shortfall to 0.85 MMcf, against 1.64 for a rule-based staggered plan and 2.80 for a naive 4-hour morning setback; its snapback lands on Feb 3, which has spare capacity (all derived from the model). [ADD: live run tracking the optimized plan within X% per hour, after the end-to-end test.]
 
 **Learned:** short events mostly move gas use around; multi-day planning with staggered recovery is where net daily savings come from.
 

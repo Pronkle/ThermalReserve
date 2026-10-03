@@ -199,20 +199,20 @@
     ]
   },
   "ua": {
-    "valueBtuHPerF": 415.2,
+    "valueBtuHPerF": 398.3,
     "formula": "UA = space_heat_share × avg_home_mcf_year × 1,000 × hhv_btu_per_cf × eta_furnace ÷ (24 × hdd_annual)",
     "inputs": {
       "space_heat_share": 0.75,
       "avg_home_mcf_year": 149,
-      "hhv_btu_per_cf": 1030,
+      "hhv_btu_per_cf": 988,
       "eta_furnace": 0.85,
       "hdd_annual": 9818.5
     },
-    "deliveredBtuPerYear": 97837125,
+    "deliveredBtuPerYear": 93847650,
     "vsPlanAssumption": {
       "assumedHdd": 10000,
       "assumedUa": 407,
-      "changePct": 2.01
+      "changePct": -2.15
     }
   }
 }
