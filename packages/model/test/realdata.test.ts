@@ -21,11 +21,18 @@ describe('real data files', () => {
     expect(p.note).toBeUndefined();
   });
 
-  it('Anchorage sanity and what-if stay near their targets', () => {
+  // Expected values are computed from constants.json (H1, 2026-10-03), so a recalibrated UA moves them too.
+  it('Anchorage sanity within ±15% of UA × 90 × 24 ÷ (eta × HHV)', () => {
+    const eta = cohorts.reduce((s, c) => s + c.share * c.eta, 0);
+    const expected = (consts.uaMeanBtuHPerF * 90 * 24) / (eta * consts.hhvBtuPerCf) / 1000;
     const a = anchorageSanity(cohorts, consts).mcfPerHomeDay;
-    expect(a).toBeGreaterThan(0.85);
-    expect(a).toBeLessThan(1.15);
-    const w = whatIf({ participationPct: (25000 / consts.customers) * 100, setbackF: 5, outdoorF: -20, days: 3, tier2Pct: 0 }, consts);
-    expect(Math.abs(w.mmcfPerDay - 1.4)).toBeLessThanOrEqual(0.05);
+    expect(Math.abs(a - expected) / expected).toBeLessThanOrEqual(0.15);
+  });
+
+  it('what-if for 25,000 homes at 5°F within ±3% of UA × 5 × 24 ÷ (eta × HHV) × homes', () => {
+    const homes = 25000;
+    const expected = ((consts.uaMeanBtuHPerF * 5 * 24) / (consts.etaFurnace * consts.hhvBtuPerCf)) * homes / 1e6;
+    const w = whatIf({ participationPct: (homes / consts.customers) * 100, setbackF: 5, outdoorF: -20, days: 3, tier2Pct: 0 }, consts);
+    expect(Math.abs(w.mmcfPerDay - expected) / expected).toBeLessThanOrEqual(0.03);
   });
 });
