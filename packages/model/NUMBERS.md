@@ -4,7 +4,7 @@ ENGINE owns this file. It maps every number on `/whatif`, `/validation`, and the
 constant behind it, with its label and display format. Rule: the UI never computes physics or retypes a constant;
 it calls the function and shows the label next to the value (AGENTS.md Sections 2, 3, 9).
 
-Values in the "Today" column were computed on 2026-10-03 from `data/constants.json` (UA 415.2, HHV 1,030) and the
+Values in the "Today" column were computed on 2026-10-03 (refreshed 17:45 ET) from `data/constants.json` (UA 398.3, HHV 988, both updated by DATA after H1 approved HHV 988) and the
 tuned `data/cohort_spec.json`. They will move if DATA changes a constant; that is expected, and tests compute their
 expectations from the constants.
 
@@ -34,6 +34,8 @@ const label = (key: string) => consts.raw[key].label;            // 'sourced' | 
 | Show the math | `formulaLines` | print verbatim, one per line | each line carries its own labels | 9 lines |
 
 Notes:
+- Sample homes: pass `data/water_mask.json` as the 6th argument of `sampleHomes` everywhere (map and Demo preset's
+  `load_homes`) so the browser and the database place the same homes; with seed 42, 32 of 1,000 homes move off water.
 - `formulaLines` already includes every constant with its label in brackets; print them as-is rather than rebuilding them.
 - `outdoorF` does not change the result. A steady setback saves the same heat loss at any outdoor temperature while
   the furnace runs; the last formula line says so (assumed). Keep the slider, since the spec asks for it, but don't
@@ -51,12 +53,12 @@ small event-day chart: baseline gray, event blue, event window 06:00–10:00 sha
 
 | Card | Call | Show | Pass rule | Today |
 | --- | --- | --- | --- | --- |
-| ConEd-like | `validateConEdLike(cohorts, consts)` | `retention` (2 dp) vs target `consts.conedRetentionTarget` (0.48) and `band` | `pass` | 0.47 · **pass** (band 0.38–0.58) |
-| SoCalGas-like | `validateSoCalLike(cohorts, consts)` | fitted `responseRate` r, `eventPct` (equals 15.1 by construction), `dailyPct` vs 2.2% published and `band` | `pass` | r 0.30 · 15.1% event · 1.16% daily · **gap** (band 1.5–3.0%) |
+| ConEd-like | `validateConEdLike(cohorts, consts)` | `retention` (2 dp) vs target `consts.conedRetentionTarget` (0.48) and `band` | `pass` | 0.465 · **pass** (band 0.38–0.58) |
+| SoCalGas-like | `validateSoCalLike(cohorts, consts)` | fitted `responseRate` r, `eventPct` (equals 15.1 by construction), `dailyPct` vs 2.2% published and `band` | `pass` | r 0.30 · 15.1% event · 1.14% daily · **gap** (band 1.5–3.0%) |
 | Anchorage sanity | `anchorageSanity(cohorts, consts)` | `mcfPerHomeDay` (2 dp) at −20°F, 70°F, no setback | none; show vs the steady-state expectation UA × 90 × 24 ÷ (η × HHV) | 1.04 Mcf/home/day |
 
 The SoCalGas card must not say pass or fail as if it were a test we nearly passed. Suggested copy (H2 decision,
-honest gap): "Gap: our model keeps less of the event-hour saving than SoCalGas reported (1.16% vs 1.5–3.0% daily).
+honest gap): "Gap: our model keeps less of the event-hour saving than SoCalGas reported (1.14% vs 1.5–3.0% daily).
 ConEd's pilot implies about half the saving is lost to snapback; SoCalGas's implies far less. One house model can't
 match both under these test conditions, so our net-savings numbers lean conservative." Use amber, not red.
 
@@ -78,8 +80,8 @@ limit (msg 32), so headline the tight day, not a multi-day average (msg 62).
 
 | KPI | Source | Note |
 | --- | --- | --- |
-| Relief on tightest day (MMcf/day) | `gasDays(run)`: `reliefMMcf` of the day with the largest `baselineSystemMMcf − capacityMMcf` | feb2024 at 25k homes, OPTIMIZED: 2.14 |
-| Uncovered shortfall (MMcf/day) | max over days of `uncoveredMMcf`; banner when > 0 | OPT 0.86 · SUSTAIN 1.64 · NAIVE 2.80 · none 3.00 |
+| Relief on tightest day (MMcf/day) | `gasDays(run)`: `reliefMMcf` of the day with the largest `baselineSystemMMcf − capacityMMcf` | feb2024 at 25k homes, OPTIMIZED: 2.15 |
+| Uncovered shortfall (MMcf/day) | max over days of `uncoveredMMcf`; banner when > 0 | OPT 0.85 · SUSTAIN 1.64 · NAIVE 2.80 · none 3.00 |
 | Peak-hour relief (MMcf/hour) | `totals.peakHourReliefMMcfh` | |
 | Minimum indoor (°F) | `hours[h].minTaF` | includes normal night setpoints (64°F) |
 | Homes at floor (%) | `hours[h].shareAtFloor` × 100 | only homes the program holds at the floor |
