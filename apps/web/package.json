@@ -18,7 +18,8 @@
     "react-dom": "19.3.0",
     "react-router-dom": "7.18.4",
     "recharts": "3.10.1",
-    "spacetimedb": "2.10.2"
+    "spacetimedb": "2.10.2",
+    "qrcode.react": "4.2.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
