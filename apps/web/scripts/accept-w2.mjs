@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH);
+const passcode = process.env.STDB_PASSCODE || (await readFile('stdb/HANDOFF.md', 'utf8')).match(/For `thermal-reserve-dev` it is `([^`]+)`/)[1];
+const browser = await chromium.launch({ headless: true });
+const errors = [];
+try {
+  const operator = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const viewer = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await operator.addInitScript(() => { window.testSockets = []; window.WebSocket = class extends WebSocket { constructor(...args) { super(...args); window.testSockets.push(this); } }; });
+  const page = await operator.newPage();
+  const other = await viewer.newPage();
+  for (const tab of [page, other]) {
+    tab.on('pageerror', error => errors.push(error.message));
+    await tab.route('https://tile.openstreetmap.org/**', route => route.abort());
+    await tab.goto('http://127.0.0.1:5173/ops?db=thermal-reserve-dev');
+    await tab.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
+  }
+  page.on('dialog', dialog => dialog.accept(passcode));
+  await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
+  await page.getByText(/Operator; Start/).waitFor();
+  await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('idle') && document.querySelectorAll('.map-fallback circle[r="2"]').length === 1000);
+  await other.waitForFunction(() => document.querySelectorAll('.map-fallback circle[r="2"]').length === 1000);
+  const colorsBefore = await page.locator('.map-fallback circle[r="2"][fill="#5BC0EB"]').count();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('running'));
+  await page.waitForFunction(() => [...document.querySelectorAll('.recharts-line')].some(line => line.getAttribute('name') === 'LIVE' || line.querySelector('path[stroke="#E6EDF7"]')));
+  await page.waitForFunction(() => document.querySelectorAll('.map-fallback circle[r="2"][fill="#5BC0EB"]').length > 0, { timeout: 20000 });
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('paused'));
+  const pausedAt = Date.now();
+  await other.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('paused'));
+  assert(Date.now() - pausedAt < 1000, 'Second browser reflects pause within 1 second');
+  assert.equal(await page.locator('.clock-status').innerText(), await other.locator('.clock-status').innerText());
+  assert(await page.locator('.map-fallback circle[r="2"][fill="#5BC0EB"]').count() > colorsBefore, 'Dots change from normal to holding');
+  assert.equal(await page.locator('.map-fallback circle[r="2"][fill="#5BC0EB"]').count(), await other.locator('.map-fallback circle[r="2"][fill="#5BC0EB"]').count());
+  assert(await page.locator('.event-list li').count() > 0, 'Live event log populated');
+  const chart = await page.locator('.fleet-panel').boundingBox();
+  assert(chart.y + chart.height <= 800, 'Live chart fits at 1280×800');
+  await page.screenshot({ path: '/tmp/thermal-reserve-w2-live.png', fullPage: true });
+  await page.reload();
+  await page.getByText(/Operator; Start/).waitFor({ timeout: 30000 });
+  assert(await page.evaluate(() => sessionStorage.getItem('thermal-reserve.database') === 'thermal-reserve-dev'), 'Database override retained');
+  await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
+  await page.getByText(/Disconnected — retrying/).waitFor();
+  await page.getByText(/Operator; Start/).waitFor({ timeout: 30000 });
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('idle'));
+  assert.equal(errors.length, 0, errors.join('\n'));
+  console.log(JSON.stringify({ acceptance: 'W2 PASS', database: 'thermal-reserve-dev', synchronizedBrowsers: 2, chartFits: true, pageErrors: errors }));
+} finally { await browser.close(); }

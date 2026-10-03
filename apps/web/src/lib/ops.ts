@@ -29,7 +29,7 @@ export function dailyShortfall(run: RunResult, capacityMMcfd: number) {
 }
 export function homeMode(home: SampleHome, run: RunResult, hour: number) {
   if (home.exempt) return 'exempt';
-  if (home.overrideHour !== null && home.overrideHour <= hour) return 'overridden';
+  if (run.strategy !== 'BASELINE' && home.overrideHour !== null && home.overrideHour <= hour) return 'overridden';
   return run.hours[hour]?.cohorts[home.cohortId]?.mode ?? 'normal';
 }
 export function clockLabel(sc: Scenario, hour: number) {
