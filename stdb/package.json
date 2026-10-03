@@ -1,0 +1,13 @@
+{
+  "name": "@thermal-reserve/stdb",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "spacetime build",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "spacetimedb": "2.10.2"
+  }
+}

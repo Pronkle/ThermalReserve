@@ -6,3 +6,9 @@
 node_modules/
 dist/
 .env*
+*.tsbuildinfo
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
