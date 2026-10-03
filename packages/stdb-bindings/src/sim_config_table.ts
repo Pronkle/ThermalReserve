@@ -30,4 +30,6 @@ export default __t.row({
   homesPerDot: __t.f64().name("homes_per_dot"),
   operator: __t.option(__t.identity()),
   updatedAt: __t.timestamp().name("updated_at"),
+  startIso: __t.string().name("start_iso"),
+  hhvBtuPerCf: __t.f64().name("hhv_btu_per_cf"),
 });

@@ -24,6 +24,9 @@ const simConfig = table(
     homes_per_dot: t.f64(),
     operator: t.option(t.identity()),
     updated_at: t.timestamp(),
+    // Added after CP0 (H1-approved): tick needs the local clock and gas conversion.
+    start_iso: t.string(),
+    hhv_btu_per_cf: t.f64(),
   }
 );
 
@@ -166,7 +169,17 @@ export const tickSchedule = table(
   }
 );
 
+// Private: the operator passcode, set by the first successful claim_operator.
+const operatorSecret = table(
+  { name: 'operator_secret' },
+  {
+    id: t.u32().primaryKey(), // single row, id = 0
+    passcode: t.string(),
+  }
+);
+
 const spacetimedb = schema({
+  operatorSecret,
   simConfig,
   weatherHour,
   cohort,
