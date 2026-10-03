@@ -14,7 +14,7 @@ Every link below was opened on 2026-10-03 and returned the page (HTTP 200). The 
 | ADN / Alaska Journal of Commerce (Elwood Brehmer), "New natural gas deal by Hilcorp and Enstar could bring rate savings", May 14, 2020. <https://www.adn.com/business-economy/energy/2020/05/14/new-natural-gas-deal-by-hilcorp-and-enstar-could-bring-rate-savings/> | `annual_bcf` | Enstar "expects its demand to remain at roughly 33.6 billion cubic feet … per year through 2025" |
 | Petroleum News (Alan Bailey), "New Enstar supplies", Mar 6, 2016. <https://www.petroleumnews.com/pntruncate/978589605.shtml> | `needle_peak_mmcfd` | Needle-peak call option: "up to 20 million cubic feet per day of additional gas during the months of December, January and February" |
 | Enstar letter to the RCA, TA340-4 (gas cost adjustment), May 15, 2023. <https://www.enstarnaturalgas.com/wp-content/uploads/2023/05/TA340-4-Letter-Final.pdf> | Context: needle-peak contract terms, customer count | "152,048 Gas Sales Customers as of March 31, 2023"; 0.293 Bcf of Needle Peak Call Option gas assumed for 2023–24 |
-| Regulatory Commission of Alaska, residential gas rate surveys, 2011 and 2020. <https://rca.alaska.gov/RCAWeb/Documents/Reports/2011gas.pdf>, <https://rca.alaska.gov/RCAWeb/Documents/Reports/2020Gas.pdf> | Cross-check for `avg_home_mcf_year` | Enstar Anchorage average monthly usage: 137 CCF (2011), 146 CCF (2020), G1 class |
+| Regulatory Commission of Alaska, residential gas rate surveys, 2011 and 2020. <https://rca.alaska.gov/RCAWeb/Documents/Reports/2011gas.pdf>, <https://rca.alaska.gov/RCAWeb/Documents/Reports/2020Gas.pdf> | `avg_home_mcf_year` (146 CCF/month × 12 = 175.2 Mcf/year, from the 2020 survey) | Enstar Anchorage average monthly usage: 137 CCF (2011), 146 CCF (2018–2020), G1 class. Footnote: some heavy-use residential customers are in other classes and not in this average |
 
 ## Prior art: gas demand response
 
@@ -33,21 +33,21 @@ Every link below was opened on 2026-10-03 and returned the page (HTTP 200). The 
 | --- | --- |
 | ACIS Web Services (Regional Climate Centers), documentation: <https://www.rcc-acis.org/docs_webservices.html>. Data endpoint `https://data.rcc-acis.org/StnData` (POST only; requests and responses saved in `data/raw/`) | `hdd_annual`, `ua_mean_btuh_per_f`, scenario temperatures |
 
-## Link not found
+## Removed for lack of a source
 
-Searched on 2026-10-03; these keep their outlet-and-topic description from the master plan.
+Searched on 2026-10-03 without finding a page; by decision of H3 these numbers are no longer in `data/constants.json` and must not appear in the UI, pitch, or Devpost.
 
-| Constant | Claimed source | Status |
+| Former constant | Claimed source | Decision |
 | --- | --- | --- |
-| `avg_home_mcf_year` (149 Mcf/year) | Enstar via ADN, 2012 | Not found. RCA surveys give ~164–175 Mcf/year for Enstar's G1 residential class (see above). Needs a decision: see "Open questions" |
-| `energy_watch_2012_pct` (~1.5%) | ADN, 2012 | Not found |
-| `needle_peak_days` (25 days/winter) | Petroleum News, 2021 | Not found. The verified 2016 article gives 20 MMcf/day for Dec–Feb, with no day limit |
+| `avg_home_mcf_year` = 149 Mcf/year | Enstar via ADN, 2012 | Replaced by the RCA figure, 175.2 Mcf/year (UA 415.2 → 488.2) |
+| `energy_watch_2012_pct` (~1.5%) | ADN, 2012 | Removed |
+| `needle_peak_days` (25 days/winter) | Petroleum News, 2021 | Removed; the verified 2016 article gives 20 MMcf/day for Dec–Feb with no day limit |
 
 ## Open questions from the check
 
 1. **Record-day date.** The 268 MMcf record was set around midnight on Wednesday, **Jan 31, 2024**, not in February (reported Feb 2). Task D2's Jan 30–Feb 2 window already covers it.
 2. **Deliverability loss.** 28.5 MMcf/day is the first (Jan 14) storage-well failure only. A second failure on Jan 25 brought capacity to 105 MMcf/day (a 45 MMcf/day loss in total).
-3. **Average home use.** 149 Mcf/year has no source yet; the RCA's published averages are higher. UA is calibrated from this number, so changing it would move UA by about 10–17%.
-4. **Needle peak.** The source is Petroleum News 2016, not 2021, and "up to 25 days/winter" is unconfirmed.
+3. **Average home use.** Resolved: switched to the RCA figure (175.2 Mcf/year); UA is now 488.2.
+4. **Needle peak.** The source is Petroleum News 2016, not 2021; the 25-day figure was removed.
 5. **Rebate.** The $25 is a once-per-season bonus for staying enrolled, which matches "$25/year" only if renewed each winter.
 6. **$17.65/therm** is SoCalGas's projected cost for proposed pilots, not a measured cost.

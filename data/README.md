@@ -5,7 +5,7 @@ Files whose contract shape is a bare array carry their labels here:
 
 | File | Label | Notes |
 | --- | --- | --- |
-| `constants.json` | per entry | `hdd_annual` (9,818.5) and `ua_mean_btuh_per_f` (415.2) are written by `scripts/calibrate.ts` from ACIS raw data |
+| `constants.json` | per entry | `hdd_annual` (9,818.5) and `ua_mean_btuh_per_f` (488.2) are written by `scripts/calibrate.ts` from ACIS raw data |
 | `calibration.json` | derived | Per-year HDD 1996–2025, Anchorage Intl (PANC), and the UA derivation |
 | `raw/acis_*.json` | sourced | ACIS StnData responses, saved with request and retrieval time by `scripts/fetch-acis.ts` (the only online step) |
 | `cohort_spec.json` | assumed | All shares and parameters (master plan §9); ENGINE may tune `caBtuPerF`, `hamMult`, `tauMassH` after CP1 |

@@ -72,7 +72,7 @@ const hddEntry: Entry = {
 };
 const uaEntry: Entry = {
   value: round(ua, 1), unit: 'BTU/(h·°F)', label: 'derived',
-  source: `space_heat_share × avg_home_mcf_year × 1,000 × hhv_btu_per_cf × eta_furnace ÷ (24 × hdd_annual) = 0.75 × 149,000 × 1,030 × 0.85 ÷ (24 × ${round(hddAnnual, 1)}); see data/calibration.json`,
+  source: `space_heat_share × avg_home_mcf_year × 1,000 × hhv_btu_per_cf × eta_furnace ÷ (24 × hdd_annual) = ${inputs.space_heat_share} × ${(inputs.avg_home_mcf_year * 1000).toLocaleString('en-US')} × ${inputs.hhv_btu_per_cf.toLocaleString('en-US')} × ${inputs.eta_furnace} ÷ (24 × ${round(hddAnnual, 1)}); see data/calibration.json`,
 };
 const replaceLine = (text: string, key: string, entry: Entry): string => {
   const re = new RegExp(`^(\\s*)"${key}": \\{.*\\}(,?)$`, 'm');
