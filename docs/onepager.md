@@ -21,7 +21,7 @@ A simulation, not real thermostat control. An operator console plans and dispatc
 
 ### Honest impact
 
-Sustained setback at −20°F, automated homes only (derived: UA 415.2 BTU/(h·°F) from Enstar's 149 Mcf average home and 30 years of Anchorage degree-days; furnace efficiency 0.85 and 1,030 BTU/cf assumed).
+Sustained setback at −20°F, automated homes only (derived: UA 398.3 BTU/(h·°F) from Enstar's 149 Mcf average home, 30 years of Anchorage degree-days, and Alaska gas at 988 BTU/cf; furnace efficiency 0.85 assumed).
 
 | Enrolled homes | 5°F setback | Share of the 20 MMcf/day needle-peak supply | Value at $17.50/Mcf |
 | --- | --- | --- | --- |
@@ -33,12 +33,12 @@ Sustained setback at −20°F, automated homes only (derived: UA 415.2 BTU/(h·�
 
 ### Validation
 
-Same physics, run under published pilot conditions (derived; ENGINE E4, re-check once merged).
+Same physics, run under published pilot conditions (derived; recomputed on `main`).
 
 | Test | Published | Ours | Band | Result |
 | --- | --- | --- | --- | --- |
-| ConEd-like snapback | retention 0.48 | 0.473 | 0.38–0.58 | Pass |
-| SoCalGas-like daily savings | 2.2% | 1.16% | 1.5–3.0% | Gap: our model errs low |
+| ConEd-like snapback | retention 0.48 | 0.465 | 0.38–0.58 | Pass |
+| SoCalGas-like daily savings | 2.2% | 1.14% | 1.5–3.0% | Gap: our model errs low |
 
 ### How it works
 
