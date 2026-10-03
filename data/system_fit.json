@@ -1,0 +1,60 @@
+{
+  "a": 3.3858,
+  "b": 3.43655,
+  "unit": "MMcf/day = a + b × HDD (base 65°F)",
+  "label": "derived",
+  "method": "fitSystemDemand (packages/model/src/demand.ts): solves 31·a + b·ΣHDD_Jan = jan2024_total_bcf × 1,000 and a + b·HDD_record = record_day_mmcf.",
+  "inputs": {
+    "station": "ANCHORAGE TED STEVENS INTERNATIONAL AIRPORT",
+    "rawFile": "data/raw/acis_panc_2024-01_2024-02.json",
+    "janDailyHdd": [
+      46,
+      46,
+      42,
+      38,
+      43,
+      46,
+      35,
+      39,
+      46,
+      48,
+      46,
+      44,
+      46,
+      38,
+      48,
+      54,
+      48,
+      48,
+      51,
+      49,
+      54,
+      65,
+      65,
+      64,
+      65,
+      64,
+      64,
+      65,
+      57,
+      62,
+      73
+    ],
+    "janHddSum": 1599,
+    "jan2024TotalBcf": 5.6,
+    "recordDayMMcf": 268,
+    "recordDay": "2024-02-02",
+    "recordDayHdd": 77
+  },
+  "assumptions": [
+    "Record day = highest-HDD day 2024-01-30 to 2024-02-02 (AGENTS.md §13 D2): 2024-02-02, HDD 77. ADN reported the 268 MMcf record around midnight on Wed Jan 31, 2024 (HDD 73); using Jan 31 instead would imply about double the sourced annual demand.",
+    "Demand depends only on daily HDD; the 24-hour shape (demand_shape.json) is assumed and illustrative."
+  ],
+  "checks": {
+    "janFitBcf": 5.6,
+    "recordDayFitMMcf": 268,
+    "annualFitBcf": 34.98,
+    "annualSourcedBcf": 33.6,
+    "annualNote": "Implied annual = 365·a + b·hdd_annual; compare with annual_bcf (Enstar 2020 forecast)."
+  }
+}

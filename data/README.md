@@ -11,7 +11,9 @@ Files whose contract shape is a bare array carry their labels here:
 | `cohort_spec.json` | assumed | All shares and parameters (master plan §9); ENGINE may tune `caBtuPerF`, `hamMult`, `tauMassH` after CP1 |
 | `demand_shape.json` | assumed | Illustrative 24-hour shape of daily demand; **not Enstar data** |
 | `anchors.json` | assumed | 12 placement anchors; coordinates approximate (from the master plan, not yet checked on a map); weights are assumed customer shares |
-| `scenarios/design.json` | synthetic | Built by `scripts/make-design.ts`; `systemMMcfh` is a placeholder (`"placeholder": true`) until the system fit (task D2) |
+| `system_fit.json` | derived | Daily demand D = a + b × HDD, fitted by ENGINE's `fitSystemDemand` to Jan 2024 (5.6 Bcf) and the 268 MMcf record day; `scripts/fit-system.ts` |
+| `scenarios/design.json` | synthetic | `scripts/make-design.ts`; demand from the system fit |
+| `scenarios/feb2024.json`, `lastwinter.json` | replay | `scripts/make-replays.ts`; ACIS daily max/min (cosine-interpolated hourly, assumed shape) and daily HDD |
 
 Sources marked † in the master plan have no retained URLs yet; task D5 records them in `docs/sources.md`. No URL is ever constructed from memory.
 

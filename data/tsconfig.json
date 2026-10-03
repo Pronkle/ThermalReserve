@@ -8,7 +8,13 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "allowImportingTsExtensions": true
   },
-  "include": ["test/**/*.ts", "scripts/**/*.ts"]
+  "include": [
+    "test/**/*.ts",
+    "scripts/**/*.ts"
+  ]
 }

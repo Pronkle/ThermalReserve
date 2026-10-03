@@ -1,19 +1,13 @@
-// Builds data/scenarios/design.json: the synthetic "Design cold snap: −20°F for 3 days".
-// Run: npx tsx data/scripts/make-design.ts   (Node ≥ 22.18 can also run it directly)
+// Builds data/scenarios/design.json: the synthetic "Design cold snap: −20°F for 3 days". OFFLINE.
 //
 // Construction (master plan §12): 12 h at 10°F, 72 h averaging −20°F with a ±5°F daily
 // swing, 12 h easing linearly to 5°F. Hourly shape is the assumed cosine curve with the
 // minimum at 07:00 and the maximum at 15:00 local time.
-//
-// systemMMcfh is a PLACEHOLDER until the system fit exists (task D2): every day is the
-// 268 MMcf record day spread over the 24-hour demand shape.
+// systemMMcfh: each day's HDD (from the hourly temperatures) through system_fit.json and
+// the 24-hour demand shape, via ENGINE's hourlySystemMMcfh.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const dataDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-const readJson = (p: string): unknown => JSON.parse(readFileSync(join(dataDir, p), 'utf8'));
+import { hourlySystemMMcfh } from '@thermal-reserve/model';
+import { readJson, writeJson, round, hddFromHourly, capacityFor, CAPACITY_NOTE, T_MIN_CLOCK, T_MAX_CLOCK } from './lib.ts';
 
 const HOURS = 96;
 const LEAD_IN_H = 12;
@@ -22,8 +16,6 @@ const LEAD_IN_F = 10;
 const COLD_MEAN_F = -20;
 const COLD_SWING_F = 5;
 const EASE_TO_F = 5;
-const T_MIN_CLOCK = 7;
-const T_MAX_CLOCK = 15;
 const START_ISO = '2026-01-14T00:00:00-09:00'; // midnight local, so hour index mod 24 = clock hour
 
 /** Daily cosine shape in [−1, 1]: −1 at 07:00, +1 at 15:00. Rises over 8 h, falls over 16 h. */
@@ -35,32 +27,24 @@ export function diurnalShape(clockHour: number): number {
   return Math.cos((Math.PI * sinceMax) / (24 - rise));
 }
 
-const round2 = (x: number): number => Math.round(x * 100) / 100;
-
 const outdoorF: number[] = [];
 for (let h = 0; h < HOURS; h++) {
   if (h < LEAD_IN_H) outdoorF.push(LEAD_IN_F);
-  else if (h < LEAD_IN_H + COLD_H) outdoorF.push(round2(COLD_MEAN_F + COLD_SWING_F * diurnalShape(h % 24)));
+  else if (h < LEAD_IN_H + COLD_H) outdoorF.push(round(COLD_MEAN_F + COLD_SWING_F * diurnalShape(h % 24), 2));
   else {
     const from = outdoorF[LEAD_IN_H + COLD_H - 1];
     const k = (h - (LEAD_IN_H + COLD_H) + 1) / (HOURS - LEAD_IN_H - COLD_H);
-    outdoorF.push(round2(from + (EASE_TO_F - from) * k));
+    outdoorF.push(round(from + (EASE_TO_F - from) * k, 2));
   }
 }
 
-const shape = readJson('demand_shape.json') as number[];
-const constants = readJson('constants.json') as Record<string, { value: number }>;
-const recordDayMMcf = constants.record_day_mmcf.value;
-const systemMMcfh = Array.from({ length: HOURS }, (_, h) => round2(recordDayMMcf * shape[h % 24] * 1000) / 1000);
+const fit = readJson<{ a: number; b: number }>('system_fit.json');
+const shape = readJson<number[]>('demand_shape.json');
+const dailyHdd = Array.from({ length: HOURS / 24 }, (_, d) => round(hddFromHourly(outdoorF.slice(24 * d, 24 * d + 24)), 2));
+const systemMMcfh = hourlySystemMMcfh(dailyHdd, fit, shape).map((x) => round(x, 4));
+const { capacityMMcfd } = capacityFor(systemMMcfh);
 
-let peakDayMMcf = 0;
-for (let d = 0; d < HOURS / 24; d++) {
-  const day = systemMMcfh.slice(d * 24, d * 24 + 24).reduce((a, b) => a + b, 0);
-  peakDayMMcf = Math.max(peakDayMMcf, day);
-}
-const capacityMMcfd = Math.round(peakDayMMcf - 3);
-
-const scenario = {
+writeJson('scenarios/design.json', {
   id: 'design',
   name: 'Design cold snap: −20°F for 3 days',
   kind: 'synthetic',
@@ -71,14 +55,9 @@ const scenario = {
   eventEndHour: LEAD_IN_H + COLD_H,
   systemMMcfh,
   capacityMMcfd,
-  capacityNote: "Hypothetical: capacity set 3 MMcf/day below this scenario's peak-day demand",
+  capacityNote: CAPACITY_NOTE,
   source:
     'Synthetic; see data/scripts/make-design.ts. Hourly temperatures use an assumed cosine shape (min 07:00, max 15:00). ' +
-    'systemMMcfh is a placeholder: record_day_mmcf (268) × demand_shape every day, until the system fit (task D2).',
-  placeholder: true,
-};
-
-const out = join(dataDir, 'scenarios', 'design.json');
-mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, JSON.stringify(scenario, null, 2) + '\n');
-console.log(`wrote ${out}: capacity ${capacityMMcfd} MMcf/day, min ${Math.min(...outdoorF)}°F`);
+    `systemMMcfh = (a + b × daily HDD) × demand_shape, from data/system_fit.json; daily HDD ${dailyHdd.join(', ')}.`,
+});
+console.log(`design: capacity ${capacityMMcfd} MMcf/day, daily HDD ${dailyHdd.join(', ')}`);

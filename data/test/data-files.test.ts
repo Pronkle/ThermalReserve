@@ -7,6 +7,9 @@ import cohortSpecJson from '../cohort_spec.json';
 import demandShapeJson from '../demand_shape.json';
 import anchorsJson from '../anchors.json';
 import designJson from '../scenarios/design.json';
+import feb2024Json from '../scenarios/feb2024.json';
+import lastwinterJson from '../scenarios/lastwinter.json';
+import systemFitJson from '../system_fit.json';
 import calibrationJson from '../calibration.json';
 
 import {
@@ -24,7 +27,7 @@ const constants: Record<RequiredConstantKey, Widen<ConstantEntry>> & Record<stri
 const cohortSpec: Widen<CohortSpec> = cohortSpecJson;
 const demandShape: number[] = demandShapeJson;
 const anchors: Widen<Anchor>[] = anchorsJson;
-const scenarios: Widen<Scenario>[] = [designJson];
+const scenarios: Widen<Scenario>[] = [designJson, feb2024Json, lastwinterJson];
 
 const LABELS = ['sourced', 'derived', 'assumed'];
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
@@ -155,4 +158,48 @@ describe('calibration.json (D1)', () => {
     expect(constants.ua_mean_btuh_per_f.value).toBe(calibrationJson.ua.valueBtuHPerF);
     expect(constants.hdd_annual.label).toBe('derived');
   });
+});
+
+describe('system_fit.json and scenario demand (D2)', () => {
+  const { a, b, inputs } = systemFitJson;
+  const dayDemand = (hdd: number): number => a + b * hdd;
+
+  it('reproduces both anchors: January 2024 total and the record day', () => {
+    const janBcf = sum(inputs.janDailyHdd.map(dayDemand)) / 1000;
+    expect(Math.abs(janBcf - (constants.jan2024_total_bcf.value as number))).toBeLessThan(1e-3);
+    expect(Math.abs(dayDemand(inputs.recordDayHdd) - (constants.record_day_mmcf.value as number))).toBeLessThan(0.01);
+    expect(inputs.janDailyHdd).toHaveLength(31);
+    expect(systemFitJson.label).toBe('derived');
+  });
+
+  it('record day is the highest-HDD day from Jan 30 to Feb 2, 2024 (D2 assumption)', () => {
+    expect(inputs.recordDay >= '2024-01-30' && inputs.recordDay <= '2024-02-02').toBe(true);
+  });
+
+  for (const sc of scenarios) {
+    const days = Array.from({ length: sc.hours / 24 }, (_, d) => sc.systemMMcfh.slice(24 * d, 24 * d + 24));
+    const coldest = days.reduce((m, d) => (sum(d) > sum(m) ? d : m));
+
+    it(`${sc.id}: each day's hourly demand sums to the fitted daily total, peak hour ≈ 5.4%`, () => {
+      for (const d of days) expect(Math.max(...d) / sum(d)).toBeCloseTo(Math.max(...demandShape), 3);
+    });
+
+    it(`${sc.id}: capacity note states a daily limit and the linepack/storage assumption`, () => {
+      expect(sc.capacityNote).toMatch(/daily limit/i);
+      expect(sc.capacityNote).toMatch(/assumed/i);
+    });
+
+    if (sc.kind === 'replay') {
+      it(`${sc.id}: coldest day is 230–290 MMcf (D2 sanity range)`, () => {
+        expect(sum(coldest)).toBeGreaterThanOrEqual(230);
+        expect(sum(coldest)).toBeLessThanOrEqual(290);
+      });
+    } else {
+      // design (−20°F mean, HDD 85) is colder than the record day (HDD 77), so its coldest day
+      // exceeds the 230–290 range; flagged to H1. Check it equals the fit instead.
+      it(`${sc.id}: coldest day equals the fit at HDD 85 (above the 230–290 range by design)`, () => {
+        expect(sum(coldest)).toBeCloseTo(dayDemand(85), 1);
+      });
+    }
+  }
 });
