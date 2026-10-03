@@ -56,7 +56,7 @@ Do Phone A first, then Phone B. The recorder times each join from scan to live c
 | C3 | Phone A: tap **Override**. Start the stopwatch | Within 2 s: card shows "Normal heat restored. You can rejoin when ready."; button changes to **Rejoin event**; Mac's event log shows an override line and a reassign line | E6, P6 |
 | C4 | Phone A: tap **Rejoin event** | Status returns to holding; event log shows the rejoin | P6 |
 | C5 | Phone B: reload the page (pull down, or reload button) | Same household returns (same nickname); the Mac's map still shows one dot for it, not two | P7 |
-| C6 | Phone B: open **Why this matters** | Sheet opens and closes; says businesses are curtailed before homes | P9 |
+| C6 | Phone B: open **Why this matters** | Sheet opens and closes; text reads "If gas runs short, Enstar's plan cuts large commercial and industrial customers first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time." (AGENTS.md §3, H1) | P9 |
 | C7 | Phones: look at "Community today" | Net saved and the bar toward the day's target; on a day with no shortfall it says "No extra relief is needed to cover this day's modeled demand." | P8 |
 | C8 | Let the run finish (about 48 s at 2 h/s) | Status finished; record the totals and the tightest-day KPIs (expected with the Demo preset: relief 2.06 MMcf/day, uncovered 0.94, value $36,100/day) | E7, N4 |
 

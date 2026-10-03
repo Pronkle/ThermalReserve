@@ -42,3 +42,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-03T18:50 | STDB (Claude Code, Pro, Opus 5.5) | S3 households accepted: two real phones joined, ticked and logged on production | reviewed by H1
 2026-10-03T19:00 | ENGINE (Claude Code, Max, Opus 5.5) | E8 number review on production: /ops, /home, /whatif, /validation match the model; live household saving 63 cf vs model 64 | reviewed by H2
 2026-10-03T20:30 | DATA (Claude Code, Pro, Opus 5.5) | Recorded H1's real-phone run in the test plan; pre-judging reset step added to the phone procedure | reviewed by H3 (pending)
+2026-10-03T20:50 | DATA (Claude Code, Pro, Opus 5.5) | Merged stdb/copy-edits; researched Enstar curtailment order and rolling-blackout link (4 sources verified; RCA filing p.162 blocked by captcha, tiers unconfirmed); phone procedure C6 updated | reviewed by H3 (pending)
