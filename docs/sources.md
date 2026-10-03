@@ -40,6 +40,18 @@ Each page opened on 2026-10-03; none of these feed a constant.
 | Google, Device Access registration. <https://developers.google.com/nest/device-access/registration>; thermostat setpoint trait (SetHeat): <https://developers.google.com/nest/device-access/traits/device/thermostat-temperature-setpoint> | Q&A 6 | "a one-time, non-refundable fee (US$5) per account"; `SetHeat` sets the heat setpoint in HEAT mode |
 | ecobee, Developer API page. <https://www.ecobee.com/en-us/developers/> | Q&A 6 | "we are not currently accepting new developer registrations at this time" (no date on the page) |
 
+## Gas heat content
+
+| Source | Supports | Supporting text (short) |
+| --- | --- | --- |
+| EIA, "Heat Content of Natural Gas Delivered to Consumers", released Sep 30, 2026. <https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm> | `hhv_btu_per_cf` = 988 (H1 approved, replacing the assumed 1,030) | Alaska row, Btu per cubic foot: 985 (2020), 982, 984, 998, 1,003, 988 (2025). U.S.: 1,036–1,037 |
+
+## Map water mask
+
+| Source | Supports |
+| --- | --- |
+| OpenStreetMap via the Overpass API (<https://overpass-api.de/>), retrieved 2026-10-03; © OpenStreetMap contributors, ODbL 1.0 (<https://www.openstreetmap.org/copyright>). Raw responses in `data/raw/osm_water_*.json` | `data/water_mask.json`: keeps sample homes out of lakes, Knik and Turnagain Arm, and tidal flats (32 of 1,000 homes were in water before) |
+
 ## Weather
 
 | Source | Supports |
@@ -74,7 +86,7 @@ Notes from re-checking both pages on 2026-10-03 (raw HTML, HTTP 200):
 
 1. **Record-day date.** The 268 MMcf record was set around midnight on Wednesday, **Jan 31, 2024**, not in February (reported Feb 2). Task D2's Jan 30–Feb 2 window already covers it.
 2. **Deliverability loss.** 28.5 MMcf/day is the first (Jan 14) storage-well failure only. A second failure on Jan 25 brought capacity to 105 MMcf/day (a 45 MMcf/day loss in total).
-3. **Average home use.** Resolved by H1: 149 Mcf/year is sourced (ADN 2012); UA stays 415.2.
+3. **Average home use.** Resolved by H1: 149 Mcf/year is sourced (ADN 2012). UA is 398.3 after H1 approved the EIA heat content (988 BTU/cf).
 4. **Needle peak.** The source is Petroleum News 2016, not 2021; the 25-day figure was removed.
 5. **Rebate.** The $25 is a once-per-season bonus for staying enrolled, which matches "$25/year" only if renewed each winter.
 6. **$17.65/therm** is SoCalGas's projected cost for proposed pilots, not a measured cost.
