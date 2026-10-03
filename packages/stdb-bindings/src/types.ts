@@ -91,6 +91,12 @@ export const Household = __t.object("Household", {
 });
 export type Household = __Infer<typeof Household>;
 
+export const OperatorSecret = __t.object("OperatorSecret", {
+  id: __t.u32(),
+  passcode: __t.string(),
+});
+export type OperatorSecret = __Infer<typeof OperatorSecret>;
+
 export const PlanHour = __t.object("PlanHour", {
   id: __t.u64(),
   planId: __t.string(),
