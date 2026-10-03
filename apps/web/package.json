@@ -4,11 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo \"apps/web: placeholder until W0 scaffold\"",
-    "build": "node ../../scripts/placeholder-web.mjs"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@thermal-reserve/model": "*",
-    "@thermal-reserve/stdb-bindings": "*"
+    "@thermal-reserve/stdb-bindings": "*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "7.18.4",
+    "recharts": "3.10.1",
+    "spacetimedb": "2.10.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.2"
   }
 }
