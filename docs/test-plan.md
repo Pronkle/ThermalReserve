@@ -94,6 +94,17 @@ Every number on screen must trace to `data/constants.json` or a model function, 
 | Water mask not yet used for map dots | Pending WEB |
 | QR code in header | Pending W4 |
 
+### Pre-check on production after W4, Sat 18:50 (DATA, headless Chromium, no login, no join)
+
+Production bundle `index-CMwD9--i.js` = main a60e3e3.
+
+| Check | Result |
+| --- | --- |
+| `/home` at 390 px: one-line pitch, "Join as an Anchorage home", "does not connect to your thermostat", footer, no horizontal scroll (P1, P10) | PASS |
+| `/ops` at 1280×800: QR in header, plain legend names, footer visible, uncovered banner | PASS (earlier N4 and N12 FAILs now fixed) |
+| `/ops` Staggered preview, feb2024, 25k: tightest-day relief 1.31, value $22,900 (= 1.31 × $17,500), uncovered 1.69 (matches NUMBERS.md, 6% overrides) | PASS |
+| Join flow, override, reload (P2–P9, P11, P12) | Not run (would add a household to production); real phones at 02:00 |
+
 ## 5. Failure modes
 
 | # | How to cause it | Expected | Result |
