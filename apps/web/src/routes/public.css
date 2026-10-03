@@ -1,0 +1,60 @@
+/* /whatif and /validation (light theme). Uses the theme tokens from styles.css. */
+.public-lede { color: var(--muted); line-height: 1.6; margin: 8px 0 24px; }
+.public-h2 { font-size: 18px; margin: 32px 0 12px; }
+.public-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 12px 0 0; }
+
+.whatif-inputs { display: grid; gap: 16px; }
+.whatif-field { display: grid; gap: 8px; }
+.whatif-field-name { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 14px; }
+.whatif-field-name output { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--accent); }
+.whatif-field input[type='range'] { width: 100%; accent-color: var(--accent); min-height: 24px; }
+.whatif-hint { color: var(--muted); font-size: 12px; }
+
+.whatif-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.whatif-results .metric:first-child { grid-column: 1 / -1; }
+.whatif-results .metric:first-child .metric-value { font-size: 40px; }
+.whatif-results .metric-name { font-size: 12px; }
+.whatif-results .metric-label { font-size: 10px; }
+
+.public-math { margin-top: 24px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+.public-math summary { cursor: pointer; font-weight: 600; }
+.public-math ol { padding-left: 20px; margin: 12px 0 0; display: grid; gap: 8px; font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+
+.validation-card { border: 1px solid var(--border); border-left-width: 4px; border-radius: 12px; padding: 16px; margin-top: 16px; }
+.validation-card.status-pass { border-left-color: var(--color-pass); }
+.validation-card.status-gap { border-left-color: var(--color-recovering); }
+.validation-card.status-check { border-left-color: var(--color-baseline); }
+.validation-card p { line-height: 1.6; margin: 8px 0; font-size: 14px; }
+.validation-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.validation-card-head h2 { font-size: 16px; margin: 0; }
+.status-chip { flex-shrink: 0; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; border: 1px solid; }
+.status-chip.pass { color: #1E6E48; border-color: var(--color-pass); background: #E9F6EF; }
+.status-chip.gap { color: #8A5300; border-color: var(--color-recovering); background: #FDF3E4; }
+.status-chip.check { color: var(--muted); border-color: var(--border); }
+.validation-figure { font-size: 15px; }
+.validation-figure strong { font-size: 28px; font-variant-numeric: tabular-nums; margin-right: 4px; }
+.validation-gap { background: #FDF3E4; border-radius: 8px; padding: 12px; }
+.validation-conditions { color: var(--muted); font-size: 12px !important; }
+.validation-chart { margin: 12px 0 0; }
+.validation-chart-box { height: 170px; }
+.validation-chart figcaption { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.legend-swatch { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin: 0 4px 0 8px; }
+.legend-swatch.baseline { background: #7A869A; }
+.legend-swatch.event { background: #126187; height: 4px; }
+
+.table-scroll { overflow-x: auto; }
+.param-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.param-table th, .param-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.param-table thead th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.param-table tbody th { font-weight: 500; }
+.param-table td { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 480px) {
+  .whatif-results { grid-template-columns: 1fr; }
+  .validation-card-head { flex-direction: column; gap: 8px; }
+  .validation-figure strong { font-size: 24px; }
+}
+@media print {
+  .public-math { border: none; padding: 0; }
+  .public-math:not([open]) ol { display: block; }
+}
