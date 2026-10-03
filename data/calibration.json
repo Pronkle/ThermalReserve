@@ -1,0 +1,218 @@
+{
+  "label": "derived",
+  "station": {
+    "name": "ANCHORAGE TED STEVENS INTERNATIONAL AIRPORT",
+    "lonLat": [
+      -150.02771,
+      61.16916
+    ],
+    "sid": "PANC",
+    "rawFile": "data/raw/acis_panc_1996_2025.json",
+    "retrievedIso": "2026-10-03T18:44:22.260Z"
+  },
+  "hdd": {
+    "base": 65,
+    "years": "1996–2025",
+    "annualMean": 9818.5,
+    "method": "Sum of ACIS daily HDD (base 65°F) per calendar year; missing days filled with that year's mean daily HDD; mean over years.",
+    "perYear": [
+      {
+        "year": 1996,
+        "hdd": 10977,
+        "missingDays": 0,
+        "hddFilled": 10977
+      },
+      {
+        "year": 1997,
+        "hdd": 9724,
+        "missingDays": 0,
+        "hddFilled": 9724
+      },
+      {
+        "year": 1998,
+        "hdd": 10025,
+        "missingDays": 0,
+        "hddFilled": 10025
+      },
+      {
+        "year": 1999,
+        "hdd": 11076,
+        "missingDays": 0,
+        "hddFilled": 11076
+      },
+      {
+        "year": 2000,
+        "hdd": 9759,
+        "missingDays": 0,
+        "hddFilled": 9759
+      },
+      {
+        "year": 2001,
+        "hdd": 10051,
+        "missingDays": 0,
+        "hddFilled": 10051
+      },
+      {
+        "year": 2002,
+        "hdd": 9404,
+        "missingDays": 0,
+        "hddFilled": 9404
+      },
+      {
+        "year": 2003,
+        "hdd": 9310,
+        "missingDays": 1,
+        "hddFilled": 9335.6
+      },
+      {
+        "year": 2004,
+        "hdd": 9620,
+        "missingDays": 0,
+        "hddFilled": 9620
+      },
+      {
+        "year": 2005,
+        "hdd": 9339,
+        "missingDays": 0,
+        "hddFilled": 9339
+      },
+      {
+        "year": 2006,
+        "hdd": 10529,
+        "missingDays": 0,
+        "hddFilled": 10529
+      },
+      {
+        "year": 2007,
+        "hdd": 10188,
+        "missingDays": 0,
+        "hddFilled": 10188
+      },
+      {
+        "year": 2008,
+        "hdd": 11000,
+        "missingDays": 0,
+        "hddFilled": 11000
+      },
+      {
+        "year": 2009,
+        "hdd": 10318,
+        "missingDays": 0,
+        "hddFilled": 10318
+      },
+      {
+        "year": 2010,
+        "hdd": 9966,
+        "missingDays": 0,
+        "hddFilled": 9966
+      },
+      {
+        "year": 2011,
+        "hdd": 10195,
+        "missingDays": 0,
+        "hddFilled": 10195
+      },
+      {
+        "year": 2012,
+        "hdd": 10922,
+        "missingDays": 0,
+        "hddFilled": 10922
+      },
+      {
+        "year": 2013,
+        "hdd": 9616,
+        "missingDays": 0,
+        "hddFilled": 9616
+      },
+      {
+        "year": 2014,
+        "hdd": 8808,
+        "missingDays": 0,
+        "hddFilled": 8808
+      },
+      {
+        "year": 2015,
+        "hdd": 9079,
+        "missingDays": 0,
+        "hddFilled": 9079
+      },
+      {
+        "year": 2016,
+        "hdd": 8521,
+        "missingDays": 0,
+        "hddFilled": 8521
+      },
+      {
+        "year": 2017,
+        "hdd": 9886,
+        "missingDays": 0,
+        "hddFilled": 9886
+      },
+      {
+        "year": 2018,
+        "hdd": 8801,
+        "missingDays": 0,
+        "hddFilled": 8801
+      },
+      {
+        "year": 2019,
+        "hdd": 8172,
+        "missingDays": 0,
+        "hddFilled": 8172
+      },
+      {
+        "year": 2020,
+        "hdd": 10240,
+        "missingDays": 0,
+        "hddFilled": 10240
+      },
+      {
+        "year": 2021,
+        "hdd": 10530,
+        "missingDays": 0,
+        "hddFilled": 10530
+      },
+      {
+        "year": 2022,
+        "hdd": 9307,
+        "missingDays": 0,
+        "hddFilled": 9307
+      },
+      {
+        "year": 2023,
+        "hdd": 9988,
+        "missingDays": 0,
+        "hddFilled": 9988
+      },
+      {
+        "year": 2024,
+        "hdd": 9870,
+        "missingDays": 0,
+        "hddFilled": 9870
+      },
+      {
+        "year": 2025,
+        "hdd": 9308,
+        "missingDays": 0,
+        "hddFilled": 9308
+      }
+    ]
+  },
+  "ua": {
+    "valueBtuHPerF": 415.2,
+    "formula": "UA = space_heat_share × avg_home_mcf_year × 1,000 × hhv_btu_per_cf × eta_furnace ÷ (24 × hdd_annual)",
+    "inputs": {
+      "space_heat_share": 0.75,
+      "avg_home_mcf_year": 149,
+      "hhv_btu_per_cf": 1030,
+      "eta_furnace": 0.85,
+      "hdd_annual": 9818.5
+    },
+    "deliveredBtuPerYear": 97837125,
+    "vsPlanAssumption": {
+      "assumedHdd": 10000,
+      "assumedUa": 407,
+      "changePct": 2.01
+    }
+  }
+}
