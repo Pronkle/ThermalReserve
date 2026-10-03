@@ -78,6 +78,14 @@ Do Phone A first, then Phone B. The recorder times each join from scan to live c
 3. Close the second-screen tab.
 4. Recorder: post `[CP3]` with PASS/FAIL counts and the deployed bundle name.
 
+## Before judging (after the last test run)
+
+Production keeps whatever the last run left. Before judges arrive, on `/ops` as operator:
+
+1. **Reset households** (removes test phones from the map and the household count).
+2. **Demo preset** (reloads `feb2024`, 25,000 homes, floor 62°F, idle at hour 0).
+3. Check: no large household dots, event log shows only the scenario load, status idle.
+
 ## Filing a failure
 
 One `[REQUEST]` per failure, to the owner (WEB for `apps/web`, STDB/H1 for `stdb/`, ENGINE for numbers from the model, DATA for data and docs):
