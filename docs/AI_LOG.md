@@ -9,3 +9,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-03T15:50 | STDB (Claude Code, Pro, Opus 5.5) | S1: simulation clock reducers and baseline tick; live design run matches runPlan(BASELINE) on all 96 hours | reviewed by H1 (pending)
 2026-10-03T14:10 | ENGINE (Claude Code, Max, Opus 5.5) | E0 model scaffold: every Contract B export, stubs, real demand fit / cohorts / sample homes / what-if; tests | reviewed by H2 (pending)
 2026-10-03T14:57 | ENGINE (Claude Code, Max, Opus 5.5) | E1 exact two-node physics, E2/E3 acceptance tests, E4 validation (ConEd passes with candidate tuning; SoCal gap ~1.35% vs 1.5%), E5 HiGHS dispatch LP; 34 tests | reviewed by H2 (pending)
+2026-10-03T16:06 | STDB (Claude Code, Pro, Opus 5.5) | S2: set_plan and plan targets in tick, simulated overrides, reassignment, event log, operator passcode; live NAIVE_4H matches runPlan on all 96 hours | reviewed by H1 (pending)

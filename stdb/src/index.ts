@@ -1,6 +1,6 @@
 // Thermal Reserve Spacetime module (Contract C, AGENTS.md Section 8).
-// S1: simulation clock with BASELINE behavior and the baseline twin.
-// Plans, overrides, reassignment (S2) and households (S3) are still stubs.
+// S1: simulation clock and the baseline twin. S2: plans, simulated overrides, reassignment,
+// event log, operator passcode. Households (S3) are still stubs.
 // Reducer exports are snake_case so the reducer names match the contract verbatim.
 import { ScheduleAt } from 'spacetimedb';
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
@@ -16,6 +16,7 @@ const SUBSTEPS_PER_HOUR = Math.round(1 / SUBSTEP_HOURS);
 const TICK_INTERVAL_MICROS = 1_000_000n;
 const FLOOR_MIN_F = 60;
 const MAX_HOMES_PER_CHUNK = 250;
+const STRATEGIES = ['BASELINE', 'NAIVE_4H', 'OPTIMIZED', 'MAX_RELIEF', 'SUSTAIN_STAGGER'];
 
 // ---------- helpers ----------
 
@@ -25,11 +26,10 @@ function getConfig(ctx: Ctx) {
   return cfg;
 }
 
-// Until claim_operator has been called, operator reducers are open (S2 adds the passcode).
 function requireOperator(ctx: Ctx) {
   const cfg = getConfig(ctx);
-  if (cfg.operator && !cfg.operator.equals(ctx.sender)) {
-    throw new SenderError('operator only');
+  if (!cfg.operator || !cfg.operator.equals(ctx.sender)) {
+    throw new SenderError('operator only: call claim_operator first');
   }
   return cfg;
 }
@@ -178,12 +178,18 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {});
 
 export const claim_operator = spacetimedb.reducer(
   { passcode: t.string() },
-  (ctx, _args) => {
+  (ctx, { passcode }) => {
+    // The first claim sets the passcode. A later claim with the same passcode takes over,
+    // so the team can recover if the operator's browser loses its identity.
     const cfg = getConfig(ctx);
-    if (cfg.operator) {
-      if (cfg.operator.equals(ctx.sender)) return;
-      throw new SenderError('operator already claimed');
+    const secret = ctx.db.operatorSecret.id.find(0);
+    if (!secret) {
+      if (passcode.length < 4) throw new SenderError('passcode must be at least 4 characters');
+      ctx.db.operatorSecret.insert({ id: 0, passcode });
+    } else if (secret.passcode !== passcode) {
+      throw new SenderError('wrong passcode');
     }
+    if (cfg.operator && cfg.operator.equals(ctx.sender)) return;
     ctx.db.simConfig.id.update({ ...cfg, operator: ctx.sender, updated_at: ctx.timestamp });
     logEvent(ctx, cfg.sim_hour, 'system', 'Operator claimed');
   }
@@ -325,9 +331,32 @@ export const set_params = spacetimedb.reducer(
   }
 );
 
+// targets_json: Plan.targetsF, i.e. [cohortId][hour] in °F; null (JSON's NaN) = normal setpoint.
+// Only one plan is kept: dispatching replaces every plan_hour row.
 export const set_plan = spacetimedb.reducer(
   { plan_id: t.string(), strategy: t.string(), targets_json: t.string() },
-  (_ctx, _args) => {}
+  (ctx, { plan_id, strategy, targets_json }) => {
+    const cfg = requireOperator(ctx);
+    if (!STRATEGIES.includes(strategy)) throw new SenderError(`unknown strategy: ${strategy}`);
+    if (plan_id.length === 0 || plan_id.length > 64) throw new SenderError('plan_id must be 1-64 characters');
+    const targets = arr(parseJson(targets_json, 'targets_json'), 'targets_json');
+
+    for (const row of [...ctx.db.planHour.iter()]) ctx.db.planHour.id.delete(row.id);
+    let rows = 0;
+    targets.forEach((perHour, cohortId) => {
+      if (perHour === null || perHour === undefined) return;
+      if (!ctx.db.cohort.id.find(cohortId)) throw new SenderError(`targets_json: no cohort ${cohortId}`);
+      arr(perHour, `targets_json[${cohortId}]`).forEach((v, hour) => {
+        if (v === null || v === undefined) return;
+        if (hour >= cfg.hours) throw new SenderError(`targets_json[${cohortId}]: more than ${cfg.hours} hours`);
+        ctx.db.planHour.insert({ id: 0n, plan_id, cohort_id: cohortId, hour, target_f: num(v, `targets_json[${cohortId}][${hour}]`) });
+        rows++;
+      });
+    });
+
+    ctx.db.simConfig.id.update({ ...cfg, plan_id, strategy, updated_at: ctx.timestamp });
+    logEvent(ctx, cfg.sim_hour, 'dispatch', `Dispatched ${strategy} (${rows} setback cohort-hours)`);
+  }
 );
 
 export const start = spacetimedb.reducer(ctx => {
@@ -382,16 +411,20 @@ export const tick = spacetimedb.reducer(
     const cfg = getConfig(ctx);
     if (cfg.status !== 'running') return;
 
-    const cohorts = [...ctx.db.cohort.iter()].map(row => ({ row, params: toParams(row) }));
+    const cohorts = [...ctx.db.cohort.iter()].map(row => toParams(row));
     const states = new Map([...ctx.db.cohortState.iter()].map(s => [s.cohort_id, { ...s }]));
     const households = ctx.db.household.count();
     const dt = SUBSTEP_HOURS;
     const hhv = cfg.hhv_btu_per_cf;
+    const homesIn = (c: CohortParams) => cfg.enrolled_homes * c.share * (1 - cfg.exempt_share);
 
     // Integer sub-step counter avoids drift in the f64 sim_hour.
     let k = Math.round(cfg.sim_hour * SUBSTEPS_PER_HOUR);
     const kEnd = cfg.hours * SUBSTEPS_PER_HOUR;
     const nSub = Math.max(1, Math.round(cfg.speed_hours_per_sec * SUBSTEPS_PER_HOUR));
+
+    let plannedHour = -1;
+    let planned = new Map<number, number>(); // cohort id -> planned target for plannedHour
 
     for (let i = 0; i < nSub && k < kEnd; i++, k++) {
       const hourIdx = Math.floor(k / SUBSTEPS_PER_HOUR);
@@ -399,20 +432,58 @@ export const tick = spacetimedb.reducer(
       if (!weather) throw new SenderError(`weather_hour ${hourIdx} missing`);
       const clock = clockHour(cfg.start_iso, k / SUBSTEPS_PER_HOUR);
 
-      for (const { params } of cohorts) {
-        const s = states.get(params.id);
+      if (hourIdx !== plannedHour) {
+        plannedHour = hourIdx;
+        planned = new Map();
+        if (cfg.plan_id !== '') {
+          for (const c of cohorts) {
+            for (const row of ctx.db.planHour.by_cohort_hour.filter([c.id, hourIdx])) {
+              if (row.plan_id === cfg.plan_id) planned.set(c.id, row.target_f);
+            }
+          }
+        }
+      }
+
+      // Plan targets, clamped to [floor, normal].
+      const normals = new Map<number, number>();
+      const targets = new Map<number, number>();
+      for (const c of cohorts) {
+        const normal = normalSetpointF(c, clock);
+        const p = planned.get(c.id);
+        normals.set(c.id, normal);
+        targets.set(c.id, p === undefined ? normal : Math.min(normal, Math.max(cfg.floor_f, p)));
+      }
+
+      // Reassignment (fast path): the depth lost to overridden homes is spread as extra depth
+      // over the homes still participating, never beyond max depth or below the floor.
+      let lostDepthHomes = 0;
+      let remainingHomes = 0;
+      for (const c of cohorts) {
+        const s = states.get(c.id);
         if (!s) continue;
-        const normal = normalSetpointF(params, clock);
-        // S1: no plan yet, so the target is the normal setpoint.
-        const target = Math.min(normal, Math.max(cfg.floor_f, normal));
+        const homes = homesIn(c);
+        lostDepthHomes += homes * s.overridden_share * ((normals.get(c.id) ?? 0) - (targets.get(c.id) ?? 0));
+        remainingHomes += homes * (1 - s.overridden_share);
+      }
+      const boostF = remainingHomes > 0 ? lostDepthHomes / remainingHomes : 0;
+
+      for (const c of cohorts) {
+        const s = states.get(c.id);
+        if (!s) continue;
+        const normal = normals.get(c.id) ?? 0;
+        let target = targets.get(c.id) ?? normal;
+        if (boostF > 0) {
+          const deepest = Math.min(normal, Math.max(cfg.floor_f, normal - cfg.max_depth_f));
+          target = Math.max(Math.min(target, deepest), target - boostF);
+        }
 
         const actual: ThermalState = { TaF: s.ta_f, TmF: s.tm_f };
-        const q = heatToHold(params, actual, weather.outdoor_f, target, dt);
-        const next = stepState(params, actual, weather.outdoor_f, q, dt);
+        const q = heatToHold(c, actual, weather.outdoor_f, target, dt);
+        const next = stepState(c, actual, weather.outdoor_f, q, dt);
 
         const base: ThermalState = { TaF: s.base_ta_f, TmF: s.base_tm_f };
-        const qBase = heatToHold(params, base, weather.outdoor_f, normal, dt);
-        const nextBase = stepState(params, base, weather.outdoor_f, qBase, dt);
+        const qBase = heatToHold(c, base, weather.outdoor_f, normal, dt);
+        const nextBase = stepState(c, base, weather.outdoor_f, qBase, dt);
 
         s.ta_f = next.TaF;
         s.tm_f = next.TmF;
@@ -420,26 +491,46 @@ export const tick = spacetimedb.reducer(
         s.target_f = target;
         s.base_ta_f = nextBase.TaF;
         s.base_tm_f = nextBase.TmF;
-        s.gas_cf_this_hour += gasCf(params, q, dt, hhv);
-        s.base_gas_cf_this_hour += gasCf(params, qBase, dt, hhv);
+        s.gas_cf_this_hour += gasCf(c, q, dt, hhv);
+        s.base_gas_cf_this_hour += gasCf(c, qBase, dt, hhv);
         s.mode = target < normal - 1e-9 ? 'holding' : next.TaF < normal - 0.25 ? 'recovering' : 'normal';
       }
 
-      // Hour boundary: write the aggregate and reset the hourly accumulators.
+      // Hour boundary: apply simulated overrides, write the aggregate, reset the accumulators.
       if ((k + 1) % SUBSTEPS_PER_HOUR === 0) {
+        // Simulated overrides: a home overrides once its override_hour has passed.
+        const total = new Map<number, number>();
+        const over = new Map<number, number>();
+        let newOverrides = 0;
+        for (const home of [...ctx.db.sampleHome.iter()]) {
+          if (home.exempt) continue;
+          total.set(home.cohort_id, (total.get(home.cohort_id) ?? 0) + 1);
+          let overridden = home.overridden;
+          if (!overridden && home.override_hour >= 0 && home.override_hour <= hourIdx + 1) {
+            overridden = true;
+            newOverrides++;
+            ctx.db.sampleHome.id.update({ ...home, overridden: true });
+          }
+          if (overridden) over.set(home.cohort_id, (over.get(home.cohort_id) ?? 0) + 1);
+        }
+
         let fleetCf = 0;
         let baseCf = 0;
         let minTa = Infinity;
         let shareAtFloor = 0;
-        for (const { params } of cohorts) {
-          const s = states.get(params.id);
+        let overriddenHomes = 0;
+        for (const c of cohorts) {
+          const s = states.get(c.id);
           if (!s) continue;
-          const homes = cfg.enrolled_homes * params.share * (1 - cfg.exempt_share);
+          const n = total.get(c.id) ?? 0;
+          s.overridden_share = n > 0 ? (over.get(c.id) ?? 0) / n : 0;
+          const homes = homesIn(c);
           // Overridden homes are counted at baseline-twin gas.
           fleetCf += homes * ((1 - s.overridden_share) * s.gas_cf_this_hour + s.overridden_share * s.base_gas_cf_this_hour);
           baseCf += homes * s.base_gas_cf_this_hour;
-          minTa = Math.min(minTa, s.ta_f);
-          if (s.ta_f <= cfg.floor_f + 0.1) shareAtFloor += params.share;
+          overriddenHomes += homes * s.overridden_share;
+          if (c.share > 0) minTa = Math.min(minTa, s.ta_f);
+          if (s.ta_f <= cfg.floor_f + 0.1) shareAtFloor += c.share * (1 - s.overridden_share);
           s.gas_cf_this_hour = 0;
           s.base_gas_cf_this_hour = 0;
         }
@@ -454,12 +545,30 @@ export const tick = spacetimedb.reducer(
           relief_mmcf: baseline - fleet,
           min_ta_f: Number.isFinite(minTa) ? minTa : 0,
           share_at_floor: shareAtFloor,
-          overrides: 0,
+          overrides: Math.round(overriddenHomes),
           households: Number(households),
           strategy: cfg.strategy,
         };
         if (ctx.db.aggregateHour.hour.find(hourIdx)) ctx.db.aggregateHour.hour.update(agg);
         else ctx.db.aggregateHour.insert(agg);
+
+        if (newOverrides > 0) {
+          const simHour = hourIdx + 1;
+          logEvent(ctx, simHour, 'override', `${newOverrides} sample homes overrode; about ${Math.round(overriddenHomes)} homes now overridden`);
+          if (boostF > 0) {
+            logEvent(ctx, simHour, 'reassign', `Lost relief reassigned: up to ${boostF.toFixed(2)} °F extra depth on participating homes`);
+          }
+        }
+
+        // Capacity is a daily limit: report when a completed gas day's total exceeds it.
+        if ((hourIdx + 1) % 24 === 0) {
+          let dayTotal = 0;
+          for (let h = hourIdx - 23; h <= hourIdx; h++) dayTotal += ctx.db.aggregateHour.hour.find(h)?.system_mmcf ?? 0;
+          const excess = dayTotal - cfg.capacity_mmcfd;
+          if (excess > 0) {
+            logEvent(ctx, hourIdx + 1, 'system', `Gas day ${(hourIdx + 1) / 24} closed ${excess.toFixed(2)} MMcf over capacity`);
+          }
+        }
       }
     }
 

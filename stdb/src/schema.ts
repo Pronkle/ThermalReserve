@@ -169,7 +169,17 @@ export const tickSchedule = table(
   }
 );
 
+// Private: the operator passcode, set by the first successful claim_operator.
+const operatorSecret = table(
+  { name: 'operator_secret' },
+  {
+    id: t.u32().primaryKey(), // single row, id = 0
+    passcode: t.string(),
+  }
+);
+
 const spacetimedb = schema({
+  operatorSecret,
   simConfig,
   weatherHour,
   cohort,
