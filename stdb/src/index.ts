@@ -17,6 +17,19 @@ const TICK_INTERVAL_MICROS = 1_000_000n;
 const FLOOR_MIN_F = 60;
 const MAX_HOMES_PER_CHUNK = 250;
 const NICKNAME_MAX = 24;
+// S5 input limits (AGENTS.md §12 S5; ranges set by H1 via STDB's request).
+const FLOOR_MAX_F = 70;
+const ENROLLED_MIN = 1_000;
+const ENROLLED_MAX = 50_000;
+const MAX_DEPTH_F = 10;
+const SPEED_MIN = 0.5;
+const SPEED_MAX = 4;
+const HOURS_MAX = 240;
+const COHORTS_MAX = 64;
+const SAMPLE_HOMES_MAX = 2_000;
+const HOUSEHOLDS_MAX = 50;
+const TARGET_MIN_F = 40;
+const TARGET_MAX_F = 80;
 // Fallback household position when no sample homes are loaded: the map center (Section 9).
 const MAP_CENTER = { lat: 61.2, lon: -149.9 };
 const STRATEGIES = ['BASELINE', 'NAIVE_4H', 'OPTIMIZED', 'MAX_RELIEF', 'SUSTAIN_STAGGER'];
@@ -50,10 +63,6 @@ function num(v: unknown, what: string): number {
   return v;
 }
 
-function optNum(v: unknown, fallback: number, what: string): number {
-  return v === undefined || v === null ? fallback : num(v, what);
-}
-
 function str(v: unknown, what: string): string {
   if (typeof v !== 'string') throw new SenderError(`${what}: expected a string`);
   return v;
@@ -67,6 +76,45 @@ function obj(v: unknown, what: string): Record<string, unknown> {
 function arr(v: unknown, what: string): unknown[] {
   if (!Array.isArray(v)) throw new SenderError(`${what}: expected an array`);
   return v;
+}
+
+function int(v: unknown, what: string, min: number, max: number): number {
+  const n = num(v, what);
+  if (!Number.isInteger(n) || n < min || n > max) throw new SenderError(`${what}: expected a whole number from ${min} to ${max}`);
+  return n;
+}
+
+function inRange(v: unknown, what: string, min: number, max: number): number {
+  const n = num(v, what);
+  if (n < min || n > max) throw new SenderError(`${what}: must be between ${min} and ${max}`);
+  return n;
+}
+
+function positive(v: unknown, what: string): number {
+  const n = num(v, what);
+  if (n <= 0) throw new SenderError(`${what}: must be positive`);
+  return n;
+}
+
+// Fleet settings shared by load_scenario and set_params. Missing keys keep `current`.
+// The comfort floor is raised to 60 °F if lower (the safety rule) and rejected above 70 °F.
+function fleetSettings(fc: Record<string, unknown>, current: {
+  enrolled_homes: number; exempt_share: number; floor_f: number; max_depth_f: number;
+  override_rate: number; speed_hours_per_sec: number; homes_per_dot: number; capacity_mmcfd: number;
+}) {
+  const has = (k: string) => fc[k] !== undefined && fc[k] !== null;
+  const floor = has('floorF') ? num(fc.floorF, 'config.floorF') : current.floor_f;
+  if (floor > FLOOR_MAX_F) throw new SenderError(`config.floorF: must be at most ${FLOOR_MAX_F} °F`);
+  return {
+    enrolled_homes: has('enrolledHomes') ? int(fc.enrolledHomes, 'config.enrolledHomes', ENROLLED_MIN, ENROLLED_MAX) : current.enrolled_homes,
+    exempt_share: has('exemptShare') ? inRange(fc.exemptShare, 'config.exemptShare', 0, 1) : current.exempt_share,
+    floor_f: Math.max(FLOOR_MIN_F, floor),
+    max_depth_f: has('maxDepthF') ? inRange(fc.maxDepthF, 'config.maxDepthF', 0, MAX_DEPTH_F) : current.max_depth_f,
+    override_rate: has('overrideRate') ? inRange(fc.overrideRate, 'config.overrideRate', 0, 1) : current.override_rate,
+    speed_hours_per_sec: has('speedHoursPerSec') ? inRange(fc.speedHoursPerSec, 'config.speedHoursPerSec', SPEED_MIN, SPEED_MAX) : current.speed_hours_per_sec,
+    homes_per_dot: has('homesPerDot') ? positive(fc.homesPerDot, 'config.homesPerDot') : current.homes_per_dot,
+    capacity_mmcfd: has('capacityMMcfd') ? positive(fc.capacityMMcfd, 'config.capacityMMcfd') : current.capacity_mmcfd,
+  };
 }
 
 // Local clock hour at scenario start, read from the ISO string's own wall-clock fields.
@@ -238,13 +286,55 @@ export const load_scenario = spacetimedb.reducer(
     const cohorts = arr(parseJson(cohorts_json, 'cohorts_json'), 'cohorts_json');
     const fc = obj(parseJson(config_json, 'config_json'), 'config_json');
 
-    const hours = num(sc.hours, 'scenario.hours');
-    const outdoorF = arr(sc.outdoorF, 'scenario.outdoorF');
-    const systemMMcfh = arr(sc.systemMMcfh, 'scenario.systemMMcfh');
-    if (!Number.isInteger(hours) || hours < 1 || outdoorF.length !== hours || systemMMcfh.length !== hours) {
+    // Validate everything before touching any table (S5).
+    const hours = int(sc.hours, 'scenario.hours', 1, HOURS_MAX);
+    const outdoorF = arr(sc.outdoorF, 'scenario.outdoorF').map((v, h) => num(v, `scenario.outdoorF[${h}]`));
+    const systemMMcfh = arr(sc.systemMMcfh, 'scenario.systemMMcfh').map((v, h) => num(v, `scenario.systemMMcfh[${h}]`));
+    if (outdoorF.length !== hours || systemMMcfh.length !== hours) {
       throw new SenderError('scenario: outdoorF and systemMMcfh must each have `hours` entries');
     }
+    const eventStart = int(sc.eventStartHour, 'scenario.eventStartHour', 0, hours);
+    const eventEnd = int(sc.eventEndHour, 'scenario.eventEndHour', 0, hours);
+    if (eventStart >= eventEnd) throw new SenderError('scenario: eventStartHour must be before eventEndHour');
     const startIso = str(sc.startIso, 'scenario.startIso');
+    const scenarioId = str(sc.id, 'scenario.id');
+    const scenarioCapacity = positive(sc.capacityMMcfd, 'scenario.capacityMMcfd');
+
+    if (cohorts.length < 1 || cohorts.length > COHORTS_MAX) throw new SenderError(`cohorts_json: expected 1 to ${COHORTS_MAX} cohorts`);
+    const ids = new Set<number>();
+    let shareSum = 0;
+    const cohortRows = cohorts.map((raw, i) => {
+      const c = obj(raw, `cohort[${i}]`);
+      const id = int(c.id, `cohort[${i}].id`, 0, 0xffff_ffff);
+      if (ids.has(id)) throw new SenderError(`cohort[${i}].id: duplicate id ${id}`);
+      ids.add(id);
+      const share = inRange(c.share, `cohort[${i}].share`, 0, 1);
+      shareSum += share;
+      const eta = num(c.eta, `cohort[${i}].eta`);
+      if (eta <= 0 || eta > 1) throw new SenderError(`cohort[${i}].eta: must be above 0 and at most 1`);
+      return {
+        id,
+        key: str(c.key, `cohort[${i}].key`),
+        heating: str(c.heating, `cohort[${i}].heating`),
+        share,
+        ua: positive(c.UA, `cohort[${i}].UA`),
+        uao: positive(c.Uao, `cohort[${i}].Uao`),
+        umo: positive(c.Umo, `cohort[${i}].Umo`),
+        ham: positive(c.Ham, `cohort[${i}].Ham`),
+        ca: positive(c.Ca, `cohort[${i}].Ca`),
+        cm: positive(c.Cm, `cohort[${i}].Cm`),
+        qmax_btuh: positive(c.QmaxBtuH, `cohort[${i}].QmaxBtuH`),
+        eta,
+        setpoint_day_f: num(c.setpointDayF, `cohort[${i}].setpointDayF`),
+        setpoint_night_f: num(c.setpointNightF, `cohort[${i}].setpointNightF`),
+        night_start_hour: int(c.nightStartHour, `cohort[${i}].nightStartHour`, 0, 23),
+        night_end_hour: int(c.nightEndHour, `cohort[${i}].nightEndHour`, 0, 23),
+      };
+    });
+    if (Math.abs(shareSum - 1) > 1e-6) throw new SenderError(`cohorts_json: shares sum to ${shareSum}, expected 1`);
+
+    const hhv = positive(fc.hhvBtuPerCf, 'config.hhvBtuPerCf');
+    const fleet = fleetSettings(fc, { ...cfg, capacity_mmcfd: scenarioCapacity });
 
     clearRun(ctx);
     for (const row of [...ctx.db.weatherHour.iter()]) ctx.db.weatherHour.hour.delete(row.hour);
@@ -253,57 +343,21 @@ export const load_scenario = spacetimedb.reducer(
     for (const row of [...ctx.db.sampleHome.iter()]) ctx.db.sampleHome.id.delete(row.id);
 
     for (let h = 0; h < hours; h++) {
-      ctx.db.weatherHour.insert({
-        hour: h,
-        outdoor_f: num(outdoorF[h], `scenario.outdoorF[${h}]`),
-        system_mmcfh: num(systemMMcfh[h], `scenario.systemMMcfh[${h}]`),
-      });
+      ctx.db.weatherHour.insert({ hour: h, outdoor_f: outdoorF[h], system_mmcfh: systemMMcfh[h] });
     }
-
-    for (const raw of cohorts) {
-      const c = obj(raw, 'cohort');
-      const heating = str(c.heating, 'cohort.heating');
-      ctx.db.cohort.insert({
-        id: num(c.id, 'cohort.id'),
-        key: str(c.key, 'cohort.key'),
-        heating,
-        share: num(c.share, 'cohort.share'),
-        ua: num(c.UA, 'cohort.UA'),
-        uao: num(c.Uao, 'cohort.Uao'),
-        umo: num(c.Umo, 'cohort.Umo'),
-        ham: num(c.Ham, 'cohort.Ham'),
-        ca: num(c.Ca, 'cohort.Ca'),
-        cm: num(c.Cm, 'cohort.Cm'),
-        qmax_btuh: num(c.QmaxBtuH, 'cohort.QmaxBtuH'),
-        eta: num(c.eta, 'cohort.eta'),
-        setpoint_day_f: num(c.setpointDayF, 'cohort.setpointDayF'),
-        setpoint_night_f: num(c.setpointNightF, 'cohort.setpointNightF'),
-        night_start_hour: num(c.nightStartHour, 'cohort.nightStartHour'),
-        night_end_hour: num(c.nightEndHour, 'cohort.nightEndHour'),
-      });
-    }
-
-    const hhv = num(fc.hhvBtuPerCf, 'config.hhvBtuPerCf');
-    if (hhv <= 0) throw new SenderError('config.hhvBtuPerCf must be positive');
+    for (const row of cohortRows) ctx.db.cohort.insert(row);
 
     ctx.db.simConfig.id.update({
       ...cfg,
-      scenario_id: str(sc.id, 'scenario.id'),
+      ...fleet,
+      scenario_id: scenarioId,
       status: 'idle',
       sim_hour: 0,
-      speed_hours_per_sec: optNum(fc.speedHoursPerSec, cfg.speed_hours_per_sec, 'config.speedHoursPerSec'),
       strategy: 'BASELINE',
       plan_id: '',
-      enrolled_homes: optNum(fc.enrolledHomes, cfg.enrolled_homes, 'config.enrolledHomes'),
-      exempt_share: optNum(fc.exemptShare, cfg.exempt_share, 'config.exemptShare'),
-      floor_f: Math.max(FLOOR_MIN_F, optNum(fc.floorF, cfg.floor_f, 'config.floorF')),
-      max_depth_f: optNum(fc.maxDepthF, cfg.max_depth_f, 'config.maxDepthF'),
-      capacity_mmcfd: optNum(fc.capacityMMcfd, num(sc.capacityMMcfd, 'scenario.capacityMMcfd'), 'config.capacityMMcfd'),
-      override_rate: optNum(fc.overrideRate, cfg.override_rate, 'config.overrideRate'),
       hours,
-      event_start_hour: num(sc.eventStartHour, 'scenario.eventStartHour'),
-      event_end_hour: num(sc.eventEndHour, 'scenario.eventEndHour'),
-      homes_per_dot: optNum(fc.homesPerDot, cfg.homes_per_dot, 'config.homesPerDot'),
+      event_start_hour: eventStart,
+      event_end_hour: eventEnd,
       updated_at: ctx.timestamp,
       start_iso: startIso,
       hhv_btu_per_cf: hhv,
@@ -311,7 +365,7 @@ export const load_scenario = spacetimedb.reducer(
 
     initStates(ctx, startIso);
     resetHouseholdStates(ctx);
-    logEvent(ctx, 0, 'system', `Scenario loaded: ${str(sc.id, 'scenario.id')}`);
+    logEvent(ctx, 0, 'system', `Scenario loaded: ${scenarioId}`);
   }
 );
 
@@ -324,14 +378,19 @@ export const load_homes = spacetimedb.reducer(
     if (homes.length > MAX_HOMES_PER_CHUNK) {
       throw new SenderError(`chunk_json: at most ${MAX_HOMES_PER_CHUNK} homes per call`);
     }
+    let total = [...ctx.db.sampleHome.iter()].length;
     for (const raw of homes) {
       const h = obj(raw, 'home');
-      const id = num(h.id, 'home.id');
+      const id = int(h.id, 'home.id', 0, 0xffff_ffff);
+      const cohortId = int(h.cohortId, 'home.cohortId', 0, 0xffff_ffff);
+      if (!ctx.db.cohort.id.find(cohortId)) throw new SenderError(`home ${id}: no cohort ${cohortId}`);
+      const exists = Boolean(ctx.db.sampleHome.id.find(id));
+      if (!exists && ++total > SAMPLE_HOMES_MAX) throw new SenderError(`load_homes: at most ${SAMPLE_HOMES_MAX} sample homes in total`);
       const row = {
         id,
-        cohort_id: num(h.cohortId, 'home.cohortId'),
-        lat: num(h.lat, 'home.lat'),
-        lon: num(h.lon, 'home.lon'),
+        cohort_id: cohortId,
+        lat: inRange(h.lat, 'home.lat', -90, 90),
+        lon: inRange(h.lon, 'home.lon', -180, 180),
         exempt: h.exempt === true,
         override_hour: h.overrideHour === null || h.overrideHour === undefined ? -1 : num(h.overrideHour, 'home.overrideHour'),
         overridden: false,
@@ -349,19 +408,7 @@ export const set_params = spacetimedb.reducer(
   (ctx, { config_json }) => {
     const cfg = requireOperator(ctx);
     const fc = obj(parseJson(config_json, 'config_json'), 'config_json');
-    const speed = optNum(fc.speedHoursPerSec, cfg.speed_hours_per_sec, 'config.speedHoursPerSec');
-    if (speed <= 0) throw new SenderError('config.speedHoursPerSec must be positive');
-    ctx.db.simConfig.id.update({
-      ...cfg,
-      enrolled_homes: optNum(fc.enrolledHomes, cfg.enrolled_homes, 'config.enrolledHomes'),
-      floor_f: Math.max(FLOOR_MIN_F, optNum(fc.floorF, cfg.floor_f, 'config.floorF')),
-      max_depth_f: optNum(fc.maxDepthF, cfg.max_depth_f, 'config.maxDepthF'),
-      capacity_mmcfd: optNum(fc.capacityMMcfd, cfg.capacity_mmcfd, 'config.capacityMMcfd'),
-      override_rate: optNum(fc.overrideRate, cfg.override_rate, 'config.overrideRate'),
-      speed_hours_per_sec: speed,
-      homes_per_dot: optNum(fc.homesPerDot, cfg.homes_per_dot, 'config.homesPerDot'),
-      updated_at: ctx.timestamp,
-    });
+    ctx.db.simConfig.id.update({ ...cfg, ...fleetSettings(fc, cfg), updated_at: ctx.timestamp });
   }
 );
 
@@ -383,7 +430,8 @@ export const set_plan = spacetimedb.reducer(
       arr(perHour, `targets_json[${cohortId}]`).forEach((v, hour) => {
         if (v === null || v === undefined) return;
         if (hour >= cfg.hours) throw new SenderError(`targets_json[${cohortId}]: more than ${cfg.hours} hours`);
-        ctx.db.planHour.insert({ id: 0n, plan_id, cohort_id: cohortId, hour, target_f: num(v, `targets_json[${cohortId}][${hour}]`) });
+        const target = inRange(v, `targets_json[${cohortId}][${hour}]`, TARGET_MIN_F, TARGET_MAX_F);
+        ctx.db.planHour.insert({ id: 0n, plan_id, cohort_id: cohortId, hour, target_f: target });
         rows++;
       });
     });
@@ -443,6 +491,10 @@ export const join_household = spacetimedb.reducer(
     if (existing) {
       ctx.db.household.identity.update({ ...existing, nickname: name, heating: heat, thermostat: stat, exempt, online: true });
       return;
+    }
+
+    if ([...ctx.db.household.iter()].length >= HOUSEHOLDS_MAX) {
+      throw new SenderError(`Sorry, the demo is full (${HOUSEHOLDS_MAX} households). Watch the operator screen instead.`);
     }
 
     // Template: matching heating type (other uses furnace), steady schedule, average envelope, light mass.
