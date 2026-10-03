@@ -17,7 +17,7 @@ Run by DATA with H3 at Checkpoint 3 (Sun 02:00–03:00), then the end-to-end tes
 
 | # | Step | Expected | Owner if it fails | Result |
 | --- | --- | --- | --- | --- |
-| E1 | Open `/ops` in a fresh profile; claim operator; press **Demo preset** | `feb2024` loaded, 25,000 enrolled, speed 2 h/s, status idle at hour 0 | WEB / STDB | |
+| E1 | Open `/ops` in a fresh profile; claim operator; press **Demo preset** | `feb2024` loaded, 25,000 enrolled, speed 2 h/s, **comfort floor 62°F**, status idle at hour 0. The demo never uses a floor below 62°F (60–61°F is a study-only setting, H3 decision) | WEB / STDB | |
 | E2 | Look at the fleet chart and KPI strip | BASELINE, NAIVE_4H and OPTIMIZED (or SUSTAIN_STAGGER before the LP) lines visible; NAIVE recovery spike visible after each event; every KPI has a value and a label chip | WEB | |
 | E3 | **Solve plan** | Finishes in under 5 s; elapsed time shown; UI stays responsive (scroll the event log during the solve) | WEB / ENGINE | |
 | E4 | **Dispatch**, then **Start** | Event log shows `dispatch`; LIVE line advances about 2 hours per second and tracks the OPTIMIZED line; map dots change color | WEB / STDB | |
@@ -35,7 +35,7 @@ Run on each phone; record iOS and Android results separately.
 | --- | --- | --- | --- | --- |
 | P1 | Open `/home` from the QR code | Screen 1 names the product in one line; one button "Join as an Anchorage home" | | |
 | P2 | Join with defaults | Nickname defaults to "Home NNNN"; heating and thermostat pickers work; "steady heat" checkbox present | | |
-| P3 | Consent screen | Says heat may be lowered up to N°F, never below the floor, override any time; no exclamation marks | | |
+| P3 | Consent screen | Says heat may be lowered up to N°F, never below the floor **in force (62°F with the Demo preset)**, override any time; no exclamation marks | | |
 | P4 | Enroll timing | Under 20 s from scan to live card | | |
 | P5 | Live card | Indoor °F (large), setpoint, status, sim clock, countdown to event end | | |
 | P6 | Override, then Rejoin | Status changes both ways; `/ops` log shows both | | |
