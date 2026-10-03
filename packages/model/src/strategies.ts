@@ -193,3 +193,40 @@ export function compareStrategies(sc: Scenario, cohorts: CohortParams[], cfg: Fl
     SUSTAIN_STAGGER: runPlan(sc, cohorts, cfg, planSustainStagger(sc, cohorts, cfg), consts),
   };
 }
+
+export interface GasDay {
+  day: number; startHour: number; hours: number;
+  systemMMcf: number;          // total system demand under this run
+  baselineSystemMMcf: number;  // same day with no program
+  capacityMMcf: number;        // capacityMMcfd, pro-rated for a partial day
+  reliefMMcf: number;          // baseline − actual enrolled-fleet gas (negative = snapback day)
+  uncoveredMMcf: number;       // max(0, system − capacity)
+  overCapacityWithoutProgram: boolean;
+}
+
+/**
+ * Per-gas-day view of a run (day d = hours [24d, 24d+24) from scenario start). Capacity is a daily limit, so this
+ * is the view that shows what the program did where it mattered: relief on over-capacity days, snapback on days with
+ * headroom. A 4-day average hides that.
+ */
+export function gasDays(run: RunResult): GasDay[] {
+  const out: GasDay[] = [];
+  for (let d = 0; d * 24 < run.hours.length; d++) {
+    const day = run.hours.slice(d * 24, d * 24 + 24);
+    let systemMMcf = 0, baselineSystemMMcf = 0, capacityMMcf = 0, reliefMMcf = 0;
+    for (const r of day) {
+      const relief = r.baselineFleetGasMMcfh - r.fleetGasMMcfh;
+      systemMMcf += r.systemMMcfh;
+      baselineSystemMMcf += r.systemMMcfh + relief;
+      capacityMMcf += r.capacityMMcfh;
+      reliefMMcf += relief;
+    }
+    out.push({
+      day: d, startHour: d * 24, hours: day.length,
+      systemMMcf, baselineSystemMMcf, capacityMMcf, reliefMMcf,
+      uncoveredMMcf: Math.max(0, systemMMcf - capacityMMcf),
+      overCapacityWithoutProgram: baselineSystemMMcf > capacityMMcf,
+    });
+  }
+  return out;
+}
