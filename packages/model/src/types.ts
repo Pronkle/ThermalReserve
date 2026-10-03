@@ -43,7 +43,8 @@ export interface Plan {
   id: string; strategy: Strategy;
   targetsF: number[][];       // [cohortId][hour]; NaN = follow normal setpoint
   solveMs?: number;
-  shortfallMMcfh?: number[];  // LP slack per hour (0 when covered)
+  shortfallMMcfh?: number[];  // LP slack per hour (0 when covered); each gas day's slack ÷ 24 spread over its hours
+  shortfallMMcfd?: number[];  // LP slack per gas day (hours [24d, 24d+24) from scenario start)
   note?: string;              // e.g. 'Rule-based fallback'
 }
 
