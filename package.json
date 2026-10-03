@@ -9,7 +9,8 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "stdb"
+    "stdb",
+    "data"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
