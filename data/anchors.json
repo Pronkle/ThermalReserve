@@ -1,0 +1,14 @@
+[
+  {"name": "Downtown / Fairview",       "lat": 61.217, "lon": -149.890, "weight": 0.06},
+  {"name": "Midtown",                   "lat": 61.190, "lon": -149.870, "weight": 0.10},
+  {"name": "Spenard / Turnagain",       "lat": 61.188, "lon": -149.930, "weight": 0.08},
+  {"name": "Sand Lake",                 "lat": 61.145, "lon": -149.960, "weight": 0.08},
+  {"name": "South Anchorage / Huffman", "lat": 61.105, "lon": -149.860, "weight": 0.10},
+  {"name": "Hillside",                  "lat": 61.130, "lon": -149.770, "weight": 0.06},
+  {"name": "Muldoon / East Anchorage",  "lat": 61.220, "lon": -149.740, "weight": 0.12},
+  {"name": "Mountain View / Northeast", "lat": 61.225, "lon": -149.820, "weight": 0.06},
+  {"name": "Eagle River",               "lat": 61.321, "lon": -149.568, "weight": 0.08},
+  {"name": "Wasilla",                   "lat": 61.581, "lon": -149.439, "weight": 0.10},
+  {"name": "Palmer",                    "lat": 61.600, "lon": -149.113, "weight": 0.06},
+  {"name": "Kenai / Soldotna",          "lat": 60.530, "lon": -151.150, "weight": 0.10}
+]
