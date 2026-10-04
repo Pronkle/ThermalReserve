@@ -97,8 +97,8 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
         ? store.history(config.helloTo!).filter(t => t.direction === 'in' && classify(t.body) === 'other').at(-1)?.body.trim().slice(0, 80)
         : undefined;
       const body = linked
-        ? `Thermal Reserve demo assistant is back on (simulation only). You're linked to ${linked.nickname}.${lastAsked ? ` Last time you asked: "${lastAsked}". Ask me anything about it.` : ''}`
-        : 'Thermal Reserve demo assistant is on (simulation only). If you opted in on the household page with this number, text START to get heat updates.';
+        ? `BoreaFlux demo assistant is back on (simulation only). You're linked to ${linked.nickname}.${lastAsked ? ` Last time you asked: "${lastAsked}". Ask me anything about it.` : ''}`
+        : 'BoreaFlux demo assistant is on (simulation only). If you opted in on the household page with this number, text START to get heat updates.';
       try {
         await transport.sendText(config.helloTo!, body);
         store.addHistory(config.helloTo!, 'out', body, Date.now());

@@ -153,7 +153,7 @@ describe('agent screen', () => {
     server.close();
     expect(api.handoffs[0].question).toBe('why now?');
     expect(api.lines).toHaveLength(1);
-    expect(page).toContain('<title>Thermal Reserve agents</title>');
+    expect(page).toContain('<title>BoreaFlux agents</title>');
     expect((server.address() ?? { address: '127.0.0.1' })).toBeTruthy();
   });
 });

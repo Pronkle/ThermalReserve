@@ -102,7 +102,7 @@ describe('compose', () => {
 
   it('single setback message carries the facts, a question, and no exclamation marks', () => {
     const body = composeMessage([t('setback_start', 30)], home({ targetF: 66, taF: 68.4 }), sim(30), consts);
-    expect(body).toBe("Thermal Reserve demo, Thu Feb 1 06:00 (simulated): we lowered Test iPhone's heat to 66°F. Indoor is 68.4°F and will stay above 62°F. Want to know why now?");
+    expect(body).toBe("BoreaFlux demo, Thu Feb 1 06:00 (simulated): we lowered Test iPhone's heat to 66°F. Indoor is 68.4°F and will stay above 62°F. Want to know why now?");
   });
 
   it('catch-up list is one message, oldest first, ending with now and a question', () => {
@@ -110,7 +110,7 @@ describe('compose', () => {
       [t('recovery_start', 50, { targetF: 70 }), t('setback_start', 30), t('depth_change', 38, { targetF: 65, previousTargetF: 66 })],
       home({ targetF: 70, taF: 67.1 }), sim(51), consts);
     expect(body.split('\n')).toEqual([
-      'Thermal Reserve demo, since my last text (simulated):',
+      'BoreaFlux demo, since my last text (simulated):',
       '• Thu 06:00 heat lowered to 66°F',
       '• Thu 14:00 lowered further to 65°F',
       '• Fri 02:00 heat raised back toward 70°F',

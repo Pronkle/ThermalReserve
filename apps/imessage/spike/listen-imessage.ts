@@ -16,7 +16,7 @@ for await (const [space, message] of app.messages) {
   const from = mask(String(message.sender?.id ?? "?"));
   if (message.content.type !== "text") { console.log(`[listen] +${at}s event (${message.content.type}) from ${from}`); continue; }
   console.log(`[listen] +${at}s text from ${from} in space ${mask(String((space as { id?: string }).id))}: ${message.content.text}`);
-  await space.responding(async () => { await space.send(text("Thermal Reserve test: your text reached us. Simulation only; no reply needed.")); });
+  await space.responding(async () => { await space.send(text("BoreaFlux test: your text reached us. Simulation only; no reply needed.")); });
   clearTimeout(stop);
   await app.stop();
   process.exit(0);
