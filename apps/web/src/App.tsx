@@ -21,8 +21,8 @@ export function App() {
       <a className="skip-link" href="#main">Skip to content</a>
       {!pressureConsole && <header className="app-header">
         <NavLink className="brand" to="/ops">
-          <span className="brand-mark" aria-hidden="true">BF</span>
-          <span>BoreaFlux<span className="brand-subtitle">Southcentral Alaska</span></span>
+          <img className="brand-logo" src="/borea-flux-logo.webp" alt="BoreaFlux" width={960} height={145} />
+          <span className="brand-subtitle">Southcentral Alaska</span>
         </NavLink>
         <MainNavigation />
       </header>}

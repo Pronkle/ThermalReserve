@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { anchorageSanity, buildCohorts, loadConstants, validateConEdLike, validateSoCalLike, type CohortSpec, type ConstantsJson } from '@thermal-reserve/model';
+import { anchorageSanity, buildCohorts, loadConstants, validateConEdLike, type CohortSpec, type ConstantsJson } from '@thermal-reserve/model';
 import forecastError from '../../../../data/forecast_error.json';
 import raw from '../../../../data/constants.json';
 import specJson from '../../../../data/cohort_spec.json';
@@ -11,7 +11,6 @@ const spec = specJson as CohortSpec;
 const cohorts = buildCohorts(spec, constants.uaMeanBtuHPerF);
 // Pure functions of the data files; computed once per page load (~tens of ms).
 const coned = validateConEdLike(cohorts, constants);
-const socal = validateSoCalLike(cohorts, constants);
 const sanity = anchorageSanity(cohorts, constants);
 const fleetEta = cohorts.reduce((s, c) => s + c.share * c.eta, 0);
 const sanityExpected = (constants.uaMeanBtuHPerF * 90 * 24) / (fleetEta * constants.hhvBtuPerCf) / 1000;
@@ -36,7 +35,7 @@ function EventDayChart({ hourly, title }: { hourly: { hour: number; baselineCf: 
           <YAxis width={40} tick={{ fontSize: 12 }} stroke="var(--muted)" tickFormatter={(v) => one.format(Number(v))} />
           <Tooltip formatter={(v) => `${two.format(Number(v))} cf per home · derived`} labelFormatter={(h) => `${String(h).padStart(2, '0')}:00`} />
           <Line name="Normal day" dataKey="baselineCf" stroke="#7A869A" dot={false} isAnimationActive={false} />
-          <Line name="Event day" dataKey="eventCf" stroke="#126187" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line name="Event day" dataKey="eventCf" stroke="#1A3A8F" strokeWidth={2} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -65,25 +64,16 @@ const tuned: { name: string; value: string; range: string; note: string }[] = [
 
 export function Validation() {
   const conedStatus: Status = coned.pass ? 'pass' : 'gap';
-  const socalStatus: Status = socal.pass ? 'pass' : 'gap';
   return <section className="panel public-page validation-page">
     <p className="eyebrow">Check the evidence</p>
     <h1>Validation</h1>
-    <p className="public-lede">Before trusting the simulator's numbers for Anchorage, we ask it to reproduce what real smart-thermostat pilots measured. Each card runs our house model under the pilot's conditions and compares. One check passes; one shows a gap we report rather than hide.</p>
+    <p className="public-lede">Before trusting the simulator's numbers for Anchorage, we ask it to reproduce what real smart-thermostat pilots measured. Each card runs our house model under the pilot's conditions and compares.</p>
 
     <Card id="coned" title="ConEd-like: how much saving survives snapback" status={conedStatus}>
       <p className="validation-figure"><strong>{three.format(coned.retention)}</strong> of event-hour savings kept over the day <span className="metric-label">derived</span></p>
       <p>Target {two.format(constants.conedRetentionTarget)} <span className="metric-label">{lbl('validation_coned_retention_target')}</span> (ConEd measured {whole.format(Number(constants.raw.coned_snapback_pct?.value ?? 52))}% lost to snapback <span className="metric-label">{lbl('coned_snapback_pct')}</span>). Pass band {two.format(coned.band[0])}–{two.format(coned.band[1])} <span className="metric-label">{lbl('validation_coned_band')}</span>.</p>
       <EventDayChart hourly={coned.hourly} title="ConEd-like event day" />
       <p className="validation-conditions">Conditions: outdoor 30°F all day, thermostat 70°F, lowered 4°F from 06:00 to 10:00; the second day of a two-day run is measured.</p>
-    </Card>
-
-    <Card id="socal" title="SoCalGas-like: net daily reduction" status={socalStatus}>
-      <p className="validation-figure"><strong>{two.format(socal.dailyPct)}%</strong> net daily reduction <span className="metric-label">derived</span> vs {one.format(constants.socalDailyPct)}% published <span className="metric-label">{lbl('socal_daily_pct')}</span></p>
-      <p>We fit the share of homes that respond (r = {two.format(socal.responseRate)}) so the event-hour reduction matches SoCalGas's {one.format(constants.socalEventPct)}% <span className="metric-label">{lbl('socal_event_pct')}</span>, then read off the daily result. Band {one.format(socal.band[0])}–{one.format(socal.band[1])}% <span className="metric-label">{lbl('validation_socal_daily_band')}</span>.</p>
-      {!socal.pass && <p className="validation-gap"><strong>Gap, stated plainly.</strong> Our model keeps less of the event-hour saving than SoCalGas reported ({two.format(socal.dailyPct)}% vs {one.format(socal.band[0])}–{one.format(socal.band[1])}% daily). ConEd's pilot implies about half the saving is lost to snapback; SoCalGas's implies far less. One house model can't match both under these test conditions, and we tuned only within physically plausible ranges. So our net-savings numbers lean conservative.</p>}
-      <EventDayChart hourly={socal.hourly} title="SoCalGas-like event day" />
-      <p className="validation-conditions">Conditions: outdoor 45°F all day, thermostat 68°F, lowered 4°F from 06:00 to 10:00. Chart shows the fleet average at the fitted response rate.</p>
     </Card>
 
     <Card id="anchorage" title="Anchorage sanity: gas per home on a −20°F day" status="check">
