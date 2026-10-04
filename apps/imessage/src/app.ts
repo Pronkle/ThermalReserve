@@ -36,8 +36,12 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     onReady: () => sweep(),
     log,
   });
+  // Addresses with a reply in progress (Infinity) or just sent (until a time): see Notifier.isBusy.
+  const replyingUntil = new Map<string, number>();
+  const REPLY_GAP_MS = 5_000;
   const notifier = new Notifier({
     store, config, consts,
+    isBusy: address => (replyingUntil.get(address) ?? 0) > Date.now(),
     household: id => mirror.household(id),
     sim: () => mirror.sim(),
     sendText: (address, body) => transport.sendText(address, body),
@@ -130,12 +134,17 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
       }
       // A conversation turn: typing indicator while the agents work, and a short holding bubble
       // if the answer takes longer than 8 s, so the chat never goes silent.
-      await msg.responding(async () => {
-        const slow = setTimeout(() => { void msg.send('Checking the numbers…'); }, 8_000);
-        const reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
-        log(`[in] ${maskAddress(msg.address)}: ${reply.texts.length} bubble(s)`);
-        for (const t of reply.texts) await msg.send(t);
-      });
+      replyingUntil.set(msg.address, Infinity);
+      try {
+        await msg.responding(async () => {
+          const slow = setTimeout(() => { void msg.send('Checking the numbers…'); }, 8_000);
+          const reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
+          log(`[in] ${maskAddress(msg.address)}: ${reply.texts.length} bubble(s)`);
+          for (const t of reply.texts) await msg.send(t);
+        });
+      } finally {
+        replyingUntil.set(msg.address, Date.now() + REPLY_GAP_MS);
+      }
     } catch (e) {
       log(`[in] ${maskAddress(msg.address)} handler error: ${String(e)}`);
     }

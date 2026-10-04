@@ -10,7 +10,7 @@ import type { HouseholdView, SimView } from '../src/types';
 import { config, consts, home, IDENTITY, NOON_ET, PHONE, sim } from './fixtures';
 
 // A simulated run: a mutable household + sim, a fake clock, and a fake transport that records sends.
-function harness(opts: { store?: Store; failSends?: boolean; cfg?: Partial<typeof config> } = {}) {
+function harness(opts: { store?: Store; failSends?: boolean; cfg?: Partial<typeof config>; isBusy?: (a: string) => boolean } = {}) {
   const store = opts.store ?? new Store(':memory:');
   let clock = NOON_ET;
   let h: HouseholdView = home();
@@ -24,6 +24,7 @@ function harness(opts: { store?: Store; failSends?: boolean; cfg?: Partial<typeo
       if (opts.failSends) throw new Error('network down');
       sent.push({ at: clock, body });
     },
+    isBusy: opts.isBusy,
     now: () => clock,
     log: () => undefined,
   });
@@ -115,6 +116,19 @@ describe('notifier', () => {
     await y.notifier.flush();
     expect(y.sent).toHaveLength(1);
     expect(store.pending(PHONE)).toEqual([]);
+  });
+
+  it('updates wait while a reply is being drafted, then go out as one catch-up', async () => {
+    let busy = true;
+    const x = harness({ isBusy: () => busy });
+    await x.linkNow();
+    await x.play(28, 36, 2, naive);       // setback at 30, recovery at 34, all while "replying"
+    expect(x.sent).toEqual([]);
+    busy = false;
+    x.advance(1000);
+    await x.notifier.flush();
+    expect(x.sent).toHaveLength(1);
+    expect(x.sent[0].body).toContain('since my last text');
   });
 
   it('quiet hours hold messages unless demo mode or "text me anytime"', async () => {

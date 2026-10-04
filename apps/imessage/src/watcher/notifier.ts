@@ -15,6 +15,9 @@ export interface NotifierDeps {
   household: (identity: string) => HouseholdView | undefined;
   sim: () => SimView | undefined;
   sendText: (address: string, body: string) => Promise<void>;
+  // True while a reply to this person is being drafted or was just sent: updates wait so they
+  // never land in the middle of an answer (they're queued, not dropped).
+  isBusy?: (address: string) => boolean;
   now?: () => number;
   log?: (line: string) => void;
 }
@@ -76,6 +79,9 @@ export class Notifier {
       return this.hold(contact, `summary-only preference; ${pending.length} change(s) saved for the event summary`);
     }
     if (now - pending[0].createdAt < config.debounceMs) return;
+    if (this.deps.isBusy?.(contact.address)) {
+      return this.hold(contact, `replying to them; ${pending.length} change(s) wait for the next catch-up`);
+    }
     const wait = contact.lastSentAt + config.throttleMs - now;
     if (wait > 0) {
       const at = new Date(contact.lastSentAt + config.throttleMs).toISOString().slice(11, 19);
