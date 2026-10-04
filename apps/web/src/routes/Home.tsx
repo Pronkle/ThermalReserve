@@ -47,7 +47,7 @@ export function Home() {
     if (home) previouslyJoined.current = true;
     else if (connected && previouslyJoined.current) {
       previouslyJoined.current = false; setStep(0); setTextUpdates(false); setContactState('idle');
-      setFirstName(''); setLastName(''); setPhone(''); setError('');
+      setFirstName(''); setLastName(''); setPhone(''); setError('The operator reset the demo and removed your enrollment and text-update details. Join again to continue.');
     }
   }, [home, connected]);
   const scenario = scenarios.find(item => item.id === config?.scenarioId);
