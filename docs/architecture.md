@@ -130,6 +130,8 @@ flowchart LR
 
 **Phone ↔ household link:** preferred design A is inbound-first: the user texts a code from `/home`, so no phone number is stored in SpacetimeDB. Fallback B adds a private `household_contact` table (H1 approval, STDB implements). Decided in CHAT's Phase 0.
 
+**Update (Oct 4, H1 `[CONTRACT]` msg 278): design B approved, with no email.** STDB adds a **private** table `household_contact(identity PK, first_name, last_name, phone_e164, opted_in_at)`, a `set_contact` reducer (caller's own identity only; E.164 and length checks), deletion on `reset_households`, and a read path for the companion's identity (exact names posted by STDB before anyone codes against them). WEB adds optional first name, last name and phone fields with an unchecked "Text me updates by iMessage" opt-in on the `/home` consent step; the three-tap join still works with them empty. CHAT adds `@photon-ai/cli` 2.2.0 (pinned, `apps/imessage` only) to add each opted-in number to our Photon project (Photon only texts numbers on its user list); `PHOTON_TOKEN` stays gitignored. No phone number ever goes in a public table.
+
 **H1's decisions (Oct 4, msg 167):**
 - Dependencies approved, in `apps/imessage` only: `spectrum-ts`, `@anthropic-ai/sdk`; SQLite via Node's built-in `node:sqlite` (`better-sqlite3` only if that fails).
 - Link design **A** (inbound-first text with a code; no Spacetime schema change). B only if A proves impossible.
