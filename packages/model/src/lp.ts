@@ -1,5 +1,6 @@
 import { discretizeHourly, normalSetpointF } from './physics';
 import { clockHourAt, planBaseline, planSustainStagger, runPlan } from './strategies';
+import type { PressureParams } from './pressure';
 import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, ThermalState } from './types';
 
 // Dispatch LP (AGENTS.md Section 10, E5), written as CPLEX LP text and solved with HiGHS (WebAssembly).
@@ -13,6 +14,9 @@ import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, Thermal
 //   − s_d ≤ capacity (Mcf), where o_t is the expected overridden share (overridden homes burn baseline gas).
 //   Hours of the day before `from` count at their no-program system demand; a partial last day gets a pro-rated limit.
 // Terminal: ta_c_H ≥ normal − 0.5.
+// Pressure mode (opts.pressure): the cap_d rows are replaced, for each hour t ≥ from, by a linepack balance in Mcf
+//   lp_{t+1} = lp_t + u_t − (fleet + override terms of cap_d) − non-enrolled_t + c_t,  0 ≤ lp ≤ W,  0 ≤ u_t ≤ R/24,
+//   lp_{t+1} + r_t ≥ (reserve + 0.3) × W / 100,  lp_from = W × initialIdx / 100;  objective + 1e5 Σ c + 1e4 Σ r.
 // Objective (OPTIMIZED): Σ homes (normal − ta) + 1e6 Σ s + 1e-6 Σ gas;  MAX_RELIEF swaps the first and last weights.
 // Exempt homes are outside the LP and inside non-enrolled demand. Targets = planned Ta at the end of each hour.
 
@@ -20,6 +24,12 @@ import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, Thermal
 // resort with a wide margin while keeping the objective well scaled (1e6 tripped HiGHS's default dual simplex).
 const SLACK_WEIGHT = 1e5;
 const SMALL_WEIGHT = 1e-6;
+// Pressure mode (Section 7): per Mcf of curtailment and per Mcf-hour below the reserve.
+const CURTAIL_WEIGHT = 1e5;
+const RESERVE_WEIGHT = 1e4; // H1 [CONTRACT] 2026-10-04 08:11Z (was 1e3)
+// Same reason as CAPACITY_MARGIN: the hourly plan sees slightly less fleet gas than the 5-minute run, which left the run
+// up to 0.12 index points under a reserve the plan held exactly. Plan 0.3 points above it.
+const RESERVE_MARGIN_IDX = 0.3;
 const TERMINAL_TOL_F = 0.5;
 // The LP plans hourly while runPlan/tick use 5-minute sub-steps; planning against a slightly lower limit keeps the
 // simulated run under capacity when the LP says it is covered.
@@ -107,6 +117,7 @@ function demandInputs(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, c
 function buildLpText(
   sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, mode: 'OPTIMIZED' | 'MAX_RELIEF',
   initial: ThermalState[], consts: ModelConstants, from: number, demand: DemandInputs,
+  pressure?: SolveOpts['pressure'],
 ): { text: string; layout: LpLayout } {
   const L = layoutOf(sc, cohorts, cfg, from, initial);
   const { H } = L;
@@ -149,7 +160,32 @@ function buildLpText(
     }
   }
 
-  for (let d = Math.floor(from / 24); d * 24 < H; d++) {
+  if (pressure) {
+    // Hourly linepack balance (Section 7), all in Mcf: lp_{t+1} = lp_t + u_t − fleet_t − nonEnrolled_t − overrides_t + c_t.
+    const wMcf = pressure.wMMcf * 1000;
+    const uMaxMcfh = Math.max(0, pressure.rMMcfd / 24) * 1000;
+    const reserveMcf = ((pressure.reserveIdx + RESERVE_MARGIN_IDX) * wMcf) / 100;
+    bounds.push(` lp_${from} = ${fmtNum((wMcf * (pressure.initialIdx ?? 100)) / 100)}`);
+    for (let t = from; t < H; t++) {
+      let rhs = -demand.nonEnrolled[t];
+      let row = ` bal_${t}: lp_${t + 1} - lp_${t} - u_${t} - c_${t}`;
+      const ovr = demand.overrideShare[t];
+      for (const c of cohorts) {
+        rhs -= (L.homes[c.id] * ovr * demand.baseCfPerHome[t][c.id]) / 1000;
+        row += term((L.homes[c.id] * (1 - ovr)) / (c.eta * hhv), `q_${c.id}_${t}`);
+      }
+      rows.push(`${row} = ${fmtNum(rhs)}`);
+      rows.push(` res_${t}: lp_${t + 1} + r_${t} >= ${fmtNum(reserveMcf)}`);
+      bounds.push(` 0 <= lp_${t + 1} <= ${fmtNum(wMcf)}`);
+      bounds.push(` 0 <= u_${t} <= ${fmtNum(uMaxMcfh)}`);
+      bounds.push(` c_${t} >= 0`);
+      bounds.push(` r_${t} >= 0`);
+      obj.push(term(CURTAIL_WEIGHT, `c_${t}`));
+      obj.push(term(RESERVE_WEIGHT, `r_${t}`));
+    }
+  }
+
+  for (let d = Math.floor(from / 24); !pressure && d * 24 < H; d++) {
     const start = d * 24, end = Math.min(H, start + 24);
     let rhs = (capMcfd * (end - start)) / 24;
     let row = ` cap_${d}:`;
@@ -226,20 +262,23 @@ function fallbackPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, m
   return { ...p, id: `${sc.id}-${mode}-fallback-${why.replace(/\W+/g, '_').slice(0, 40)}`, solveMs, shortfallMMcfh: new Array<number>(sc.hours).fill(0), shortfallMMcfd: new Array<number>(Math.ceil(sc.hours / 24)).fill(0), note: 'Rule-based fallback' };
 }
 
+/** `pressure`: plan against the hourly linepack balance (Section 7) instead of the daily capacity rows. */
+export interface SolveOpts { timeoutMs?: number; fromHour?: number; initial?: ThermalState[]; pressure?: PressureParams & { initialIdx?: number } }
+
 export async function solvePlan(
   sc: Scenario,
   cohorts: CohortParams[],
   cfg: FleetConfig,
   mode: 'OPTIMIZED' | 'MAX_RELIEF',
   consts: ModelConstants,
-  opts?: { timeoutMs?: number; fromHour?: number; initial?: ThermalState[] },
+  opts?: SolveOpts,
 ): Promise<Plan> {
   const t0 = nowMs();
   const timeoutMs = opts?.timeoutMs ?? 5000;
   const from = Math.max(0, Math.min(sc.hours - 1, Math.floor(opts?.fromHour ?? 0)));
   try {
     const initial = opts?.initial ?? defaultInitial(sc, cohorts, cfg, consts, from);
-    const { text, layout } = buildLpText(sc, cohorts, cfg, mode, initial, consts, from, demandInputs(sc, cohorts, cfg, consts));
+    const { text, layout } = buildLpText(sc, cohorts, cfg, mode, initial, consts, from, demandInputs(sc, cohorts, cfg, consts), opts?.pressure);
     const highs = await getHighs();
     const remainingS = Math.max(0.1, (timeoutMs - (nowMs() - t0)) / 1000);
     // HiGHS's default path occasionally fails with status -1 on these models; presolve-off simplex and IPM
@@ -274,6 +313,11 @@ export async function solvePlan(
         const ta = col(`ta_${c.id}_${t + 1}`);
         if (Number.isFinite(ta) && ta < layout.reach[c.id][t] - NORMAL_EPS_F) targetsF[c.id][t] = Math.max(cfg.floorF, ta);
       }
+    }
+    if (opts?.pressure) {
+      const shortfallMMcfh = Array.from({ length: sc.hours }, (_, t) => (t < from ? 0 : Math.max(0, col(`c_${t}`) / 1000)));
+      const shortfallMMcfd = Array.from({ length: Math.ceil(sc.hours / 24) }, (_, d) => shortfallMMcfh.slice(d * 24, d * 24 + 24).reduce((a, b) => a + b, 0));
+      return { id: `${sc.id}-${mode}`, strategy: mode, targetsF, solveMs, shortfallMMcfh, shortfallMMcfd };
     }
     const firstDay = Math.floor(from / 24);
     // Report slack against the true limit: the planning margin is not a shortfall.
