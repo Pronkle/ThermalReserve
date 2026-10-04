@@ -14,6 +14,6 @@ export default __t.row({
   identity: __t.identity().primaryKey(),
   firstName: __t.string().name("first_name"),
   lastName: __t.string().name("last_name"),
-  phoneE164: __t.string().name("phone_e_164"),
+  phone: __t.string(),
   optedInAt: __t.timestamp().name("opted_in_at"),
 });

@@ -75,7 +75,7 @@ it, and publishes all three databases whenever `stdb/` changes.
   capacity ÷ 24, and `tick` logs a `system` event when a gas day closes over capacity.
 - Contact details for the iMessage companion (H1-approved Oct 4, CHAT msg 271, no email): private
   tables `household_contact` and `contact_reader`; reducers `set_contact(first_name, last_name,
-  phone_e164)`, `clear_contact()`, `claim_contact_reader(passcode)` (operator passcode); public view
+  phone)`, `clear_contact()`, `claim_contact_reader(passcode)` (operator passcode); public view
   `contact_feed`, which returns rows only to the identity that claimed reader. `reset_households`
   also clears the contacts. Verified on dev with the CLI (14 checks); not yet through an SDK subscription.
 - Reducer arguments are JSON strings with the camelCase keys of the Contract B types;

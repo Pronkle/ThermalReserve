@@ -511,17 +511,17 @@ export const contact_feed = spacetimedb.view(
 // ---------- household reducers ----------
 
 // Opt-in contact details for the caller's own household, so the iMessage companion can text it.
-// Plain names (markup stripped), phone in E.164. Calling again replaces the row.
+// Plain names (markup stripped); phone is stored in E.164. Calling again replaces the row.
 export const set_contact = spacetimedb.reducer(
-  { first_name: t.string(), last_name: t.string(), phone_e164: t.string() },
-  (ctx, { first_name, last_name, phone_e164 }) => {
+  { first_name: t.string(), last_name: t.string(), phone: t.string() },
+  (ctx, { first_name, last_name, phone }) => {
     if (!ctx.db.household.identity.find(ctx.sender)) throw new SenderError('join as a household first');
     const first = cleanText(first_name, CONTACT_NAME_MAX);
     const last = cleanText(last_name, CONTACT_NAME_MAX);
     if (first.length === 0) throw new SenderError('first_name: required');
-    const phone = phone_e164.replace(/[\s().-]/g, '');
-    if (!E164.test(phone)) throw new SenderError('phone_e164: expected a number like +19075550123');
-    const row = { identity: ctx.sender, first_name: first, last_name: last, phone_e164: phone, opted_in_at: ctx.timestamp };
+    const e164 = phone.replace(/[\s().-]/g, '');
+    if (!E164.test(e164)) throw new SenderError('phone: expected a number like +19075550123');
+    const row = { identity: ctx.sender, first_name: first, last_name: last, phone: e164, opted_in_at: ctx.timestamp };
     if (ctx.db.householdContact.identity.find(ctx.sender)) ctx.db.householdContact.identity.update(row);
     else ctx.db.householdContact.insert(row);
   }
