@@ -4,7 +4,7 @@ import { clockLabel, integer } from '../lib/ops';
 export interface PressureRow { hour: number; baseline?: number; naive?: number; staggered?: number; active?: number; live?: number; planned?: number; curtailed?: Record<string, number | undefined>; }
 export const pressureLabel = 'Pressure index: modeled linepack margin. 100 = full, 0 = curtailment begins. Not psi and not Enstar telemetry.';
 export function PressureChart({ rows, scenario, reserve, summary, baseline, caption, selectedName = 'Optimized' }: { rows: PressureRow[]; scenario: Scenario; reserve: number; summary?: PressureSummary; baseline: PressureSummary; caption: string; selectedName?: string }) {
-  const minimum = Math.min(-30, ...rows.flatMap(row => [row.baseline, row.naive, row.staggered, row.active, row.live, row.planned].filter((v): v is number => v !== undefined).map(v => v - 5)));
+  const minimum = Math.min(-30, ...rows.flatMap(row => [row.baseline, row.naive, row.staggered, row.active, row.live].filter((v): v is number => v !== undefined).map(v => v - 5)));
   const tickStep = minimum < -100 ? 100 : 25;
   const ticks = Array.from({ length: Math.floor((100 - minimum) / tickStep) + 1 }, (_, i) => 100 - i * tickStep).reverse();
   return <figure className="panel pressure-chart" aria-labelledby="pressure-title">
@@ -28,7 +28,6 @@ export function PressureChart({ rows, scenario, reserve, summary, baseline, capt
       <Line name="Naive 4-hour" dataKey="naive" stroke="#F2A541" strokeDasharray="5 3" dot={false} isAnimationActive={false} />
       <Line name="Staggered" dataKey="staggered" stroke="#9AA8BF" dot={false} isAnimationActive={false} />
       {summary && <Line name={selectedName} dataKey="active" stroke="#5BC0EB" strokeWidth={2} dot={false} isAnimationActive={false} />}
-      {rows.some(row => row.planned !== undefined) && <Line name="Expected with planning weather" dataKey="planned" stroke="#5BC0EB" strokeDasharray="2 4" dot={false} isAnimationActive={false} />}
       <Line name="Live" dataKey="live" stroke="#E6EDF7" strokeWidth={3} dot={false} connectNulls={false} isAnimationActive={false} />
       {baseline.firstBelowHour !== null && <ReferenceDot x={baseline.firstBelowHour + 1} y={rows[baseline.firstBelowHour + 1]?.baseline} r={3} fill="#E5484D" stroke="#E5484D" label={{ value: `No program: ${clockLabel(scenario, baseline.firstBelowHour + 1)}`, position: 'bottom', fill: 'var(--muted)', fontSize: 9 }} />}
       {summary && <ReferenceDot x={summary.minHour + 1} y={summary.minIndex} r={4} fill="#5BC0EB" stroke="#5BC0EB" label={{ value: `Minimum ${integer.format(summary.minIndex)}`, position: 'top', fill: '#5BC0EB', fontSize: 10 }} />}

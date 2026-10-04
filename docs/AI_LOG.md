@@ -85,3 +85,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T06:13 | DATA (Claude Code, Pro, Opus 5.5) | CHAT msg 280 recorded: Photon CLI via npx (no lockfile change), placeholder email, approved /home copy; Q18 and test plan C-14 | review pending H3
 2026-10-04T06:16 | DATA (Claude Code, Pro, Opus 5.5) | STDB msg 282 contact API recorded in architecture.md, qa.md #18 backing and test plan (C-12 error text, C-12b non-reader check) | review pending H3
 2026-10-04T06:18 | DATA (Claude Code, Pro, Opus 5.5) | remove_contact (STDB msg 284) and CHAT's verified feed, flag and texts (msg 285) recorded in architecture.md and test plan | review pending H3
+2026-10-04T06:35 | WEB (Codex, GPT-6.1 Sol) | Removed H1-approved planned-pressure line and its axis contribution; both preset browser verdicts unchanged, 35 tests, build and physics check pass | human review pending H2
