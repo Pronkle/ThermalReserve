@@ -181,7 +181,7 @@ about 7,000 variables.
 - *Heat:* `0 ≤ q ≤ Qmax`.
 - *Daily capacity:* for each gas day d,
   `Σ_hours [ Σ_cohorts homes × ((1 − o_t) × gas(q) + o_t × normal gas) + non-enrolled demand ] − s[d] ≤ capacity`,
-  where `o_t` is the expected share of homes that have overridden by hour t (the 6% override rate, sourced, spread
+  where `o_t` is the expected share of homes that have overridden by hour t (the 6% override rate, assumed: set equal to a sourced co-op pilot figure, spread
   over the event). Overridden homes burn normal gas, so the plan does not promise relief that overrides will take
   back. The LP plans against capacity minus 0.02%, a margin that covers the difference between its hourly steps and
   the simulator's 5-minute steps.
@@ -322,7 +322,7 @@ moved to other homes, with the extra degrees), and **system** events (a gas day 
 **Buttons:** *Demo preset* (loads feb2024, 25,000 homes, 1,000 sample homes, floor 62°F, depth 5°F, speed 2,
 idle at hour 0), *Solve plan* (runs the LP in the background and shows the elapsed time), *Dispatch* (sends the
 plan to the live database), *Start / Pause / Reset* (live clock), *Reset households* (removes phone households),
-*Apply inputs* (pushes slider changes to the live run). Overrides (6% of homes per event, sourced: the winter opt-out rate of an electric co-op smart-thermostat pilot)
+*Apply inputs* (pushes slider changes to the live run). Overrides (6% of homes per event, assumed: set equal to the sourced 6% winter opt-out rate of an electric co-op smart-thermostat pilot)
 and exempt share (8%, assumed) come from `constants.json`.
 
 ---
