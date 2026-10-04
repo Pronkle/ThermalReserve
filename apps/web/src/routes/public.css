@@ -58,3 +58,11 @@
   .public-math { border: none; padding: 0; }
   .public-math:not([open]) ol { display: block; }
 }
+
+/* ENGINE, H1 msg 344: bigger small text on /whatif and /validation only (styles.css also serves ?ui=gas and /home). */
+.public-page .metric-label { font-size: 11px; }
+.public-page .public-note { font-size: 14px; }
+.public-page .whatif-field-name { font-size: 15px; }
+.public-page small, .public-page .whatif-hint { font-size: 13px; }
+.public-page figcaption { font-size: 13px; }
+.public-page .recharts-legend-item-text, .public-page .recharts-label { font-size: 12px; }

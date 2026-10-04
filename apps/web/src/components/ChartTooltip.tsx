@@ -18,7 +18,7 @@ export function ChartTooltip({ active, label, payload, scenario, line }: {
   const left = hour > scenario.hours / 2;
   return <div style={{
     background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 7px',
-    fontSize: 10, lineHeight: 1.3, whiteSpace: 'nowrap', pointerEvents: 'none',
+    fontSize: 12, lineHeight: 1.3, whiteSpace: 'nowrap', pointerEvents: 'none',
     transform: left ? `translateX(calc(-100% - ${2 * TOOLTIP_OFFSET}px))` : undefined,
   }}>
     <strong style={{ display: 'block', marginBottom: 2 }}>{clockLabel(scenario, hour)}</strong>
