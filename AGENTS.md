@@ -1,6 +1,6 @@
 # Thermal Reserve — Agent Handoff: Pressure Overhaul (AGENTS.md)
 
-Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday
+Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas)
 
 ## 1. Start here
 
@@ -74,10 +74,10 @@ P[t]   = 100 × L[t] / W
 - **R**, the maximum delivery rate (MMcf/day): `R = R2024 − lost`, where `R2024 = 278` (derived: the modeled Feb 2024 peak gas day of 268.0 plus the sourced, approximate 10 MMcf/day headroom) and `lost` is the operator's "deliverability lost compared with Feb 2024".
 - **W**, usable linepack: `9.54 MMcf` (derived: the smallest linepack that absorbs a normal day's hourly shape at R2024). **W is fixed. Never recompute it from the slider.**
 - Inflow throttles only when the pipes are full (`u = min(R/24, W − L + D)`).
-- **Below zero is not clamped.** A negative P means gas that must be curtailed by then. Curtailed gas for an episode below zero = its deepest deficit, `−min(P) × W / 100`; total curtailed = the sum over episodes.
+- **Below zero is not clamped on the chart.** A negative P means gas that must be curtailed by then. **Curtailed gas uses clamped accounting:** replay the same series curtailing just enough each hour to keep linepack at 0; total curtailed = the sum of those hourly amounts. With a single episode below zero this equals its deepest deficit, `−min(P) × W / 100`; with several episodes it avoids counting the same gas twice.
 - On-screen label, verbatim: **"Pressure index: modeled linepack margin. 100 = full, 0 = curtailment begins. Not psi and not Enstar telemetry."**
 
-**Reference anchors from a throwaway feasibility check (ENGINE must reproduce them as regression tests; nobody quotes them in the pitch).** Feb 2024 scenario, 25,000 homes, floor 62°F, max setback 5°F, 6% overrides, W = 9.1 and R as listed:
+**Reference anchors from a throwaway feasibility check (ENGINE must reproduce them as regression tests; nobody quotes them in the pitch).** Feb 2024 scenario, 25,000 homes, floor 62°F, max setback 5°F, 6% overrides, W = 9.1 and R as listed. The tests pass W = 9.1 explicitly; presets and everything on screen use W = 9.54:
 
 | R (MMcf/day) | Plan | Minimum P | Hours below 0 | Discomfort (°F·h per home) |
 | --- | --- | --- | --- | --- |
@@ -254,7 +254,7 @@ export interface PressureSummary {
   minIndex: number; minHour: number;
   hoursBelowZero: number; firstBelowHour: number | null;
   hoursInReserve: number;          // 0 <= P < reserveIdx
-  curtailedMMcf: number;           // sum over below-zero episodes of each episode's deepest deficit
+  curtailedMMcf: number;           // total from a clamped replay of the series (Section 3)
   reserveHeld: number;             // min(minIndex, reserveIdx), for "7 of 10 held"
 }
 export function usableLinepackMMcf(rMMcfd: number, shape: number[]): number;
@@ -288,7 +288,7 @@ solvePlan(sc, cohorts, cfg, mode, consts, opts?: { timeoutMs?; fromHour?; initia
 With `opts.pressure`:
 - The daily `cap_d` rows are replaced, per hour t ≥ fromHour, by a linepack balance with variables `lp_t` (Mcf), inflow `u_t ∈ [0, R/24]`, curtailment `c_t ≥ 0`, reserve slack `r_t ≥ 0`: `lp_{t+1} = lp_t + u_t − (fleet gas terms) − nonEnrolled_t − (override terms) + c_t`, `0 ≤ lp ≤ W`, `lp_{t+1} + r_t ≥ reserve`. The fleet, override and non-enrolled terms are exactly those in today's `cap_d` rows.
 - `lp_fromHour = W × initialIdx / 100` (default 100).
-- Objective: today's objective + 1e5·Σc (per Mcf) + 1e3·Σr (per Mcf). OPTIMIZED and MAX_RELIEF keep their current discomfort and gas weights.
+- Objective: today's objective + 1e5·Σc (per Mcf) + 1e4·Σr (per Mcf). OPTIMIZED and MAX_RELIEF keep their current discomfort and gas weights.
 - `Plan.shortfallMMcfh` carries hourly `c`; `Plan.shortfallMMcfd` sums it per gas day.
 - Fallback to Staggered on failure or timeout, as today.
 
