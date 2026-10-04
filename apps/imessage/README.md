@@ -36,6 +36,9 @@ Other settings, all optional:
 | `CHAT_HELLO_TO` | unset | A phone (E.164, put it in `.env` only) to text once at startup; see "Photon routing window" |
 | `CHAT_DEBUG` | off | `1`: log every raw Spectrum event (numbers masked) |
 | `CHAT_VIEWER_PORT` | 8787 | Agent screen on `http://127.0.0.1:<port>/` (`0` turns it off) |
+| `CHAT_ONBOARD` | off | `1`: auto-onboard households that opt in on `/home` (needs `CHAT_OPERATOR_PASSCODE` and `photon login`) |
+| `CHAT_OPERATOR_PASSCODE` | unset | The database's operator passcode, used only for `claim_contact_reader` (`.env` only) |
+| `PHOTON_PROJECT_ID` | from `.env` | Photon dashboard project id for the CLI (not a secret) |
 
 During judging the process runs on a team laptop (H1-approved exception to "no laptop process"). If it stops, the website is unaffected; texts just stop.
 
@@ -46,6 +49,16 @@ During judging the process runs on a team laptop (H1-approved exception to "no l
 3. The companion replies `Linked to <nickname>…` and offers `NO` (wrong home) and `STOP`.
 
 Photon's shared-line plan only delivers to numbers added as users of our Photon project, so a phone must be added in the Photon dashboard before it can link.
+
+## Auto-onboarding from /home (H1-approved Oct 4)
+
+A household can tick "Text me updates by iMessage" on `/home` and give a first name, last name and phone (no email). `/home` calls `set_contact`; the row lands in a **private** table that only the companion's identity can read, through the `contact_feed` view after `claim_contact_reader(passcode)`. With `CHAT_ONBOARD=1` the companion then:
+
+1. adds the number to our Photon project with Photon's CLI (`npx -y @photon-ai/cli@2.2.0 spectrum users add`, using the laptop's `photon login`; Photon requires an email, so it gets a reserved `household-<code>@users.invalid` placeholder), skipping numbers already on the list;
+2. sends one text-only opener ("…Reply YES to start, or STOP…") and nothing else until they reply YES;
+3. deletes everything for that number if they clear it on `/home`, reply STOP, or the household is reset.
+
+The CLI isn't in `package.json`: adding it hits an npm 10 bug and the workaround drops a web dependency from the lockfile, so it runs pinned through `npx` on the laptop only.
 
 ## What it sends
 

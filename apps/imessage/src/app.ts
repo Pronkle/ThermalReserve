@@ -11,6 +11,9 @@ import { Mirror } from './stdb/mirror';
 import type { Transport } from './transport/spectrum';
 import { Notifier } from './watcher/notifier';
 import { Feed, startViewer } from './viewer';
+import { onboard } from './onboard/onboard';
+import { cliRunner, photonUsers } from './onboard/photon';
+import type { ContactFeedRow } from './stdb/mirror';
 
 export async function runCompanion(transport: Transport, config: ChatConfig = loadConfig()) {
   const feed = new Feed();
@@ -37,12 +40,36 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     }
   };
 
+  // Auto-onboarding (H3, H1-approved Oct 4): opted-in households from /home are added to Photon
+  // and get one opener asking for YES. On with CHAT_ONBOARD=1 and the operator passcode.
+  const onboardOn = process.env.CHAT_ONBOARD === '1' && !!process.env.CHAT_OPERATOR_PASSCODE;
+  const photon = photonUsers(cliRunner());
+  let onboarding = Promise.resolve();
+  const enqueueOnboard = (row: ContactFeedRow) => {
+    onboarding = onboarding.then(async () => {
+      const result = await onboard({
+        store, consts, photon, household: id => mirror.household(id), sim: () => mirror.sim(),
+        sendText: (address, body) => transport.sendText(address, body), log,
+      }, row);
+      if (result !== 'already linked') log(`[onboard] ${maskAddress(row.phone)}: ${result}`);
+    }).catch(e => log(`[onboard] error: ${String(e).slice(0, 160)}`));
+  };
+
   const mirror: Mirror = new Mirror(config, {
     onChange: () => notifier.observe(),
     onHouseholdRemoved: () => sweep(),
-    onReady: () => sweep(),
+    onReady: () => {
+      sweep();
+      if (onboardOn) for (const row of mirror.contactFeed()) enqueueOnboard(row);
+    },
+    onContact: row => { if (onboardOn) enqueueOnboard(row); },
+    // Opting out on /home (clear_contact) deletes what we stored for that number.
+    onContactCleared: row => {
+      if (store.contact(row.phone)) { store.forget(row.phone); log(`[onboard] ${maskAddress(row.phone)} cleared on /home; contact and memory deleted`); }
+    },
     log,
-  });
+  }, onboardOn ? process.env.CHAT_OPERATOR_PASSCODE : undefined);
+  if (onboardOn) log('[onboard] on: opted-in households from /home are added to Photon and sent an opener');
   // Addresses with a reply in progress (Infinity) or just sent (until a time): see Notifier.isBusy.
   const replyingUntil = new Map<string, number>();
   const REPLY_GAP_MS = 5_000;

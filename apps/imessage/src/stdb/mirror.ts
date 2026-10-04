@@ -40,8 +40,13 @@ export const toSim = (r: SimRow): SimView => ({
   overrideRate: r.overrideRate,
 });
 
+export interface ContactFeedRow { identity: string; firstName: string; lastName: string; phone: string; }
+
 export interface MirrorEvents {
   onChange: () => void;
+  // Opted-in contacts from /home (private contact_feed view; only when a reader passcode is set).
+  onContact?: (row: ContactFeedRow) => void;
+  onContactCleared?: (row: ContactFeedRow) => void;
   onHouseholdRemoved: (identity: string) => void;
   onReady: () => void;
   log?: (line: string) => void;
@@ -53,7 +58,13 @@ export class Mirror implements World {
   private stopped = false;
   private retryMs = 1000;
 
-  constructor(private readonly config: ChatConfig, private readonly events: MirrorEvents) {}
+  // With a passcode, this identity claims the contact reader role and also subscribes to contact_feed.
+  constructor(private readonly config: ChatConfig, private readonly events: MirrorEvents, private readonly contactReaderPasscode?: string) {}
+
+  contactFeed(): ContactFeedRow[] {
+    if (!this.conn || !this.contactReaderPasscode) return [];
+    return [...this.conn.db.contactFeed.iter()].map(r => ({ identity: r.identity.toHexString(), firstName: r.firstName, lastName: r.lastName, phone: r.phone }));
+  }
 
   get isReady() { return this.ready; }
 
@@ -131,6 +142,14 @@ export class Mirror implements World {
         writeFileSync(tokenFile, issuedToken, { mode: 0o600 });
         this.retryMs = 1000;
         log(`[stdb] connected to ${this.config.stdbDb} as ${identity.toHexString().slice(0, 12)}…`);
+        const queries = ['SELECT * FROM sim_config', 'SELECT * FROM household', 'SELECT * FROM weather_hour', 'SELECT * FROM plan_hour', 'SELECT * FROM aggregate_hour'];
+        if (this.contactReaderPasscode) {
+          // Claim before subscribing so the view returns this identity's rows from the start.
+          conn.reducers.claimContactReader({ passcode: this.contactReaderPasscode })
+            .then(() => log('[stdb] contact reader claimed'))
+            .catch(e => log(`[stdb] contact reader claim failed: ${String(e).slice(0, 120)}`));
+          queries.push('SELECT * FROM contact_feed');
+        }
         conn.subscriptionBuilder()
           .onApplied(() => {
             this.ready = true;
@@ -139,7 +158,7 @@ export class Mirror implements World {
             this.events.onChange();
           })
           .onError(ctx => log(`[stdb] subscription error: ${String((ctx as { event?: unknown }).event ?? "unknown")}`))
-          .subscribe(['SELECT * FROM sim_config', 'SELECT * FROM household', 'SELECT * FROM weather_hour', 'SELECT * FROM plan_hour', 'SELECT * FROM aggregate_hour']);
+          .subscribe(queries);
       })
       .onConnectError((_ctx, err) => { log(`[stdb] connect error: ${String(err)}`); this.retry(); })
       .onDisconnect(() => { this.ready = false; log('[stdb] disconnected'); this.retry(); })
@@ -151,6 +170,12 @@ export class Mirror implements World {
     conn.db.household.onDelete((_ctx, row) => { if (this.ready) this.events.onHouseholdRemoved(row.identity.toHexString()); });
     conn.db.simConfig.onInsert(changed);
     conn.db.simConfig.onUpdate(changed);
+    if (this.contactReaderPasscode) {
+      const row = (r: { identity: { toHexString(): string }; firstName: string; lastName: string; phone: string }): ContactFeedRow =>
+        ({ identity: r.identity.toHexString(), firstName: r.firstName, lastName: r.lastName, phone: r.phone });
+      conn.db.contactFeed.onInsert((_ctx, r) => { if (this.ready) this.events.onContact?.(row(r)); });
+      conn.db.contactFeed.onDelete((_ctx, r) => { if (this.ready) this.events.onContactCleared?.(row(r)); });
+    }
   }
 
   // Reconnect with backoff (1 s doubling to 30 s) unless we are shutting down.
