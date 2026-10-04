@@ -85,7 +85,7 @@ export function Home() {
   const status = home ? heatStatus(home) : undefined;
   const pressure = config ? livePressureReading(new Map(aggregates.map(row => [row.hour, row.systemMmcf])), config.hours, config.capacityMmcfd, Number(constants.raw.reserve_default_idx?.value ?? 0)) : undefined;
   return <section className="household-page">
-    <p className="eyebrow">Thermal Reserve · household demo</p>
+    <p className="eyebrow">BoreaFlux · household demo</p>
     <h1>Your home</h1>
     {live.status !== 'connected' && <p className="home-connection" role="status">{live.status === 'unconfigured' ? 'Live connection is not configured.' : live.status === 'connecting' ? 'Connecting to the community…' : 'Disconnected — retrying. Your heat controls return when connected.'}</p>}
     {error && <p className="home-error" role="alert">{error}</p>}
@@ -160,6 +160,6 @@ export function Home() {
       {!config?.hours && <p className="home-limit">The operator needs to load a scenario before you can join.</p>}
       <button className="home-back" onClick={() => setStep(1)}>Back</button>
     </div>}
-    <details className="why-heat panel"><summary>Why this matters</summary><p>If gas runs short, Enstar's plan cuts large commercial and industrial customers first. When pressure falls too low, Enstar must cut customers, businesses first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time.</p><p>Thermal Reserve simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
+    <details className="why-heat panel"><summary>Why this matters</summary><p>If gas runs short, Enstar's plan cuts large commercial and industrial customers first. When pressure falls too low, Enstar must cut customers, businesses first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time.</p><p>BoreaFlux simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
   </section>;
 }

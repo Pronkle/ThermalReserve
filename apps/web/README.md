@@ -1,4 +1,4 @@
-# Thermal Reserve web
+# BoreaFlux web
 
 W0 supplies Vite, React, strict TypeScript, Tailwind's Vite plugin, React Router,
 the shared winter theme, and placeholder screens for `/ops`, `/home`, `/whatif`,
