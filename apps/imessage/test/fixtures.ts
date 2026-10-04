@@ -5,7 +5,7 @@ export const consts: ChatConstants = { setpointDayF: 70, floorDefaultF: 62 };
 
 export const config: ChatConfig = {
   stdbUri: 'wss://example.invalid', stdbDb: 'test', demo: false, throttleMs: 20_000, debounceMs: 1_500,
-  quietStartHour: 22, quietEndHour: 8, timeZone: 'America/New_York', dataDir: '/nonexistent',
+  quietStartHour: 22, quietEndHour: 8, timeZone: 'America/New_York', dataDir: '/nonexistent', helloTo: undefined,
 };
 
 export const PHONE = '+15555550123';

@@ -17,6 +17,7 @@ export interface ChatConfig {
   quietEndHour: number;
   timeZone: string;
   dataDir: string;
+  helloTo: string | undefined; // address to text once at startup (opens Photon's inbound routing window)
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ChatConfig {
@@ -31,6 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ChatConfig {
     quietEndHour: 8,
     timeZone: env.CHAT_TZ ?? 'America/New_York',
     dataDir: env.CHAT_DATA_DIR ?? join(APP_DIR, 'data'),
+    helloTo: env.CHAT_HELLO_TO || undefined,
   };
 }
 

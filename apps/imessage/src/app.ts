@@ -2,6 +2,7 @@
 import { join } from 'node:path';
 import { loadChatConstants, loadConfig, maskAddress, type ChatConfig } from './config';
 import { handleInbound } from './concierge/inbound';
+import { linkCode } from './link';
 import { Store } from './memory/store';
 import { Mirror } from './stdb/mirror';
 import type { Transport } from './transport/spectrum';
@@ -40,6 +41,26 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     log,
   });
   mirror.connect();
+
+  // Photon's shared line only routes a person's texts to us for a while after we last texted
+  // them (observed Oct 4). For the demo phone, one hello at startup opens that window.
+  if (config.helloTo) {
+    void mirror.whenReady().then(async () => {
+      const homes = mirror.households();
+      const linked = store.contact(config.helloTo!);
+      const only = homes.length === 1 ? ` For ${homes[0].nickname}, that's Link my home ${linkCode(homes[0].identity)}.` : '';
+      const body = linked
+        ? `Thermal Reserve demo assistant is back on (simulation only). You're linked to ${linked.nickname}.`
+        : `Thermal Reserve demo assistant is on (simulation only). To get heat updates, text Link my home and your code from the household page.${only}`;
+      try {
+        await transport.sendText(config.helloTo!, body);
+        store.addHistory(config.helloTo!, 'out', body, Date.now());
+        log(`[hello] sent to ${maskAddress(config.helloTo!)}`);
+      } catch (e) {
+        log(`[hello] failed: ${String(e).slice(0, 160)}`);
+      }
+    });
+  }
   const timer = setInterval(() => { if (mirror.isReady) void notifier.flush(); }, 500);
 
   let stopping = false;

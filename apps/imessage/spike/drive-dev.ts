@@ -2,7 +2,7 @@
 // so stdb-watch.ts has household updates to print. Dev database only.
 // Run: STDB_PASSCODE=dev-passcode npx tsx apps/imessage/spike/drive-dev.ts [speed] [naive|optimized] [scenario] [delayS]
 // Joins as household "CHAT test", prints its link code, waits delayS seconds, then starts.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DbConnection } from '@thermal-reserve/stdb-bindings';
@@ -66,7 +66,10 @@ DbConnection.builder().withUri('wss://maincloud.spacetimedb.com').withDatabaseNa
       await r.joinHousehold({ nickname: 'CHAT test', heating: 'furnace', thermostat: 'other', exempt: false });
       await r.setPlan({ planId: plan.id, strategy: plan.strategy, targetsJson: JSON.stringify(plan.targetsF) });
       log(`joined as CHAT test; link code ${linkCode(_identity.toHexString())}; starting in ${delayS} s`);
-      await new Promise(res => setTimeout(res, delayS * 1000));
+      // With WAIT_FILE set, start as soon as that file exists (e.g. once a phone has linked).
+      const waitFile = process.env.WAIT_FILE;
+      const until = Date.now() + delayS * 1000;
+      while (Date.now() < until && !(waitFile && existsSync(waitFile))) await new Promise(res => setTimeout(res, 250));
       await r.start({});
       log(`started ${scenario.id} with ${plan.strategy} at ${speed} h/s`);
     } catch (e) {

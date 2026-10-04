@@ -32,6 +32,8 @@ Other settings, all optional:
 | `CHAT_THROTTLE_S` | 20 | At most one proactive text per contact per window |
 | `CHAT_DEBOUNCE_S` | 1.5 | Wait after a first change so same-tick changes share a text |
 | `CHAT_TZ` | `America/New_York` | Recipient time zone for quiet hours (22:00–08:00) |
+| `CHAT_HELLO_TO` | unset | A phone (E.164, put it in `.env` only) to text once at startup; see "Photon routing window" |
+| `CHAT_DEBUG` | off | `1`: log every raw Spectrum event (numbers masked) |
 
 During judging the process runs on a team laptop (H1-approved exception to "no laptop process"). If it stops, the website is unaffected; texts just stop.
 
@@ -60,6 +62,12 @@ Replies it understands now: `Link <code>`, `NO`, `STOP` (deletes everything stor
 ## Restart safety
 
 The watcher state and the queue are written in one transaction. Spectrum has no idempotency key, so each proactive text is written to the outbox as `sending` before the network call, and the queue is cleared only once the send resolves. A row still marked `sending` after a crash counts as sent: a restart never repeats a text. In the worst case, one text that was in flight during a crash is lost. Changes that start and finish while the process is down are not reported; only the state it finds on return.
+
+## Photon routing window (observed Oct 4, 01:00–01:10 Eastern)
+
+On our shared-line plan, Photon routed a person's texts to our project only for a while after we had texted them. After about 35 minutes of silence, texts from the demo iPhone showed Delivered but never reached the companion or a bare listener. After one outbound text, replies arrived, including at a bare listener started 2 minutes later. The window's length isn't documented; it's somewhere between 2 and 35 minutes.
+
+What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion texts it once at startup ("…assistant is on…", with the link code when there is one household). During an event, our own updates keep the window open. Before the judged demo, restart the companion (or send any text to the phone) a few minutes ahead.
 
 ## Honest limitations
 

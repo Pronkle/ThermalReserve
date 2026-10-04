@@ -1,6 +1,7 @@
 // Transport-agnostic wrapper over a Spectrum app: cloud iMessage in production, the terminal
 // provider in development. The rest of the code only sees addresses and text.
 import { Emoji, text, type Message, type Space, type SpectrumInstance } from 'spectrum-ts';
+import { maskAddress } from '../config';
 
 export interface InboundText {
   address: string;
@@ -38,6 +39,8 @@ export function spectrumTransport(
     async *inbound() {
       for await (const [space, message] of app.messages as AsyncIterable<[Space, Message]>) {
         const address = message.sender?.id;
+        // With CHAT_DEBUG=1, every raw event (masked), so a silent drop is visible.
+        if (process.env.CHAT_DEBUG === '1') console.log(`[transport] ${message.direction} ${message.content.type} from ${address ? maskAddress(address) : '(no sender)'}`);
         if (!address || message.direction === 'outbound') continue;
         spaces.set(address, space);
         // Read receipts, tapbacks and attachments are not texts to answer.
