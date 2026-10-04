@@ -49,6 +49,18 @@ export async function handleInbound(deps: InboundDeps, address: string, text: st
   const intent = classify(text);
   if (contact) store.noteInbound(address, text, now);
 
+  // Auto-onboarded contacts: we texted first, so only YES (or STOP) moves things forward.
+  if (contact && !contact.consented && intent !== 'stop') {
+    if (/^(yes|y|yeah|yep|sure|ok(ay)?|start|go ahead)[.!]?$/i.test(text.trim())) {
+      store.setConsented(address);
+      log(`[onboard] ${maskAddress(address)} replied YES`);
+      const reply = `Thanks. You're set for ${contact.nickname}: I'll text you when a cold-snap event changes its heat (a simulation; no real thermostat). Ask me anything, or reply STOP any time.`;
+      store.addHistory(address, 'out', reply, now);
+      return { texts: [reply] };
+    }
+    return { texts: ['Reply YES to get heat updates for your home, or STOP and I won\'t text again.'] };
+  }
+
   switch (intent) {
     case 'stop':
       store.forget(address);
