@@ -35,6 +35,9 @@ Other settings, all optional:
 | `CHAT_HELLO_TO` | unset | A phone (E.164, put it in `.env` only) to text once at startup; see "Photon routing window" |
 | `CHAT_DEBUG` | off | `1`: log every raw Spectrum event (numbers masked) |
 | `CHAT_VIEWER_PORT` | 8787 | Agent screen on `http://127.0.0.1:<port>/` (`0` turns it off) |
+| `CHAT_LLM` | `gemini` on `chat/gemini` | Model backend: `gemini` (concierge `gemini-3.5-flash-lite`, Insights `gemini-3.8-flash`) or `anthropic` (Claude Haiku 4.5 / Sonnet 5.5) |
+| `GEMINI_API_KEY` | unset | Google AI Studio key for the Gemini backend (`.env` only) |
+| `CHAT_GEMINI_PRICES` | unset | Optional `"liteIn,liteOut,flashIn,flashOut"` $/M tokens so `[usage]` lines show cost |
 | `CHAT_ONBOARD` | off | `1`: auto-onboard households that opt in on `/home` (needs `CHAT_OPERATOR_PASSCODE` and `photon login`) |
 | `CHAT_OPERATOR_PASSCODE` | unset | The database's operator passcode, used only for `claim_contact_reader` (`.env` only) |
 | `PHOTON_PROJECT_ID` | from `.env` | Photon dashboard project id for the CLI (not a secret) |
@@ -78,6 +81,9 @@ Changes are merged: at most one text per contact per 20 s. Anything that happens
 Replies it understands now: `START`, `STOP` (deletes everything stored for the number), "thanks"/"ok"/👍 (answered with a tapback, no text), "only big changes" (summary only), "text me every change", "text me anytime" (ignores quiet hours), "no texts at night".
 
 ## Two agents (Phase 2)
+
+**Backend (branch `chat/gemini`):** both agents can run on Google Gemini through `src/llm/gemini.ts`, a small adapter that translates the agents' tool-calling loop to Gemini's `generateContent` REST API (plain `fetch`, no new package; thought signatures are passed back unchanged). Comparable stable tiers: the concierge on `gemini-3.5-flash-lite` (fast, low cost, like Haiku) and Insights on `gemini-3.8-flash` (Google's strongest stable agentic tier; the only current Pro is a preview). `CHAT_LLM=anthropic` switches back to Claude. Everything below (tools, honesty guard, handoff log) is the same on both.
+
 
 The **Concierge** (chatting) runs on **Claude Haiku 4.5** (`claude-haiku-4-5`) to keep spend low. **Insights** (reading the data and the model) runs on **Claude Sonnet 5.5** (`claude-sonnet-5-5`) at `effort: "low"`, with server-side refusal fallbacks on (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). Every call logs its tokens and cost (`[usage]`).
 

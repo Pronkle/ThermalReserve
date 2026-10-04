@@ -32,7 +32,7 @@ section{background:var(--surface);border:1px solid var(--line);border-radius:12p
 .q{font-weight:600}.a{color:var(--muted);margin-top:6px}
 pre{margin:0;white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,monospace;color:var(--muted);max-height:70vh;overflow:auto}
 .ln-handoff{color:var(--blue)}.ln-send{color:var(--text)}.ln-hold{color:var(--amber)}.ln-honesty{color:var(--red)}.ln-usage{color:#6f7d96}
-</style></head><body><header><h1>BoreaFlux iMessage companion</h1><p>Concierge (Claude Haiku 4.5) hands data questions to Insights (Claude Sonnet 5.5), which answers only from tool results. Simulation only.</p></header>
+</style></head><body><header><h1>BoreaFlux iMessage companion</h1><p>The concierge agent hands data questions to the Insights agent, which answers only from tool results. Simulation only.</p></header>
 <main><section><h2>Handoffs, newest first</h2><div id="h"></div></section><section><h2>Live log</h2><pre id="log"></pre></section></main>
 <script>
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

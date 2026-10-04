@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { converse, fallbackReply } from './concierge/agent';
 import { classify, handleInbound } from './concierge/inbound';
 import type { ModelCall } from './insights/agent';
+import { GEMINI_MODELS, GeminiError, geminiCall } from './llm/gemini';
 import { Store } from './memory/store';
 import { Mirror } from './stdb/mirror';
 import type { Transport } from './transport/spectrum';
@@ -125,38 +126,74 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
-  // Concierge on Claude Haiku 4.5, Insights on Claude Sonnet 5.5. Without a key (or if the API fails) the concierge sends
-  // an honest deterministic reply instead.
-  const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 20_000, maxRetries: 1 }) : undefined;
-  if (!anthropic) log('[chat] ANTHROPIC_API_KEY not set: questions get the deterministic fallback reply');
-  // List prices ($ per million tokens) for the per-call cost line.
+  // Model backend. CHAT_LLM=gemini (default on this branch): concierge on gemini-3.5-flash-lite,
+  // Insights on gemini-3.8-flash. CHAT_LLM=anthropic: Claude Haiku 4.5 and Sonnet 5.5.
+  // Without a key (or if the API fails) the concierge sends an honest deterministic reply.
+  const backend = (process.env.CHAT_LLM ?? 'gemini').toLowerCase() === 'anthropic' ? 'anthropic' : 'gemini';
+  const anthropic = backend === 'anthropic' && process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 20_000, maxRetries: 1 }) : undefined;
+  const gemini = backend === 'gemini' && process.env.GEMINI_API_KEY ? geminiCall({ apiKey: process.env.GEMINI_API_KEY, timeoutMs: 20_000 }) : undefined;
+  log(`[chat] model backend ${backend}${backend === 'gemini' ? ` (concierge ${GEMINI_MODELS['claude-haiku-4-5']}, insights ${GEMINI_MODELS['claude-sonnet-5-5']})` : ' (concierge claude-haiku-4-5, insights claude-sonnet-5-5)'}`);
+  if (!anthropic && !gemini) log(`[chat] ${backend === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY'} not set: questions get the deterministic fallback reply`);
+  // List prices ($ per million tokens) for the per-call cost line; Gemini prices come from
+  // CHAT_GEMINI_PRICES ("flashLiteIn,flashLiteOut,flashIn,flashOut") when set, else tokens only.
   const PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
     'claude-haiku-4-5': { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
     'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
   };
+  const gp = (process.env.CHAT_GEMINI_PRICES ?? '').split(',').map(Number);
+  if (gp.length === 4 && gp.every(Number.isFinite)) {
+    PRICES[GEMINI_MODELS['claude-haiku-4-5']] = { input: gp[0], output: gp[1], cacheRead: gp[0] / 10, cacheWrite: 0 };
+    PRICES[GEMINI_MODELS['claude-sonnet-5-5']] = { input: gp[2], output: gp[3], cacheRead: gp[2] / 10, cacheWrite: 0 };
+  }
   let spentUsd = 0;
   const call: ModelCall = async params => {
-    if (!anthropic) throw new Error('ANTHROPIC_API_KEY not set');
-    // Sonnet 5.5 calls opt into server-side refusal fallbacks: a classifier decline is retried
-    // on Anthropic's recommended model inside the same call instead of coming back empty.
-    const response = params.model === 'claude-sonnet-5-5'
-      ? await anthropic.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } as never) as unknown as Anthropic.Message
-      : await anthropic.messages.create(params);
+    let response: Anthropic.Message;
+    if (gemini) response = await gemini(params);
+    else if (anthropic) {
+      // Sonnet 5.5 calls opt into server-side refusal fallbacks.
+      response = params.model === 'claude-sonnet-5-5'
+        ? await anthropic.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } as never) as unknown as Anthropic.Message
+        : await anthropic.messages.create(params);
+    } else throw new Error(`${backend} API key not set`);
     const u = response.usage;
-    const price = PRICES[response.model] ?? PRICES[params.model] ?? PRICES['claude-sonnet-5-5'];
-    const usd = (u.input_tokens * price.input + u.output_tokens * price.output
-      + (u.cache_read_input_tokens ?? 0) * price.cacheRead + (u.cache_creation_input_tokens ?? 0) * price.cacheWrite) / 1e6;
-    spentUsd += usd;
-    log(`[usage] ${response.model}: ${u.input_tokens} in, ${u.output_tokens} out, cache read ${u.cache_read_input_tokens ?? 0}, cache write ${u.cache_creation_input_tokens ?? 0} → $${usd.toFixed(4)} (session $${spentUsd.toFixed(4)})`);
+    const servedBy = Object.keys(PRICES).find(k => response.model.startsWith(k));
+    const price = servedBy ? PRICES[servedBy] : undefined;
+    const usd = price ? (u.input_tokens * price.input + u.output_tokens * price.output
+      + (u.cache_read_input_tokens ?? 0) * price.cacheRead + (u.cache_creation_input_tokens ?? 0) * price.cacheWrite) / 1e6 : undefined;
+    if (usd !== undefined) spentUsd += usd;
+    log(`[usage] ${response.model}: ${u.input_tokens} in, ${u.output_tokens} out, cache read ${u.cache_read_input_tokens ?? 0}${usd !== undefined ? ` → $${usd.toFixed(4)} (session $${spentUsd.toFixed(4)})` : ' (price not configured)'}`);
     return response;
   };
   const converseSafely = async (address: string, identity: string, text: string) => {
     try {
       return (await converse({ store, world: mirror, consts, call, dataDir: config.dataDir, log }, address, identity, text)).bubbles;
     } catch (e) {
-      const kind = e instanceof Anthropic.APIError ? `API ${e.status ?? 'connection'} error` : String(e).slice(0, 120);
+      const kind = e instanceof Anthropic.APIError ? `API ${e.status ?? 'connection'} error` : e instanceof GeminiError ? `Gemini ${e.status} error` : String(e).slice(0, 120);
       log(`[concierge] model unavailable (${kind}); deterministic reply`);
       return [fallbackReply({ world: mirror, consts }, identity, text)];
+    }
+  };
+
+  // Photon applies a person's opt-in a moment after their first text, so a reply sent right
+  // away can be refused ("Target not allowed"). Retry that case briefly instead of dropping it.
+  const sendReply = async (send: (t: string) => Promise<void>, text: string) => {
+    for (const waitMs of [0, 3_000, 10_000]) {
+      if (waitMs) await new Promise(r => setTimeout(r, waitMs));
+      try { await send(text); return; }
+      catch (e) { if (!/Target not allowed/i.test(String(e)) || waitMs === 10_000) throw e; log('[in] reply refused (opt-in not applied yet); retrying'); }
+    }
+  };
+
+  // Sends reply bubbles with the typing indicator; if Photon refuses the indicator itself (opt-in
+  // not applied yet), sends them without it, still with the retry.
+  const replyTo = async (msg: { responding: (fn: () => Promise<void>) => Promise<void>; send: (t: string) => Promise<void> }, texts: string[]) => {
+    let sent = 0;
+    try {
+      await msg.responding(async () => { for (const t of texts) { await sendReply(t2 => msg.send(t2), t); sent++; } });
+    } catch (e) {
+      if (!/Target not allowed/i.test(String(e))) throw e;
+      log('[in] typing indicator refused (opt-in not applied yet); sending without it');
+      for (const t of texts.slice(sent)) await sendReply(t2 => msg.send(t2), t);
     }
   };
 
@@ -176,7 +213,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
         const reply = await handleInbound(deps, msg.address, msg.text);
         log(`[in] ${maskAddress(msg.address)}: ${reply.react ? `tapback ${reply.react}` : `${reply.texts.length} bubble(s)`}`);
         if (reply.react) await msg.react(reply.react);
-        if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await msg.send(t); });
+        if (reply.texts.length) await replyTo(msg, reply.texts);
         // After the first exchange, share our contact card once (Photon's deliverability advice).
         const linkedNow = store.contact(msg.address);
         if (linkedNow && !linkedNow.cardSent && transport.shareContactCard) {
@@ -190,12 +227,22 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
       // if the answer takes longer than 8 s, so the chat never goes silent.
       replyingUntil.set(msg.address, Infinity);
       try {
-        await msg.responding(async () => {
-          const slow = setTimeout(() => { void msg.send('Checking the numbers…'); }, 8_000);
-          const reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
+        let reply: Awaited<ReturnType<typeof handleInbound>> | undefined;
+        const work = async () => {
+          const slow = setTimeout(() => { void msg.send('Checking the numbers…').catch(() => undefined); }, 8_000);
+          reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
+        };
+        try { await msg.responding(work); }
+        catch (e) {
+          // Photon can refuse the typing indicator until a new opt-in applies: work without it.
+          if (!/Target not allowed/i.test(String(e))) throw e;
+          log('[in] typing indicator refused (opt-in not applied yet); answering without it');
+          if (!reply) await work();
+        }
+        if (reply) {
           log(`[in] ${maskAddress(msg.address)}: ${reply.texts.length} bubble(s)`);
-          for (const t of reply.texts) await msg.send(t);
-        });
+          for (const t of reply.texts) await sendReply(t2 => msg.send(t2), t);
+        }
       } finally {
         replyingUntil.set(msg.address, Date.now() + REPLY_GAP_MS);
       }
