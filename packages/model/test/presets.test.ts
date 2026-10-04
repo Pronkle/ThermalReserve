@@ -32,6 +32,8 @@ describe('presets', () => {
     expect(pressureSummary(pressureIndex(naive.hours.map((h) => h.systemMMcfh), r.pressure) as number[], r.pressure).hoursBelowZero).toBeGreaterThan(0);
   }, 60000);
 
+  // Stress = 15 MMcf/day lost (H1 [CONTRACT] msg 318, was 28.5): No program 2.99 MMcf curtailed, Optimized on observed
+  // weather 1.31. The console default (forecast-only re-plan, 0.75σ) is pinned in the re-plan block below.
   it('Stress: the fleet curtails less gas than No program and than Staggered, but cannot remove it', async () => {
     const st = preset('stress');
     const r = await evaluateLoss(feb, cohorts, cfgFor(st.enrolledHomes), consts, raw, st.lostMMcfd, st.reserveIdx);
@@ -39,8 +41,8 @@ describe('presets', () => {
     expect(r.planned.curtailedMMcf).toBeGreaterThan(0);
     expect(r.planned.curtailedMMcf).toBeLessThan(r.noProgram.curtailedMMcf);
     expect(r.planned.hoursBelowZero).toBeLessThan(r.noProgram.hoursBelowZero);
-    expect(r.noProgram.curtailedMMcf).toBeCloseTo(40.15, 1);
-    expect(r.planned.curtailedMMcf).toBeCloseTo(34.43, 1);
+    expect(r.noProgram.curtailedMMcf).toBeCloseTo(2.99, 1);
+    expect(r.planned.curtailedMMcf).toBeCloseTo(1.31, 1);
     const stag = compareStrategies(feb, cohorts, { ...cfgFor(st.enrolledHomes), capacityMMcfd: r.pressure.rMMcfd }, consts).SUSTAIN_STAGGER;
     expect(r.planned.curtailedMMcf).toBeLessThan(pressureSummary(pressureIndex(stag.hours.map((h) => h.systemMMcfh), r.pressure) as number[], r.pressure).curtailedMMcf);
   }, 60000);
@@ -66,5 +68,25 @@ describe('default re-plan on archived forecasts', () => {
     expect(s.hoursBelowZero).toBe(0);
     expect(s.minIndex).toBeGreaterThanOrEqual(nm.reserveIdx);
     expect(r.run.totals.degreeHoursBelowNormal).toBeCloseTo(105, -1);
+  }, 60000);
+
+  // What the console shows for Stress by default: −16.4, 7 h below, 1.57 MMcf curtailed, 269 °F·h (msg to H1, 07:4x ET).
+  it('Stress re-planned on each new forecast still curtails less than No program and Staggered', async () => {
+    const st = preset('stress');
+    const p = pressureParams(consts, raw, st.lostMMcfd, st.reserveIdx);
+    const c = { ...cfgFor(st.enrolledHomes), capacityMMcfd: p.rMMcfd };
+    const v = (k: string) => raw[k].value as number;
+    const r = await replanRun(feb as ScenarioWithForecasts, cohorts, c, consts, p, {
+      mode: 'REPLAN', bufferSigma: v('forecast_buffer_sigma_default'), strategy: 'OPTIMIZED',
+      policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: Infinity, driftHours: v('drift_hours'), driftPressureIdx: Infinity, driftFadeH: v('drift_fade_h') },
+    }, shape);
+    const score = (run: typeof r.run) => pressureSummary(pressureIndex(run.hours.map((h) => h.systemMMcfh), p) as number[], p);
+    const all = compareStrategies(feb, cohorts, c, consts);
+    const s = score(r.run);
+    expect(r.segments.every((g) => !g.plan.note)).toBe(true);
+    expect(s.curtailedMMcf).toBeCloseTo(1.57, 1);
+    expect(s.curtailedMMcf).toBeLessThan(score(all.SUSTAIN_STAGGER).curtailedMMcf);
+    expect(s.curtailedMMcf).toBeLessThan(score(all.BASELINE).curtailedMMcf);
+    expect(s.hoursBelowZero).toBeLessThan(score(all.BASELINE).hoursBelowZero);
   }, 60000);
 });

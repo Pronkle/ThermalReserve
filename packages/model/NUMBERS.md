@@ -45,7 +45,7 @@ Every pressure number is labeled **derived** and "modeled". Never psi, never Ens
 | Minimum indoor | min over hours of `hours[h].minTaF` | °F, 1 dp | includes normal night setpoints (64°F) |
 | Plan chip | segment 0 `runIso` / mode | text | "Plan uses observed weather" when there are no runs or mode is OBSERVED |
 
-Today (2026-10-04 05:55 ET, `main` d79dbda; feb2024, 25,000 homes, floor 62°F, max setback 5°F, 6% overrides, reserve
+Today (2026-10-04 07:45 ET, Stress at 15; feb2024, 25,000 homes, floor 62°F, max setback 5°F, 6% overrides, reserve
 10, W 9.54). Columns: min P @ hour | hours below 0 | first below | hours in reserve band | curtailed MMcf | °F·h/home |
 setback hours | min indoor °F.
 
@@ -56,10 +56,11 @@ setback hours | min indoor °F.
 | | Staggered | 4.1 @69 · 0 · – · 4 · 0 · 311 · 72 · 62.0 |
 | | Optimized, observed weather | 10.4 @69 · 0 · – · 0 · 0 · 75 · 17 · 64.0 |
 | | **Optimized, re-plan default** | **10.2 @69 · 0 · – · 0 · 0 · 105 · 22 · 62.0**; 17 segments (start + 16 new-forecast re-plans) |
-| Stress (lost 28.5, R 249.5) | No program | −420.9 @93 · 71 · 19 · 5 · 40.15 · 0 · 0 · 64.0 |
-| | Naive 4-hour | −414.3 @93 · 71 · 19 · 5 · 39.52 · 46 · 12 · 64.0 |
-| | Staggered | −378.2 @93 · 69 · 19 · 4 · 36.08 · 311 · 72 · 62.0 |
-| | Optimized, observed or re-plan | −360.9 @93 · 67 · 20 · 4 · 34.43 · 402 · 90 (re-plan 91) · 62.0 |
+| Stress (lost 15, R 263; H1 msg 318, was 28.5) | No program | −31.4 @69 · 17 · 57 · 7 · 2.99 · 0 · 0 · 64.0 |
+| | Naive 4-hour | −29.0 @69 · 14 · 67 · 8 · 2.77 · 46 · 12 · 64.0 |
+| | Staggered (no longer drawn) | −20.4 @69 · 11 · 67 · 8 · 1.95 · 311 · 72 · 62.0 |
+| | Optimized, observed weather | −13.8 @69 · 8 · 67 · 7 · 1.31 · 102 · 28 · 62.0 |
+| | **Optimized, re-plan default** | **−16.4 @69 · 7 · 67 · 7 · 1.57 · 269 · 64 · 62.0**; 17 segments |
 
 Near-miss = 11.5 is `coverageTable` on feb2024 at 25,000 homes: the largest loss (0.5 steps) where the observed-weather
 plan holds the full reserve. lastwinter allows 26; design holds at no loss. `presets.test.ts` pins these and the
