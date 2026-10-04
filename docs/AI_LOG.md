@@ -52,3 +52,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T02:43 | WEB (OpenAI Codex, ChatGPT Pro, gpt-6.1-sol) | Fixed five Optimized preview issues (capacity hint, Relief tab, 10-solve cache, blank unsolved results, map follows preview hour); 27 tests and browser/live regressions | reviewed by H2
 2026-10-04T04:10 | DATA (Claude Code, Pro, Opus 5.5) | CHAT registered as ScarletDesert: roster and architecture updated with H1 decisions (deps, link design A, hosting pending, freeze) | reviewed by H3 (pending)
 2026-10-04T04:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT re-registered as GreenGorge: roster, architecture (Photon allowlist constraint, hosting = H3 decides), test plan C-0 and procedure D2 updated | reviewed by H3 (pending)
+2026-10-04T05:00 | DATA (Claude Code, Pro, Opus 5.5) | CHAT hosting = team laptop (H3); architecture and phone procedure updated | reviewed by H3
