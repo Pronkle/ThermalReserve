@@ -105,7 +105,7 @@ At 25,000 homes the fleet cannot always reach a 10-point reserve. The UI shows t
 - The event log opens as an overlay over the lower part of the left column (by click, or by itself on a join or override) and never covers the verdict, the Run buttons or the charts.
 - The three charts have no captions. The verdict strip and status sentence carry the numbers.
 - The `/home` map: small dots; three plain-word states, "Saving gas now" (blue `#5BC0EB`), "Warming back up" (amber `#F2A541`) and "Normal" (dim gray, which includes overridden and exempt homes); the viewer's own home is a larger green dot (`#6EDBA4`) with a soft pulse (off under `prefers-reduced-motion`), labeled "You", and the map centers on it.
-- After an iMessage opt-in, `/home` shows the household's assigned line in large type and a button that opens Messages with "Link my home {code}" filled in (not START).
+- After an iMessage opt-in, `/home` shows the household's assigned line in large type and a button that opens Messages with "START" filled in. There are no link codes: the companion links a number only if it opted in on `/home`, on its first text, and the earlier card for people who did not opt in is removed (H1, Oct 4 08:50, H3's wording).
 - For this work ENGINE may also edit WEB's console files (`PressureOps.tsx`, `pressure.css`, `public.css`, `VerdictStrip.tsx`, `PresetBar.tsx`, `Validation.tsx`); WEB keeps `/home`, the maps, `stdb.tsx` and `replan-ui`.
 
 ```
