@@ -6,7 +6,7 @@ import { ScheduleAt } from 'spacetimedb';
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { SUBSTEP_HOURS, gasCf, heatToHold, normalSetpointF, stepState } from './physics';
 import type { CohortParams, HeatingType, ThermalState } from './types';
-import spacetimedb, { tickSchedule } from './schema';
+import spacetimedb, { householdContact, tickSchedule } from './schema';
 
 export { default } from './schema';
 
@@ -17,6 +17,9 @@ const TICK_INTERVAL_MICROS = 1_000_000n;
 const FLOOR_MIN_F = 60;
 const MAX_HOMES_PER_CHUNK = 250;
 const NICKNAME_MAX = 24;
+const CONTACT_NAME_MAX = 40;
+// E.164: a plus sign, a non-zero first digit, 8 to 15 digits in total.
+const E164 = /^\+[1-9]\d{7,14}$/;
 // The /home consent screen promises "never below 62°F" (AGENTS.md Section 3). Real households
 // keep that floor even when the operator sets a lower floor for the simulated fleet.
 const HOUSEHOLD_FLOOR_F = 62;
@@ -476,10 +479,59 @@ export const reset_households = spacetimedb.reducer(ctx => {
   const cfg = requireOperator(ctx);
   const all = [...ctx.db.household.iter()];
   for (const hh of all) ctx.db.household.identity.delete(hh.identity);
+  for (const c of [...ctx.db.householdContact.iter()]) ctx.db.householdContact.identity.delete(c.identity);
   logEvent(ctx, cfg.sim_hour, 'system', `Households reset (${all.length} removed)`);
 });
 
+// The iMessage companion calls this once with the operator passcode; its identity may then read
+// household_contact through the contact_feed view. A later claim replaces the reader.
+export const claim_contact_reader = spacetimedb.reducer(
+  { passcode: t.string() },
+  (ctx, { passcode }) => {
+    const secret = ctx.db.operatorSecret.id.find(0);
+    if (!secret) throw new SenderError('no operator yet: call claim_operator first');
+    if (secret.passcode !== passcode) throw new SenderError('wrong passcode');
+    const row = { id: 0, identity: ctx.sender };
+    if (ctx.db.contactReader.id.find(0)) ctx.db.contactReader.id.update(row);
+    else ctx.db.contactReader.insert(row);
+  }
+);
+
+// Contact rows, visible only to the identity set by claim_contact_reader; empty for everyone else.
+export const contact_feed = spacetimedb.view(
+  { name: 'contact_feed', public: true },
+  t.array(householdContact.rowType),
+  ctx => {
+    const reader = ctx.db.contactReader.id.find(0);
+    if (!reader || !reader.identity.equals(ctx.sender)) return [];
+    return [...ctx.db.householdContact.iter()];
+  }
+);
+
 // ---------- household reducers ----------
+
+// Opt-in contact details for the caller's own household, so the iMessage companion can text it.
+// Plain names (markup stripped), phone in E.164. Calling again replaces the row.
+export const set_contact = spacetimedb.reducer(
+  { first_name: t.string(), last_name: t.string(), phone_e164: t.string() },
+  (ctx, { first_name, last_name, phone_e164 }) => {
+    if (!ctx.db.household.identity.find(ctx.sender)) throw new SenderError('join as a household first');
+    const first = cleanText(first_name, CONTACT_NAME_MAX);
+    const last = cleanText(last_name, CONTACT_NAME_MAX);
+    if (first.length === 0) throw new SenderError('first_name: required');
+    const phone = phone_e164.replace(/[\s().-]/g, '');
+    if (!E164.test(phone)) throw new SenderError('phone_e164: expected a number like +19075550123');
+    const row = { identity: ctx.sender, first_name: first, last_name: last, phone_e164: phone, opted_in_at: ctx.timestamp };
+    if (ctx.db.householdContact.identity.find(ctx.sender)) ctx.db.householdContact.identity.update(row);
+    else ctx.db.householdContact.insert(row);
+  }
+);
+
+// Removes the caller's contact details (opt out). The household itself stays.
+export const clear_contact = spacetimedb.reducer(ctx => {
+  if (ctx.db.householdContact.identity.find(ctx.sender)) ctx.db.householdContact.identity.delete(ctx.sender);
+});
+
 
 // One household per identity; joining again updates the profile and keeps the state.
 export const join_household = spacetimedb.reducer(

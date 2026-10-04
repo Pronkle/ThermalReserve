@@ -7,7 +7,9 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import CancelOverrideReducer from "../cancel_override_reducer";
+import ClaimContactReaderReducer from "../claim_contact_reader_reducer";
 import ClaimOperatorReducer from "../claim_operator_reducer";
+import ClearContactReducer from "../clear_contact_reducer";
 import JoinHouseholdReducer from "../join_household_reducer";
 import LoadHomesReducer from "../load_homes_reducer";
 import LoadScenarioReducer from "../load_scenario_reducer";
@@ -15,12 +17,15 @@ import OverrideReducer from "../override_reducer";
 import PauseReducer from "../pause_reducer";
 import ResetReducer from "../reset_reducer";
 import ResetHouseholdsReducer from "../reset_households_reducer";
+import SetContactReducer from "../set_contact_reducer";
 import SetParamsReducer from "../set_params_reducer";
 import SetPlanReducer from "../set_plan_reducer";
 import StartReducer from "../start_reducer";
 
 export type CancelOverrideParams = __Infer<typeof CancelOverrideReducer>;
+export type ClaimContactReaderParams = __Infer<typeof ClaimContactReaderReducer>;
 export type ClaimOperatorParams = __Infer<typeof ClaimOperatorReducer>;
+export type ClearContactParams = __Infer<typeof ClearContactReducer>;
 export type JoinHouseholdParams = __Infer<typeof JoinHouseholdReducer>;
 export type LoadHomesParams = __Infer<typeof LoadHomesReducer>;
 export type LoadScenarioParams = __Infer<typeof LoadScenarioReducer>;
@@ -28,6 +33,7 @@ export type OverrideParams = __Infer<typeof OverrideReducer>;
 export type PauseParams = __Infer<typeof PauseReducer>;
 export type ResetParams = __Infer<typeof ResetReducer>;
 export type ResetHouseholdsParams = __Infer<typeof ResetHouseholdsReducer>;
+export type SetContactParams = __Infer<typeof SetContactReducer>;
 export type SetParamsParams = __Infer<typeof SetParamsReducer>;
 export type SetPlanParams = __Infer<typeof SetPlanReducer>;
 export type StartParams = __Infer<typeof StartReducer>;
