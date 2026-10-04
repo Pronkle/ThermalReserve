@@ -71,6 +71,14 @@ export class Mirror implements World {
     return true;
   }
 
+  // Hands a household its assigned Photon line, which /home shows as "Text START to {line}".
+  async setContactLine(identityHex: string, line: string): Promise<void> {
+    if (!this.conn || !this.contactReaderPasscode) throw new Error('not the contact reader');
+    const row = [...this.conn.db.contactFeed.iter()].find(r => r.identity.toHexString() === identityHex);
+    if (!row) throw new Error('no contact row for this household');
+    await this.conn.reducers.setContactLine({ identity: row.identity, line });
+  }
+
   contactFeed(): ContactFeedRow[] {
     if (!this.conn || !this.contactReaderPasscode) return [];
     return [...this.conn.db.contactFeed.iter()].map(r => ({ identity: r.identity.toHexString(), firstName: r.firstName, lastName: r.lastName, phone: r.phone }));

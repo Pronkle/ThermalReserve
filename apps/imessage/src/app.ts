@@ -53,6 +53,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
       const result = await onboard({
         store, consts, photon, household: id => mirror.household(id), sim: () => mirror.sim(),
         sendText: (address, body) => transport.sendText(address, body), log,
+        publishLine: (identity, line) => mirror.setContactLine(identity, line),
       }, row);
       if (result !== 'already linked') log(`[onboard] ${maskAddress(row.phone)}: ${result}`);
     }).catch(e => log(`[onboard] error: ${String(e).slice(0, 160)}`)).finally(() => onboardQueued.delete(row.phone));

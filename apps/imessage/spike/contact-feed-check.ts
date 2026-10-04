@@ -49,10 +49,15 @@ log(`reader: after clear ${[...reader.db.contactFeed.iter()].length} row(s)`);
 await joiner.reducers.setContact({ firstName: 'Test', lastName: 'User', phone: '+15555550123' });
 await new Promise(r => setTimeout(r, 2000));
 const row = [...reader.db.contactFeed.iter()][0];
+// Contact line: the reader sets it; the household sees only its own row.
+if (row) await reader.reducers.setContactLine({ identity: row.identity, line: '+1 628 555 0100' });
+await new Promise<void>(res => joiner.subscriptionBuilder().onApplied(() => res()).onError(() => res()).subscribe(['SELECT * FROM my_contact_line']));
+await new Promise(r => setTimeout(r, 1500));
+log(`joiner: my_contact_line = ${[...joiner.db.myContactLine.iter()].map(r => mask(r.line)).join(', ') || '(none)'}`);
 log(`reader: before STOP ${row ? 1 : 0} row(s)`);
 if (row) await reader.reducers.removeContact({ identity: row.identity });
 await new Promise(r => setTimeout(r, 2000));
-log(`reader: after removeContact ${[...reader.db.contactFeed.iter()].length} row(s)`);
+log(`reader: after removeContact ${[...reader.db.contactFeed.iter()].length} row(s); joiner line rows ${[...joiner.db.myContactLine.iter()].length}`);
 try { await joiner.reducers.removeContact({ identity: joiner.identity! }); log('joiner: removeContact allowed (unexpected)'); }
 catch (e) { log(`joiner (not reader): removeContact rejected: ${String(e).slice(0, 80)}`); }
 reader.disconnect(); joiner.disconnect();
