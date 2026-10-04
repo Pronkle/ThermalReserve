@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { pressureParams, runPlan, curtailedSeriesMMcf, type FleetConfig, type Plan, type Strategy, type ScenarioWithForecasts, type ReplanResult } from '@thermal-reserve/model';
 import { buildOpsData, clockLabel, cohorts, constants, defaultConfig, integer, scenarios, temperature } from '../lib/ops';
 import { deliveryTicks, livePressure, presets, pressureInputKey, pressurePlanId, pressureView, type PressureInputs, type Preset } from '../lib/pressure-ui';
-import { useAggregates, useConnection, useEventLog, useReducers, useSampleHomes, useSimConfig } from '../lib/stdb';
+import { useAggregates, useConnection, useEventLog, useReducers, useSimConfig } from '../lib/stdb';
 import { dispatchPlan, dispatchPreview, loadPressurePreset } from '../lib/operator';
 import { boundarySpeed, segmentSchedules, forecastChartRows, replanMessage } from '../lib/replan-ui';
 import { launchSolve, launchReplan } from '../lib/solver';
@@ -12,8 +12,7 @@ import { DiscomfortChart } from '../components/DiscomfortChart';
 import { StatusSentence, VerdictStrip } from '../components/VerdictStrip';
 import { PresetBar } from '../components/PresetBar';
 import { JoinQr } from '../components/JoinQr';
-import { MapPreview } from '../components/MapPreview';
-import { GasOps } from './GasOps';
+import { MainNavigation } from '../components/MainNavigation';
 import './pressure.css';
 const names: Record<Strategy, string> = { BASELINE: 'No program', NAIVE_4H: 'Naive 4-hour', SUSTAIN_STAGGER: 'Staggered', OPTIMIZED: 'Optimized', MAX_RELIEF: 'Max relief' };
 const numberConstant = (key: string) => Number(constants.raw[key].value);
@@ -24,7 +23,6 @@ export function PressureOps() {
   const sim = useSimConfig();
   const reducers = useReducers();
   const aggregates = useAggregates();
-  const samples = useSampleHomes();
   const events = useEventLog(12);
   const [scenario, setScenario] = useState(firstScenario);
   const [config, setConfig] = useState<FleetConfig>(() => ({ ...defaultConfig(firstScenario), enrolledHomes: firstPreset.enrolledHomes }));
@@ -42,7 +40,8 @@ export function PressureOps() {
   const dispatching = useRef(false);
   const lastDispatch = useRef('');
   const autoFailure = useRef(false);
-  const [gasOpen, setGasOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
+  const seenEventId = useRef<bigint | undefined>(undefined);
   const pending = useRef<ReturnType<typeof launchSolve> | ReturnType<typeof launchReplan> | undefined>(undefined);
   const generation = useRef(0);
   const connected = live.status === 'connected';
@@ -72,14 +71,17 @@ export function PressureOps() {
   const planningBasis = input.planningMode === 'OBSERVED' ? 'Plan uses observed weather' : activeSegment?.runIso ? `Forecast issued ${new Date(activeSegment.runIso).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${input.bufferSigma}σ buffer` : 'Forecast plan not solved';
   const needsSolve = (input.strategy === 'OPTIMIZED' || input.strategy === 'MAX_RELIEF') && !selectedPlan;
   const selectedRun = useMemo(() => selectedPlan ? runPlan(scenario, cohorts, cfg, selectedPlan, constants) : needsSolve ? undefined : data.runs[input.strategy as 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER'], [selectedPlan, needsSolve, scenario, cfg, input.strategy, data]);
-  const views = useMemo(() => ({ baseline: pressureView(data.runs.BASELINE, data.runs.BASELINE, cfg, p), naive: pressureView(data.runs.NAIVE_4H, data.runs.BASELINE, cfg, p), staggered: pressureView(data.runs.SUSTAIN_STAGGER, data.runs.BASELINE, cfg, p), active: selectedRun ? pressureView(selectedRun, data.runs.BASELINE, cfg, p) : undefined }), [data, cfg, p, selectedRun]);
+  const views = useMemo(() => ({ baseline: pressureView(data.runs.BASELINE, data.runs.BASELINE, cfg, p), naive: pressureView(data.runs.NAIVE_4H, data.runs.BASELINE, cfg, p), active: selectedRun ? pressureView(selectedRun, data.runs.BASELINE, cfg, p) : undefined }), [data, cfg, p, selectedRun]);
   const liveIndex = useMemo(() => sim?.scenarioId === scenario.id ? livePressure(new Map(aggregates.map(row => [row.hour, row.systemMmcf])), scenario.hours, { ...p, rMMcfd: sim.capacityMmcfd }) : [], [aggregates, sim?.scenarioId, sim?.capacityMmcfd, scenario, p]);
   const liveCurtailed = curtailedSeriesMMcf(liveIndex, p);
-  const pressureRows = [{ hour: 0, baseline: 100, naive: 100, staggered: 100, active: selectedRun ? 100 : undefined, live: aggregates.length ? 100 : undefined }, ...Array.from({ length: scenario.hours }, (_, h) => ({ hour: h + 1, baseline: views.baseline.index[h], naive: views.naive.index[h], staggered: views.staggered.index[h], active: views.active?.index[h], live: liveIndex[h], planned: replan ? forecastRows[h]?.expected : undefined, curtailed: { baseline: views.baseline.curtailed[h], naive: views.naive.curtailed[h], staggered: views.staggered.curtailed[h], active: views.active?.curtailed[h], live: liveCurtailed[h] } }))];
-  const discomfortRows = Array.from({ length: scenario.hours }, (_, h) => ({ hour: h, active: views.active?.discomfort.meanF[h], worst: views.active?.discomfort.worstF[h], naive: views.naive.discomfort.meanF[h], staggered: views.staggered.discomfort.meanF[h] }));
-  const cursor = Math.max(0, Math.min(scenario.hours - 1, Math.floor(hour)));
-  const mapRun = selectedRun ?? data.runs.BASELINE;
-  const mapHomes = sim?.status === 'running' && samples.length ? samples.map(home => ({ ...home, overrideHour: home.overridden ? 0 : null })) : data.homes;
+  const pressureRows = [{ hour: 0, baseline: 100, naive: 100, active: selectedRun ? 100 : undefined, live: aggregates.length ? 100 : undefined }, ...Array.from({ length: scenario.hours }, (_, h) => ({ hour: h + 1, baseline: views.baseline.index[h], naive: views.naive.index[h], active: views.active?.index[h], live: liveIndex[h], planned: replan ? forecastRows[h]?.expected : undefined, curtailed: { baseline: views.baseline.curtailed[h], naive: views.naive.curtailed[h], active: views.active?.curtailed[h], live: liveCurtailed[h] } }))];
+  const discomfortRows = Array.from({ length: scenario.hours }, (_, h) => ({ hour: h, active: views.active?.discomfort.meanF[h], worst: views.active?.discomfort.worstF[h], naive: views.naive.discomfort.meanF[h] }));
+  useEffect(() => {
+    if (!connected) return;
+    const latest = events.reduce((id, event) => event.id > id ? event.id : id, 0n);
+    if (seenEventId.current !== undefined && events.some(event => event.id > seenEventId.current! && (event.kind === 'join' || event.kind === 'override' && !event.message.includes('sample homes')))) setLogOpen(true);
+    seenEventId.current = latest;
+  }, [events, connected]);
   useEffect(() => {
     generation.current++; pending.current?.cancel(); setSolving(false);
     return () => { generation.current++; pending.current?.cancel(); };
@@ -176,23 +178,18 @@ export function PressureOps() {
   }
   function param(field: keyof FleetConfig, value: number) { setConfig(previous => ({ ...previous, [field]: value })); }
   const noLiveInputs = !connected && live.status !== 'unconfigured';
-  return <>
-    <div className="ops-heading pressure-heading"><div><p className="eyebrow">{connected ? `Live · ${live.database}` : 'Local model preview'}</p><h1>Operator console</h1></div><div className="clock-status"><strong>{clockLabel(scenario, hour)}</strong><span>{scenario.name} · {input.lostMMcfd.toFixed(1)} MMcf/day less supply <span className="metric-label">· assumed</span></span><span>{sim?.status ?? 'Preview paused'} · {names[input.strategy]}</span></div><JoinQr /></div>
+  return <div className="pressure-grid"><aside className="pressure-side">
+    <MainNavigation />
+    <div className="ops-heading pressure-heading"><h1>Operator console</h1><JoinQr /></div>
     <StatusSentence summary={views.active?.summary} reserve={input.reserveIdx} />
     {live.status === 'disconnected' && <p className="connection-banner" role="status">Disconnected — retrying</p>}
     {selectedPlan?.note && <p className="fallback-banner" role="status">Rule-based fallback in use · Staggered</p>}
     {error && <p className="connection-banner" role="alert">{error}</p>}
     <VerdictStrip summary={views.active?.summary} baseline={views.baseline.summary} degreeHours={views.active?.degreeHours} reserve={input.reserveIdx} planningBasis={planningBasis} />
-    <div className="pressure-grid"><div className="pressure-charts">
-      <PressureChart selectedName={names[input.strategy]} rows={pressureRows} scenario={scenario} reserve={input.reserveIdx} summary={views.active?.summary} baseline={views.baseline.summary} caption={views.active ? `${names[input.strategy]}: lowest modeled pressure ${integer.format(views.active.summary.minIndex)} index points; ${views.active.summary.curtailedMMcf.toFixed(1)} MMcf curtailed. Derived from the full cold snap.` : 'Plan results stay blank until solved for these inputs.'} />
-      <TemperatureChart scenario={scenario} rows={forecastRows} segments={replan?.segments} />
-      <DiscomfortChart rows={discomfortRows} scenario={scenario} maxDepthF={cfg.maxDepthF} degreeHours={views.active?.degreeHours} minIndoorF={views.active?.minIndoorF} holdingHours={views.active?.holdingHours} />
-    </div><aside className="pressure-side">
-      <section className="panel pressure-map"><div className="panel-heading"><h2>Anchorage fleet</h2><span className="metric-label">assumed participation</span></div><div className="map-frame"><MapPreview homes={mapHomes} run={mapRun} hour={cursor} /></div><div className="map-legend"><span><i className="dot normal" />Normal</span><span><i className="dot holding" />Holding</span><span><i className="dot recovering" />Recovering</span><span><i className="dot overridden" />Override</span><span><i className="dot exempt" />Exempt</span><span><i className="dot household" />Household</span></div><p className="map-caption">Each dot ≈ {integer.format(cfg.enrolledHomes / data.homes.length)} homes · assumed</p></section>
       <section className="panel pressure-controls"><h2>{connected ? 'Operator controls' : 'Preview controls'}</h2><PresetBar busy={busy || solving || noLiveInputs} onPreset={value => void preset(value)} /><div className="controls-grid">
         <label>Scenario<select aria-label="Scenario" value={scenario.id} onChange={event => { const sc = scenarios.find(item => item.id === event.target.value)!; setScenario(sc); setConfig(defaultConfig(sc)); setHour(0); }} >{scenarios.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}</select></label>
-        <label>Strategy<select aria-label="Strategy" value={input.strategy} onChange={event => setInput(previous => ({ ...previous, strategy: event.target.value as Strategy }))}>{Object.entries(names).map(([value, name]) => <option value={value} key={value}>{name}</option>)}</select></label>
-        <label className="delivery-control" title="Assumed scenario loss. Maximum delivery = Feb 2024 deliverability minus selected loss; usable linepack stays fixed.">Deliverability lost vs Feb 2024<output>{input.lostMMcfd.toFixed(1)} MMcf/day</output><input aria-label="Deliverability lost vs Feb 2024" type="range" min={0} max={35} step={0.5} list="delivery-ticks" value={input.lostMMcfd} onChange={event => setInput(previous => ({ ...previous, lostMMcfd: Number(event.target.value) }))} /><datalist id="delivery-ticks">{deliveryTicks.map(tick => <option key={tick.lostMMcfd} value={tick.lostMMcfd} label={tick.label} />)}</datalist><div className="delivery-ticks">{deliveryTicks.map(tick => <span key={tick.lostMMcfd} title={`${tick.label_kind}: ${tick.source}`}>{tick.lostMMcfd} · {tick.label}</span>)}</div></label>
+        <label>Strategy<select aria-label="Strategy" value={input.strategy} onChange={event => setInput(previous => ({ ...previous, strategy: event.target.value as Strategy }))}>{Object.entries(names).filter(([value]) => value !== 'SUSTAIN_STAGGER').map(([value, name]) => <option value={value} key={value}>{name}</option>)}</select></label>
+        <label className="delivery-control" title="Assumed scenario loss. Maximum delivery = Feb 2024 deliverability minus selected loss; usable linepack stays fixed.">Deliverability lost vs Feb 2024<output>{input.lostMMcfd.toFixed(1)} MMcf/day</output><input aria-label="Deliverability lost vs Feb 2024" type="range" min={0} max={17.5} step={0.5} list="delivery-ticks" value={input.lostMMcfd} onChange={event => setInput(previous => ({ ...previous, lostMMcfd: Number(event.target.value) }))} /><datalist id="delivery-ticks">{deliveryTicks.map(tick => <option key={tick.lostMMcfd} value={tick.lostMMcfd} label={tick.label} />)}</datalist><div className="delivery-ticks">{deliveryTicks.map(tick => <span key={tick.lostMMcfd} title={`${tick.label_kind}: ${tick.source}`}>{tick.lostMMcfd} · {tick.label}</span>)}</div></label>
         <label title="Assumed participation; no measured thermostat penetration is claimed.">Enrolled homes<output>{integer.format(cfg.enrolledHomes)} homes</output><input aria-label="Enrolled homes" type="range" min={5000} max={50000} step={1000} value={cfg.enrolledHomes} onChange={event => param('enrolledHomes', Number(event.target.value))} /></label>
         <label title={`${constants.raw.reserve_default_idx.label}: ${constants.raw.reserve_default_idx.source}`}>Reserve<output>{input.reserveIdx} index points</output><input aria-label="Reserve" type="range" min={5} max={20} step={1} value={input.reserveIdx} onChange={event => setInput(previous => ({ ...previous, reserveIdx: Number(event.target.value) }))} /></label>
         <label title={`${constants.raw.max_depth_default_f.label}: ${constants.raw.max_depth_default_f.source}`}>Max setback<output>{cfg.maxDepthF}°F</output><input aria-label="Max setback" type="range" min={2} max={10} step={1} value={cfg.maxDepthF} onChange={event => param('maxDepthF', Number(event.target.value))} /></label>
@@ -210,8 +207,12 @@ export function PressureOps() {
         <button disabled={!connected || busy} onClick={() => void command(api => api.resetHouseholds({}))}>Reset households</button>
         <button disabled={!connected || busy} onClick={() => void command(api => api.setParams({ configJson: JSON.stringify({ ...cfg, speedHoursPerSec: speed }) }))}>Apply inputs</button>
       </div><p className="solve-status" aria-live="polite">{solving ? `Solving · ${(elapsed / 1000).toFixed(1)} s` : selectedPlan ? `${names[input.strategy]} · ${((selectedPlan.solveMs ?? elapsed) / 1000).toFixed(2)} s` : needsSolve ? 'Not solved for these inputs: press Solve plan' : ''}</p><p className="control-note">{busy ? 'Sending command…' : connected ? `Connected · ${live.database} · ${sim?.operator?.toHexString() === live.identity ? 'Operator' : 'Viewer'}` : 'Local model preview'}</p></section>
-      <section className="panel log-panel"><h2>Event log</h2>{replanLog.length > 0 && <ol className="event-list">{replanLog.map((message, i) => <li key={i}><span>{message}</span></li>)}</ol>}{events.length ? <ol className="event-list">{events.map(event => <li key={event.id.toString()}><time>{clockLabel(scenario, event.simHour)}</time><span>{event.message}</span></li>)}</ol> : <p>No events yet. Load a preset to begin.</p>}</section>
-      <details className="gas-drawer-toggle panel" onToggle={event => setGasOpen(event.currentTarget.open)}><summary>Gas details (MMcf)</summary>{gasOpen && <GasOps region="details" preview={{ scenario, config: cfg, strategy: input.strategy, plan: selectedPlan, hour: cursor }} />}</details>
-    </aside></div>
-  </>;
+      <details className="panel log-panel" open={logOpen} onToggle={event => setLogOpen(event.currentTarget.open)}><summary>Event log <span aria-hidden="true">{logOpen ? '▾' : '▸'}</span></summary>{replanLog.length > 0 && <ol className="event-list">{replanLog.map((message, i) => <li key={i}><span>{message}</span></li>)}</ol>}{events.length ? <ol className="event-list">{events.map(event => <li key={event.id.toString()}><time>{clockLabel(scenario, event.simHour)}</time><span>{event.message}</span></li>)}</ol> : <p>No events yet. Load a preset to begin.</p>}</details>
+    </aside>
+    <div className="pressure-charts">
+      <div className="pressure-chart-slot"><PressureChart selectedName={names[input.strategy]} rows={pressureRows} scenario={scenario} reserve={input.reserveIdx} summary={views.active?.summary} baseline={views.baseline.summary} caption={views.active ? `${names[input.strategy]}: lowest modeled pressure ${integer.format(views.active.summary.minIndex)} index points; ${views.active.summary.curtailedMMcf.toFixed(1)} MMcf curtailed. Derived from the full cold snap.` : 'Plan results stay blank until solved for these inputs.'} /></div>
+      <div className="pressure-chart-slot"><TemperatureChart scenario={scenario} rows={forecastRows} segments={replan?.segments} /></div>
+      <div className="pressure-chart-slot"><DiscomfortChart rows={discomfortRows} scenario={scenario} maxDepthF={cfg.maxDepthF} degreeHours={views.active?.degreeHours} minIndoorF={views.active?.minIndoorF} holdingHours={views.active?.holdingHours} /></div>
+    </div>
+  </div>;
 }

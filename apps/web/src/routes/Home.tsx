@@ -3,6 +3,7 @@ import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig
 import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
 import { eventCountdown, heatStatus, householdDayStart, householdLinkCode } from '../lib/household';
 import { livePressureReading } from '../lib/pressure-ui';
+import { HouseholdMap } from '../components/HouseholdMap';
 import './home.css';
 
 const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
@@ -88,6 +89,7 @@ export function Home() {
         {home.overridden && !home.exempt && <p className="steady-heat">Normal heat restored. You can rejoin when ready.</p>}
         <p className="home-limit" title={`${constants.raw.max_depth_default_f.label}: operator-selected setback limit; household comfort floor.`}>Program limit: up to {temperature.format(maxDepthF)}°F lower, never below {temperature.format(Math.max(home.floorF, constants.floorDefaultF))}°F <span className="metric-label">assumed</span></p>
       </div>
+      <HouseholdMap />
       {contactState !== 'idle' && <section className="panel home-contact" aria-labelledby="contact-title">
         <h2 id="contact-title">iMessage updates</h2>
         {contactState === 'saved' ? <p role="status">You opted in to iMessage updates. Reply STOP any time.</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
