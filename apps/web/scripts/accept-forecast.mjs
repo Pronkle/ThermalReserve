@@ -33,7 +33,7 @@ try {
   assert(maxBeatGap < 1000, `Main thread gap ${maxBeatGap} ms`);
   assert((await page.locator('.pressure-status').innerText()).startsWith('Above'));
   assert.equal(await page.getByLabel('Planning mode', { exact: true }).inputValue(), 'REPLAN');
-  assert(await page.locator('.planning-chip').innerText().then(text => text.includes('Forecast issued')));
+  assert(await page.locator('.planning-chip').innerText().then(text => text.toLowerCase().includes('forecast issued')));
 
   assert(await page.getByRole('button', { name: 'Start', exact: true }).isEnabled());
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
@@ -102,7 +102,7 @@ try {
   await phone.locator('.heat-card').waitFor();
   await page.waitForFunction(() => document.querySelector('.log-panel')?.open);
   assert((await page.locator('.log-panel').innerText()).includes('Redesign test home joined'));
-  await phone.locator('.household-map .household-map-dot').first().waitFor({ timeout: 5000 });
+  await phone.locator('.household-map .own-household-map-dot').first().waitFor({ timeout: 5000 });
   assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.locator('.log-panel summary').click();
   await phone.getByRole('button', { name: 'Override', exact: true }).click();

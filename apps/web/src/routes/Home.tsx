@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
+import { useAggregates, useConnection, useMyContactLine, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
 import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
 import { eventCountdown, heatStatus, householdDayStart, householdLinkCode } from '../lib/household';
 import { livePressureReading } from '../lib/pressure-ui';
@@ -11,6 +11,7 @@ export function Home() {
   const live = useConnection();
   const config = useSimConfig();
   const home = useMyHousehold();
+  const contactLine = useMyContactLine();
   const reducers = useReducers();
   const aggregates = useAggregates();
   const [step, setStep] = useState(0);
@@ -25,6 +26,8 @@ export function Home() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [contactState, setContactState] = useState<'idle' | 'saving' | 'failed' | 'saved'>('idle');
+  const [awaitingLine, setAwaitingLine] = useState(false);
+  const hadAssignedLine = useRef(false);
   const [linkCode, setLinkCode] = useState('');
   const identityHex = home?.identity.toHexString();
   useEffect(() => {
@@ -35,6 +38,18 @@ export function Home() {
     return () => { current = false; };
   }, [identityHex]);
   const connected = live.status === 'connected';
+  const pendingLineKey = `thermal-reserve.imessage-pending:${live.database}:${live.identity}`;
+  useEffect(() => {
+    if (!connected) return;
+    if (!home || contactLine || hadAssignedLine.current) {
+      try { sessionStorage.removeItem(pendingLineKey); } catch { /* Still works without storage. */ }
+      setAwaitingLine(false);
+      if (!home || !contactLine && hadAssignedLine.current) setContactState('idle');
+      hadAssignedLine.current = Boolean(contactLine);
+      return;
+    }
+    try { if (sessionStorage.getItem(pendingLineKey) === '1') setAwaitingLine(true); } catch { /* Optional persistence. */ }
+  }, [connected, identityHex, contactLine?.line, pendingLineKey]);
   const previouslyJoined = useRef(false);
   useEffect(() => {
     if (home) previouslyJoined.current = true;
@@ -58,6 +73,10 @@ export function Home() {
     try {
       await api.setContact({ firstName, lastName, phone });
       setContactState('saved'); setFirstName(''); setLastName(''); setPhone('');
+      if (!contactLine) {
+        setAwaitingLine(true);
+        try { sessionStorage.setItem(pendingLineKey, '1'); } catch { /* No contact fields are persisted. */ }
+      }
     } catch (failure) { setContactState('failed'); throw failure; }
   }
   const contactFields = <div className="contact-fields">
@@ -90,9 +109,15 @@ export function Home() {
         <p className="home-limit" title={`${constants.raw.max_depth_default_f.label}: operator-selected setback limit; household comfort floor.`}>Program limit: up to {temperature.format(maxDepthF)}°F lower, never below {temperature.format(Math.max(home.floorF, constants.floorDefaultF))}°F <span className="metric-label">assumed</span></p>
       </div>
       <HouseholdMap />
-      {contactState !== 'idle' && <section className="panel home-contact" aria-labelledby="contact-title">
+      {(contactState !== 'idle' || awaitingLine || contactLine) && <section className="panel home-contact" aria-labelledby="contact-title">
         <h2 id="contact-title">iMessage updates</h2>
-        {contactState === 'saved' ? <p role="status">You opted in to iMessage updates. Reply STOP any time.</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
+        {contactLine ? <>
+          {linkCode ? <>
+            <p>Text <strong className="link-code">Link my home {linkCode}</strong> to <strong className="assigned-line">{contactLine.line}</strong> to turn on iMessage updates.</p>
+            <a className="home-primary text-updates-link" href={`sms:${contactLine.line}&body=${encodeURIComponent(`Link my home ${linkCode}`)}`}>Text to link your home</a>
+          </> : <><p>Your iMessage number: <strong className="assigned-line">{contactLine.line}</strong></p><p className="home-limit">Your link code is unavailable. Reload to try again.</p></>}
+          <p className="home-limit">Send the message to start updates. Reply STOP any time.</p>
+        </> : contactState === 'saved' || awaitingLine ? <p role="status">Setting up your iMessage line…</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
           <p>Your home has joined. Correct your details to finish opting in.</p>
           {contactFields}
           <button className="home-primary" disabled={!connected || busy} onClick={() => void act(saveContact)}>Save iMessage details</button>
@@ -117,7 +142,7 @@ export function Home() {
         {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
         <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>
       </section>
-      {linkCode && <section className="panel home-imessage" aria-labelledby="imessage-title">
+      {linkCode && contactState === 'idle' && !awaitingLine && !contactLine && <section className="panel home-imessage" aria-labelledby="imessage-title">
         <h2 id="imessage-title">Get updates by iMessage</h2>
         <p>Reply <strong className="link-code">Link my home {linkCode}</strong> in your Thermal Reserve iMessage thread to get heat updates by text. Reply STOP any time.</p>
         <p className="home-limit">Demo: works when the team's iMessage assistant is running.</p>
