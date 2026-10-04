@@ -1,4 +1,6 @@
-import type { CohortParams, ConstantsJson, FleetConfig, ModelConstants, RunResult, Scenario } from './types';
+import { solvePlan } from './lp';
+import { planBaseline, runPlan } from './strategies';
+import type { CohortParams, ConstantsJson, FleetConfig, ModelConstants, Plan, RunResult, Scenario } from './types';
 
 // Pressure index (AGENTS.md Section 3). Hour by hour, with inflow u, demand D (MMcf/h) and linepack L (MMcf):
 //   L[t+1] = L[t] + u[t] − D[t],   u[t] = min(R/24, W − L[t] + D[t]),   L[0] = W × initialIdx / 100
@@ -114,7 +116,58 @@ export function discomfortSeries(run: RunResult, baseline: RunResult, cohorts: C
   return { meanF, worstF };
 }
 
-/** E-A0 stub: shaped rows, real search lands in E-A3. */
-export async function coverageTable(scenarios: Scenario[], _cohorts: CohortParams[], cfg: FleetConfig, _consts: ModelConstants, _raw: ConstantsJson): Promise<CoverageRow[]> {
-  return scenarios.map((sc) => ({ scenarioId: sc.id, homes: cfg.enrolledHomes, maxLostAboveZero: 0, maxLostAtReserve: 0, degreeHoursAtThatLoss: 0 }));
+export interface PresetResult {
+  lostMMcfd: number; plan: Plan; run: RunResult; baseline: RunResult;
+  pressure: PressureParams; planned: PressureSummary; noProgram: PressureSummary; degreeHours: number;
+}
+
+/** Solves OPTIMIZED in pressure mode at one loss and scores the 5-minute run and No program on the pressure index. */
+export async function evaluateLoss(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, consts: ModelConstants, raw: ConstantsJson, lostMMcfd: number, reserveIdx: number): Promise<PresetResult> {
+  const p = pressureParams(consts, raw, lostMMcfd, reserveIdx);
+  const c = { ...cfg, capacityMMcfd: p.rMMcfd };
+  const plan = await solvePlan(sc, cohorts, c, 'OPTIMIZED', consts, { pressure: p });
+  const run = runPlan(sc, cohorts, c, plan, consts);
+  const baseline = runPlan(sc, cohorts, c, planBaseline(sc, cohorts), consts);
+  const score = (r: RunResult) => pressureSummary(pressureIndex(r.hours.map((h) => h.systemMMcfh), p) as number[], p);
+  return { lostMMcfd, plan, run, baseline, pressure: p, planned: score(run), noProgram: score(baseline), degreeHours: run.totals.degreeHoursBelowNormal };
+}
+
+const LOST_STEP = 0.5;
+const LOST_MAX = 35;
+
+/**
+ * Per scenario at cfg.enrolledHomes: the largest loss (0–35 MMcf/day, step 0.5) at which the Optimized pressure plan,
+ * run at 5-minute resolution, keeps the index ≥ 0 and ≥ reserve_default_idx, with °F·h per home at the reserve loss.
+ * Assumes coverage falls as the loss grows (bisection on the 0.5 grid). −1 when even a loss of 0 fails.
+ */
+export async function coverageTable(scenarios: Scenario[], cohorts: CohortParams[], cfg: FleetConfig, consts: ModelConstants, raw: ConstantsJson): Promise<CoverageRow[]> {
+  const reserve = rawNum(raw, 'reserve_default_idx');
+  const rows: CoverageRow[] = [];
+  for (const sc of scenarios) {
+    const memo = new Map<number, PresetResult>();
+    const at = async (k: number) => {
+      let r = memo.get(k);
+      if (!r) { r = await evaluateLoss(sc, cohorts, cfg, consts, raw, k * LOST_STEP, reserve); memo.set(k, r); }
+      return r;
+    };
+    const largest = async (ok: (r: PresetResult) => boolean): Promise<number> => {
+      if (!ok(await at(0))) return -1;
+      let lo = 0, hi = Math.round(LOST_MAX / LOST_STEP);
+      if (ok(await at(hi))) return hi;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (ok(await at(mid))) lo = mid; else hi = mid;
+      }
+      return lo;
+    };
+    const kZero = await largest((r) => r.planned.minIndex >= 0);
+    const kRes = await largest((r) => r.planned.minIndex >= reserve);
+    rows.push({
+      scenarioId: sc.id, homes: cfg.enrolledHomes,
+      maxLostAboveZero: kZero < 0 ? -1 : kZero * LOST_STEP,
+      maxLostAtReserve: kRes < 0 ? -1 : kRes * LOST_STEP,
+      degreeHoursAtThatLoss: kRes < 0 ? 0 : (await at(kRes)).degreeHours,
+    });
+  }
+  return rows;
 }
