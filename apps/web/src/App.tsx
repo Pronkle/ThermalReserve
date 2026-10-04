@@ -13,7 +13,7 @@ export function App() {
   const pressureConsole = dark && new URLSearchParams(search).get('ui') !== 'gas';
   useEffect(() => {
     const page = navigation.find(({ to }) => to === pathname);
-    document.title = `${page?.label ?? 'Welcome'} · Thermal Reserve`;
+    document.title = `${page?.label ?? 'Welcome'} · BoreaFlux`;
   }, [pathname]);
 
   return (
@@ -21,8 +21,8 @@ export function App() {
       <a className="skip-link" href="#main">Skip to content</a>
       {!pressureConsole && <header className="app-header">
         <NavLink className="brand" to="/ops">
-          <span className="brand-mark" aria-hidden="true">TR</span>
-          <span>Thermal Reserve<span className="brand-subtitle">Southcentral Alaska</span></span>
+          <span className="brand-mark" aria-hidden="true">BF</span>
+          <span>BoreaFlux<span className="brand-subtitle">Southcentral Alaska</span></span>
         </NavLink>
         <MainNavigation />
       </header>}
