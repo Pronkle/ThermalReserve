@@ -61,6 +61,16 @@ export class Mirror implements World {
   // With a passcode, this identity claims the contact reader role and also subscribes to contact_feed.
   constructor(private readonly config: ChatConfig, private readonly events: MirrorEvents, private readonly contactReaderPasscode?: string) {}
 
+  // STOP: delete this household's private contact row (reader only; STDB msg 284). Resolves to
+  // false when there is no row (e.g. linked by code, never opted in on /home).
+  async removeContact(identityHex: string): Promise<boolean> {
+    if (!this.conn || !this.contactReaderPasscode) return false;
+    const row = [...this.conn.db.contactFeed.iter()].find(r => r.identity.toHexString() === identityHex);
+    if (!row) return false;
+    await this.conn.reducers.removeContact({ identity: row.identity });
+    return true;
+  }
+
   contactFeed(): ContactFeedRow[] {
     if (!this.conn || !this.contactReaderPasscode) return [];
     return [...this.conn.db.contactFeed.iter()].map(r => ({ identity: r.identity.toHexString(), firstName: r.firstName, lastName: r.lastName, phone: r.phone }));

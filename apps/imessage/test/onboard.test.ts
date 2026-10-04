@@ -75,8 +75,10 @@ describe('auto-onboarding', () => {
 
     const store2 = new Store(':memory:');
     await onboard(deps(store2), req);
-    await handleInbound({ store: store2, consts, households: () => [h], sim: () => s, now: () => NOON_ET, log: () => undefined }, PHONE, 'STOP');
+    const removed: string[] = [];
+    await handleInbound({ store: store2, consts, households: () => [h], sim: () => s, now: () => NOON_ET, log: () => undefined, onStop: async (_a, id) => { removed.push(id); } }, PHONE, 'STOP');
     expect(store2.contact(PHONE)).toBeUndefined();
+    expect(removed).toEqual([IDENTITY]);   // the private database row is deleted too
   });
 
   it('invalid requests and unknown households are refused', async () => {

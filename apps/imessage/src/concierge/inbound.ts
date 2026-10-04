@@ -33,6 +33,8 @@ export interface InboundDeps {
   sim: () => SimView | undefined;
   now?: () => number;
   log?: (line: string) => void;
+  // STOP also deletes the household's private contact row in the database, if it has one.
+  onStop?: (address: string, identity: string) => Promise<void>;
   // Everything that isn't a control word goes to the concierge agent. Returns the reply bubbles.
   converse?: (address: string, identity: string, text: string) => Promise<string[]>;
 }
@@ -63,6 +65,10 @@ export async function handleInbound(deps: InboundDeps, address: string, text: st
 
   switch (intent) {
     case 'stop':
+      if (contact && deps.onStop) {
+        try { await deps.onStop(address, contact.identity); }
+        catch (e) { log(`[link] ${maskAddress(address)} STOP: database contact not removed: ${String(e).slice(0, 120)}`); }
+      }
       store.forget(address);
       log(`[link] ${maskAddress(address)} stopped; contact and memory deleted`);
       return { texts: ['You\'re unsubscribed and I\'ve deleted what I stored for this number. I won\'t text again unless you text me first.'] };

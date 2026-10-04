@@ -45,5 +45,15 @@ log(`reader: now ${[...reader.db.contactFeed.iter()].length} row(s)`);
 await joiner.reducers.clearContact({});
 await new Promise(r => setTimeout(r, 3000));
 log(`reader: after clear ${[...reader.db.contactFeed.iter()].length} row(s)`);
+// STOP path: the household opts in again, then the reader deletes the row (remove_contact).
+await joiner.reducers.setContact({ firstName: 'Test', lastName: 'User', phone: '+15555550123' });
+await new Promise(r => setTimeout(r, 2000));
+const row = [...reader.db.contactFeed.iter()][0];
+log(`reader: before STOP ${row ? 1 : 0} row(s)`);
+if (row) await reader.reducers.removeContact({ identity: row.identity });
+await new Promise(r => setTimeout(r, 2000));
+log(`reader: after removeContact ${[...reader.db.contactFeed.iter()].length} row(s)`);
+try { await joiner.reducers.removeContact({ identity: joiner.identity! }); log('joiner: removeContact allowed (unexpected)'); }
+catch (e) { log(`joiner (not reader): removeContact rejected: ${String(e).slice(0, 80)}`); }
 reader.disconnect(); joiner.disconnect();
 process.exit(0);

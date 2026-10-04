@@ -162,7 +162,12 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     try {
       // A text that arrives during startup waits for the live data (link codes, current state).
       if (!(await mirror.whenReady())) log('[in] live data not ready after 10 s; answering anyway');
-      const deps = { store, consts, households: () => mirror.households(), sim: () => mirror.sim(), log, converse: converseSafely };
+      const deps = {
+        store, consts, households: () => mirror.households(), sim: () => mirror.sim(), log, converse: converseSafely,
+        onStop: async (address: string, identity: string) => {
+          if (await mirror.removeContact(identity)) log(`[onboard] ${maskAddress(address)} STOP: private contact row deleted`);
+        },
+      };
       const control = classify(msg.text) !== 'other' || !store.contact(msg.address);
       if (control) {
         const reply = await handleInbound(deps, msg.address, msg.text);
