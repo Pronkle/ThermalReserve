@@ -96,9 +96,13 @@ flowchart LR
   scen --> files["scenarios/design.json,<br/>feb2024.json, lastwinter.json"]
 ```
 
-## iMessage companion (CHAT, planned; not built yet)
+## iMessage companion (CHAT, in progress)
 
-Owner: CHAT, Agent Mail name GreenGorge (earlier session ScarletDesert) (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. Everything in this section is the brief's design, not shipped code; remove or update it once CHAT's phases land.
+Owner: CHAT, Agent Mail name GreenGorge (earlier session ScarletDesert) (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. **Status (Oct 4, ~05:25Z):** Phase 1 done on `thermal-reserve-dev` (linking by code, watcher, throttled catch-up texts, STOP, SQLite memory, no duplicates after restart; tested on H3's iPhone). Phase 2 (Concierge + Insights, honesty guard, handoff log) is coded and unit-tested offline, waiting for an API key for its live acceptance. Both agents run on **Claude Haiku 4.5** at runtime (H3's choice, lowest cost). Branch `chat/phase1`, merged by STDB.
+
+**Shared-line caveat (CHAT, Phase 1):** Photon's shared line routes a person's replies to us only for a while after we last texted them (replies stopped arriving after ~35 min of silence). The companion texts the demo phone at startup (`CHAT_HELLO_TO`), so start it ≤ 5 minutes before the iMessage demo step.
+
+The table below is the brief's design; parts not yet built are noted above.
 
 ```mermaid
 flowchart LR
@@ -119,7 +123,7 @@ flowchart LR
 | Transport | Photon Spectrum (`spectrum-ts`): cloud iMessage provider in production, terminal provider for offline development | Spectrum is required for the prize track; no other iMessage bridge |
 | Watcher | Turns household state changes (setback start, depth change, recovery, override, event end) into notable events; throttles and coalesces them into one catch-up message | At most one proactive text per household per ~20 s; never one per tick |
 | Concierge | Owns the conversation: intent, tone, tapbacks, quiet hours, preferences, STOP | Never computes numbers itself |
-| Insights | Answers "why" questions with deterministic tools (`household_now`, `plan_window`, `weather`, `gas_day`, `explain_decision`, `compare_strategies`, `constant`, `what_if`) | Every number must come from a tool result; a post-check rejects any number no tool produced |
+| Insights | (Claude Haiku 4.5) Answers "why" questions with deterministic tools (`household_now`, `plan_window`, `weather`, `gas_day`, `explain_decision`, `compare_strategies`, `constant`, `what_if`) | Every number must come from a tool result; a post-check rejects any number no tool produced |
 | Memory | SQLite in `apps/imessage/data/` (gitignored): contacts, per-person memory, thread history, outbox | Deleted on STOP and when the household is reset |
 
 **Phone ↔ household link:** preferred design A is inbound-first: the user texts a code from `/home`, so no phone number is stored in SpacetimeDB. Fallback B adds a private `household_contact` table (H1 approval, STDB implements). Decided in CHAT's Phase 0.

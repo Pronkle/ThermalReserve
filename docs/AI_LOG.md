@@ -53,3 +53,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T04:10 | DATA (Claude Code, Pro, Opus 5.5) | CHAT registered as ScarletDesert: roster and architecture updated with H1 decisions (deps, link design A, hosting pending, freeze) | reviewed by H3 (pending)
 2026-10-04T04:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT re-registered as GreenGorge: roster, architecture (Photon allowlist constraint, hosting = H3 decides), test plan C-0 and procedure D2 updated | reviewed by H3 (pending)
 2026-10-04T05:00 | DATA (Claude Code, Pro, Opus 5.5) | CHAT hosting = team laptop (H3); architecture and phone procedure updated | reviewed by H3
+2026-10-04T06:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT status in docs: Phase 1 done, Phase 2 coded (Haiku 4.5), shared-line caveat and start-≤5-min step; Q&A #23 from CHAT | reviewed by H3 (pending)
