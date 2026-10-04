@@ -74,3 +74,5 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T05:36 | STDB (Claude Code, Pro, Opus 5.5) | H1 decision recorded: re-plan default forecast-only at 0.75σ (constants.json, AGENTS.md Sections 4-7 and 14) | reviewed by H1
 
 2026-10-04T05:39 | WEB (OpenAI Codex, GPT-6.1-Sol) | Applied H1 forecast-only re-plan contract and versioned plan fingerprints; 35 web tests, build, physics check, 96-hour Maincloud acceptance (16 forecast re-plans, max pressure error 0.134 points); 793bdad | human review pending H2
+2026-10-04T05:58 | DATA (Claude Code, Pro, Opus 5.5) | D-B2 part 1: roster for the overhaul agents; qa.md pressure rewrite (Q4/8/9/13/16 revised, Q27-36 new, pressure numbers table); MODELING.md pressure, pressure-LP, forecast and console sections; sources.md pressure sources with links opened (Aquidneck count corrected to 7,455) | review pending H3
+2026-10-04T06:10 | DATA (Claude Code, Pro, Opus 5.5) | D-C1: devpost.md v1 for the pressure console (claims per Section 5, preset table, new sources); docs/demo-assets.md (screenshot list, /validation forecast-error copy, 90 s backup-video shot list) | review pending H3
