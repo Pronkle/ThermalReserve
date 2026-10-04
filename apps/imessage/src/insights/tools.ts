@@ -6,7 +6,7 @@ import type { ChatConstants } from '../config';
 import type { HouseholdView, SimView, World } from '../types';
 import { clockLabel, degF } from '../watcher/compose';
 import { heatMode, SETBACK_ENTER_F } from '../watcher/detect';
-import { compare, constantsJson, modelConstants, scenario } from './model';
+import { cohorts, compare, constantsJson, modelConstants, scenario } from './model';
 
 type Label = 'sourced' | 'derived' | 'assumed';
 export interface Num { value: number; unit: string; label: Label | string; }
@@ -50,6 +50,17 @@ function scenarioInfo(sim: SimView) {
   const sc = scenario(sim.scenarioId);
   return { id: sim.scenarioId, name: sc?.name ?? sim.scenarioId, kind: sc?.kind ?? 'unknown', source: sc?.source ?? 'unknown', capacityNote: sc?.capacityNote ?? '' };
 }
+
+// Plain names for the strategies, so an answer never confuses one with another.
+export const STRATEGY_NAMES: Record<string, string> = {
+  BASELINE: 'no program (nobody\'s heat is lowered)',
+  NAIVE_4H: 'simple 4-hour morning setback (-4°F, 06:00-10:00 every event day; what earlier pilots did)',
+  SUSTAIN_STAGGER: 'rule-based stagger (smaller setbacks spread across homes and hours)',
+  OPTIMIZED: 'optimized plan (computed by the optimizer: the least setback that keeps each gas day under capacity)',
+  MAX_RELIEF: 'maximum-relief plan (computed by the optimizer: as much relief as the comfort limits allow)',
+};
+
+const dispatchedFor = (ctx: ToolContext, sim: SimView) => ctx.world.dispatchedPlan(cohorts.length, sim.hours);
 
 // ---------- tools ----------
 
@@ -128,25 +139,32 @@ export function gasDay(ctx: ToolContext, input: { day?: number }) {
 export function compareStrategiesTool(ctx: ToolContext) {
   const sim = ctx.world.sim();
   if (!sim) throw new ToolError('No scenario is loaded yet.');
-  const result = compare(sim);
+  const live = dispatchedFor(ctx, sim);
+  const result = compare(sim, live);
   if (!result) throw new ToolError(`Scenario ${sim.scenarioId} is not available to the model.`);
+  const liveKey = live ? sim.strategy : 'BASELINE';
+  const entries: { key: string; run: typeof result.runs.BASELINE }[] = [
+    { key: 'BASELINE', run: result.runs.BASELINE },
+    { key: 'NAIVE_4H', run: result.runs.NAIVE_4H },
+    { key: 'SUSTAIN_STAGGER', run: result.runs.SUSTAIN_STAGGER },
+  ];
+  if (live && result.dispatched && !['BASELINE', 'NAIVE_4H', 'SUSTAIN_STAGGER'].includes(sim.strategy)) entries.push({ key: sim.strategy, run: result.dispatched });
+  const uncoveredFor = (key: string, d: (typeof result.days)[number]) =>
+    key === sim.strategy && d.uncoveredMMcf.DISPATCHED !== undefined ? d.uncoveredMMcf.DISPATCHED
+      : d.uncoveredMMcf[key as 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER'] ?? 0;
   return {
     scenario: scenarioInfo(sim).name,
     enrolledHomes: sim.enrolledHomes,
-    note: 'Uncovered = that gas day\'s system demand under the strategy minus daily capacity (0 when covered). OPTIMIZED is the live plan; its per-day values come from gas_day and explain_decision.',
-    label: 'derived (model run, simulated)',
-    days: result.days.map(d => ({
-      day: d.day,
-      starts: clockLabel(sim.startIso, d.day * 24, true),
-      shortfallWithoutProgramMMcf: round(d.shortfallMMcf, 2),
-      uncoveredNoProgramMMcf: round(d.uncoveredMMcf.BASELINE, 2),
-      uncoveredNaive4hMMcf: round(d.uncoveredMMcf.NAIVE_4H, 2),
-      uncoveredSustainStaggerMMcf: round(d.uncoveredMMcf.SUSTAIN_STAGGER, 2),
+    thisHomeIsOn: STRATEGY_NAMES[liveKey] ?? liveKey,
+    note: 'Each strategy below was simulated on the same scenario and settings. "uncovered" is that gas day\'s demand above capacity under the strategy (0 = covered). "netSaved" is gas saved over the whole run including reheat. Only the strategy marked thisHomeIsOn is the one this home actually ran; the others are comparisons.',
+    label: 'derived (model runs, simulated)',
+    strategies: entries.map(({ key, run }) => ({
+      strategy: STRATEGY_NAMES[key] ?? key,
+      thisHomeIsOn: key === liveKey,
+      netSavedMMcf: round(run.totals.netSavedMMcf, 2),
+      peakHourReliefMMcfh: round(run.totals.peakHourReliefMMcfh, 3),
+      uncoveredByDayMMcf: result.days.map(d => ({ day: d.day, starts: clockLabel(sim.startIso, d.day * 24, true), uncovered: round(uncoveredFor(key, d), 2) })),
     })),
-    netSavedMMcf: {
-      NAIVE_4H: round(result.runs.NAIVE_4H.totals.netSavedMMcf, 2),
-      SUSTAIN_STAGGER: round(result.runs.SUSTAIN_STAGGER.totals.netSavedMMcf, 2),
-    },
   };
 }
 
@@ -159,7 +177,7 @@ export function explainDecision(ctx: ToolContext, input: { hour?: number }) {
   const target = plannedTargetF(ctx, sim, h, hour);
   const before = hour > 0 ? plannedTargetF(ctx, sim, h, hour - 1) : normalF;
   const depth = normalF - target;
-  const result = compare(sim);
+  const result = compare(sim, dispatchedFor(ctx, sim));
   const dayIndex = Math.floor(hour / 24);
   const day = result?.days[dayIndex];
   const clock = clockLabel(sim.startIso, hour);
@@ -205,7 +223,9 @@ export function explainDecision(ctx: ToolContext, input: { hour?: number }) {
         : 'The reheat happens on a day with spare capacity, so it doesn\'t add to a shortfall.');
     }
     if (day.shortfallMMcf > 0 && action !== 'exempt') {
-      reasons.push(`For comparison, a simple 4-hour morning setback would leave ${mmcf(day.uncoveredMMcf.NAIVE_4H)} uncovered that day, and no program would leave ${mmcf(day.uncoveredMMcf.BASELINE)}.`);
+      const mine = day.uncoveredMMcf.DISPATCHED;
+      const own = mine === undefined ? '' : ` The ${sim.strategy === 'OPTIMIZED' ? 'optimized plan this home is on' : 'plan this home is on'} leaves ${mmcf(mine)} uncovered.`;
+      reasons.push(`For comparison, a simple 4-hour morning setback would leave ${mmcf(day.uncoveredMMcf.NAIVE_4H)} uncovered that day, and no program would leave ${mmcf(day.uncoveredMMcf.BASELINE)}.${own}`);
     }
     if (action === 'setback' && day.shortfallMMcf === 0 && result) {
       const next = result.days.find(d => d.day > dayIndex && d.shortfallMMcf > 0);
@@ -229,7 +249,9 @@ export function explainDecision(ctx: ToolContext, input: { hour?: number }) {
       capacity: num(day.capacityMMcf, 'MMcf/day', 'assumed (hypothetical)'),
       shortfallWithoutProgram: num(day.shortfallMMcf, 'MMcf/day', 'derived'),
       uncoveredWithNaive4h: num(day.uncoveredMMcf.NAIVE_4H, 'MMcf/day', 'derived (model run)'),
+      uncoveredWithThisHomesPlan: day.uncoveredMMcf.DISPATCHED === undefined ? null : num(day.uncoveredMMcf.DISPATCHED, 'MMcf/day', 'derived (model run of the dispatched plan)'),
     } : null,
+    thisHomeIsOn: STRATEGY_NAMES[sim.strategy] ?? sim.strategy,
     nextShortfallDay: shortfallDay ?? null,
     reasons,
     simulated: true,
@@ -269,7 +291,7 @@ export const TOOLS: Anthropic.Tool[] = [
   { name: 'plan_window', description: "Planned heat target per hour for this home's type, between two hours (at most 48).", input_schema: { type: 'object', properties: { fromHour: hourProp, toHour: hourProp }, additionalProperties: false } },
   { name: 'weather', description: 'Outdoor °F per hour from the scenario, with its source.', input_schema: { type: 'object', properties: { fromHour: hourProp, toHour: hourProp }, additionalProperties: false } },
   { name: 'gas_day', description: 'One gas day (24 h from scenario start): no-program system demand, capacity, shortfall, and live relief so far.', input_schema: { type: 'object', properties: { day: { type: 'number', description: 'Gas day index from scenario start (0-based). Omit for today.' } }, additionalProperties: false } },
-  { name: 'compare_strategies', description: 'Per gas day, how much demand each strategy leaves above capacity (no program, simple 4-hour morning setback, rule-based stagger), plus net savings.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
+  { name: 'compare_strategies', description: 'The strategy this home is on (thisHomeIsOn) and, for comparison, no program, a simple 4-hour morning setback and a rule-based stagger: per gas day how much demand each leaves above capacity, plus net savings. Always say which strategy a number belongs to.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
   { name: 'constant', description: 'One sourced/derived/assumed constant from data/constants.json with its unit, label and source (e.g. needle_peak_mmcfd, marginal_price_usd_mcf, floor_default_f, customers, shortfall_bcf).', input_schema: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'], additionalProperties: false } },
   { name: 'what_if', description: 'Steady-state what-if for many homes: MMcf/day saved, share of the needle peak, of the 2024 deliverability loss and of the shortfall, dollars per day, with formulas.', input_schema: { type: 'object', properties: { participationPct: { type: 'number', description: 'Percent of ~150,000 customers, 0–50' }, setbackF: { type: 'number', description: '1–10 °F' }, outdoorF: { type: 'number' }, days: { type: 'number' }, tier2Pct: { type: 'number' } }, required: ['participationPct', 'setbackF'], additionalProperties: false } },
 ];

@@ -41,6 +41,8 @@ export interface World {
   weather(): WeatherHourView[];
   planTargetF(cohortId: number, hour: number): number | undefined; // undefined: follow normal setpoint
   aggregates(): AggregateHourView[];
+  // The dispatched plan as targets[cohortId][hour] (NaN = normal), or undefined when none.
+  dispatchedPlan(cohortCount: number, hours: number): { planId: string; strategy: string; targetsF: number[][] } | undefined;
 }
 
 export type HeatMode = 'normal' | 'holding' | 'recovering' | 'overridden' | 'exempt';

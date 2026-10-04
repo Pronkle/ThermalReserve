@@ -97,6 +97,19 @@ export class Mirror implements World {
     return undefined;
   }
 
+  dispatchedPlan(cohortCount: number, hours: number) {
+    const sim = this.sim();
+    if (!this.conn || !sim?.planId || sim.strategy === 'BASELINE') return undefined;
+    const targetsF = Array.from({ length: cohortCount }, () => new Array<number>(hours).fill(NaN));
+    let rows = 0;
+    for (const r of this.conn.db.planHour.iter()) {
+      if (r.planId !== sim.planId || r.cohortId >= cohortCount || r.hour >= hours) continue;
+      targetsF[r.cohortId][r.hour] = Number.isFinite(r.targetF) ? r.targetF : NaN;
+      rows++;
+    }
+    return rows ? { planId: sim.planId, strategy: sim.strategy, targetsF } : undefined;
+  }
+
   aggregates(): AggregateHourView[] {
     if (!this.conn) return [];
     return [...this.conn.db.aggregateHour.iter()]

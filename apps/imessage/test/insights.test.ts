@@ -24,6 +24,8 @@ function world(opts: { sim?: SimView; home?: Partial<HouseholdView> } = {}): Wor
     weather: () => sc.outdoorF.map((outdoorF, hour) => ({ hour, outdoorF, systemMMcfh: sc.systemMMcfh[hour] })),
     planTargetF: (_c, hour) => (hour >= 50 && hour < 74 ? 65 : undefined),
     aggregates: () => [],
+    dispatchedPlan: (n, hours) => s.strategy === 'BASELINE' ? undefined
+      : { planId: s.planId, strategy: s.strategy, targetsF: Array.from({ length: n }, () => Array.from({ length: hours }, (_, hr) => (hr >= 50 && hr < 74 ? 65 : NaN))) },
   };
 }
 const ctx = (w = world()) => ({ world: w, consts, identity: IDENTITY });
@@ -57,6 +59,20 @@ describe('explain_decision (feb2024)', () => {
     expect(r.reasons.join(' ')).toMatch(/shortfall of 3\.00 MMcf/);
     expect(r.reasons.join(' ')).toMatch(/4-hour morning setback would leave 2\.80 MMcf uncovered/);
     expect(r.reasons.join(' ')).toContain('never below 62°F');
+  });
+  it('compare_strategies includes the plan this home is on, named plainly and flagged', () => {
+    const r = runTool(ctx(), 'compare_strategies', {}) as { thisHomeIsOn: string; strategies: { strategy: string; thisHomeIsOn: boolean; uncoveredByDayMMcf: { uncovered: number }[] }[] };
+    expect(r.thisHomeIsOn).toMatch(/^optimized plan/);
+    expect(r.strategies.map(x => x.strategy.split(' (')[0])).toEqual(['no program', 'simple 4-hour morning setback', 'rule-based stagger', 'optimized plan']);
+    expect(r.strategies.filter(x => x.thisHomeIsOn)).toHaveLength(1);
+    expect(r.strategies[3].thisHomeIsOn).toBe(true);
+    expect(r.strategies[3].uncoveredByDayMMcf).toHaveLength(4);
+  });
+  it('explain_decision names the plan this home is on and its own uncovered value', () => {
+    const r = explainDecision(ctx(), { hour: 50 });
+    expect(r.thisHomeIsOn).toMatch(/^optimized plan/);
+    expect(r.gasDay?.uncoveredWithThisHomesPlan).not.toBeNull();
+    expect(r.reasons.join(' ')).toContain('The optimized plan this home is on leaves');
   });
   it('recovery on a day with spare capacity says so', () => {
     const r = explainDecision(ctx(world({ sim: feb(74), home: { targetF: 70, taF: 66 } })), { hour: 74 });
