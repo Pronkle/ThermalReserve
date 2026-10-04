@@ -4,7 +4,7 @@ Oct 3, 2026 · @h
 
 ## 1. Start here
 
-You are one of four coding agents building **Thermal Reserve** at MHacks 2026 in 24 hours, from Saturday Oct 3, 12:00 PM to Sunday Oct 4, 11:30 AM Eastern. Read this whole file once, then read your own brief (Sections 10–13) twice. This file is the single source of truth; if anything else disagrees, this file wins until a human changes it.
+You are one of five coding agents building **Thermal Reserve** at MHacks 2026 in 24 hours, from Saturday Oct 3, 12:00 PM to Sunday Oct 4, 11:30 AM Eastern. Read this whole file once, then read your own brief (Sections 10–13) twice. This file is the single source of truth; if anything else disagrees, this file wins until a human changes it.
 
 **The mission in eight lines.**
 
@@ -25,6 +25,9 @@ You are one of four coding agents building **Thermal Reserve** at MHacks 2026 in
 | WEB | OpenAI Codex, ChatGPT Pro account | H2 | `apps/web/**` |
 | STDB | Claude Code, Claude Pro account | H1 (integrator, merges `main`) | `stdb/**`, `packages/stdb-bindings/**`, root config files |
 | DATA | Claude Code, Claude Pro account | H3 | `data/**`, `docs/**` (except `docs/COORDINATION.md`, which everyone appends to) |
+| CHAT | Claude Code, H3's Claude Pro account (shared with DATA) | H3 | `apps/imessage/**` |
+
+CHAT joined late Saturday to build an iMessage companion; its brief is `docs/agents/CHAT_BRIEF.md`. The four web routes must never depend on it, it links phones without any Spacetime schema change, and the Sunday 10:00 code freeze applies to it.
 
 **Non-negotiable rules.**
 
@@ -221,6 +224,7 @@ thermal-reserve/
   apps/
     web/                    WEB (Vite + React + Tailwind)
       src/ routes/ components/ lib/ ...
+    imessage/               CHAT (Node + Photon Spectrum, long-lived process)
   data/                     DATA
     raw/ scenarios/ scripts/ constants.json calibration.json anchors.json cohorts.json
   docs/                     DATA (everyone appends to COORDINATION.md and AI_LOG.md)
@@ -262,6 +266,9 @@ thermal-reserve/
 | `recharts` | `apps/web` | Charts |
 | `leaflet`, `react-leaflet` | `apps/web` | Map |
 | `qrcode.react` | `apps/web` | QR code |
+| `spectrum-ts` | `apps/imessage` | Photon Spectrum, the iMessage transport |
+| `@anthropic-ai/sdk` | `apps/imessage` | Claude API for the Concierge and Insights agents |
+| `better-sqlite3` (only if Node's built-in `node:sqlite` doesn't work) | `apps/imessage` | Conversation memory |
 
 **Definition of a good commit.** Builds, tests pass, touches only owned folders, has a clear `area: change` message, and contains no secrets or generated junk other than `packages/stdb-bindings`.
 
@@ -765,6 +772,7 @@ Every Claude agent runs **Opus 5.5** and the Codex agent runs **GPT-6.1 Sol**, w
 | WEB | ChatGPT Pro | GPT-6.1 Sol | `codex -m gpt-6.1-sol` (or `model = "gpt-6.1-sol"` in Codex's `config.toml`) |
 | STDB | Claude Pro | Opus 5.5 | `claude --model claude-opus-5-5` |
 | DATA | Claude Pro | Opus 5.5 | `claude --model claude-opus-5-5` |
+| CHAT | Claude Pro (H3's, shared with DATA) | Opus 5.5 | `claude --model claude-opus-5-5` |
 
 **Rules.**
 
