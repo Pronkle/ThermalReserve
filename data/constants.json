@@ -43,7 +43,7 @@
   "linepack_usable_mmcf": {"value": 9.54, "unit": "MMcf", "label": "derived", "source": "usableLinepackMMcf(deliverability_2024_mmcfd, demand_shape.json) in packages/model/src/pressure.ts: the smallest linepack that absorbs a normal day's hourly shape at 278 MMcf/day. Fixed; never recomputed from the deliverability slider"},
   "reserve_default_idx": {"value": 10, "unit": "index points", "label": "assumed", "source": "Team decision (AGENTS.md Section 6)"},
   "reserve_min_idx": {"value": 5, "unit": "index points", "label": "assumed", "source": "Covers differences between the hourly plan and the 5-minute simulation (AGENTS.md Section 6)"},
-  "forecast_buffer_sigma_default": {"value": 1, "unit": "σ", "label": "assumed", "source": "Team decision (AGENTS.md Section 6)"},
+  "forecast_buffer_sigma_default": {"value": 0.75, "unit": "σ", "label": "assumed", "source": "Team decision after ENGINE's cadence comparison on the feb2024 replay (AGENTS.md Section 6); chosen on that replay, not validated on another"},
   "forecast_lag_h": {"value": 1, "unit": "h", "label": "assumed", "source": "A forecast run is usable 1 h after its run time (AGENTS.md Section 6)"},
   "replan_interval_h": {"value": 6, "unit": "h", "label": "assumed", "source": "Matches the forecast issue cadence (AGENTS.md Section 6)"},
   "drift_temp_f": {"value": 1.5, "unit": "°F", "label": "assumed", "source": "Drift trigger: observed minus forecast in use, sustained for drift_hours (AGENTS.md Section 6)"},

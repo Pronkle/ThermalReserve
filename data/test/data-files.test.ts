@@ -258,7 +258,7 @@ describe('pressure constants, presets and ticks (D-A1)', () => {
     expect(v('headroom_2024_mmcfd')).toBe(10);
     expect(v('reserve_default_idx')).toBe(10);
     expect(v('reserve_min_idx')).toBe(5);
-    expect(v('forecast_buffer_sigma_default')).toBe(1);
+    expect(v('forecast_buffer_sigma_default')).toBe(0.75);
     expect(v('forecast_lag_h')).toBe(1);
     expect(v('replan_interval_h')).toBe(6);
     expect(v('drift_temp_f')).toBe(1.5);
