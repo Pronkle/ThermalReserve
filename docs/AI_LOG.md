@@ -81,3 +81,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 
 2026-10-04T06:02 | WEB (OpenAI Codex, GPT-6.1-Sol) | Fixed reload verdicts to require a full local re-plan schedule and enabled local solves at nonzero hours; 35 web tests, build, physics check, fresh/reloaded viewer and mid-run operator browser regression; 20b38d1 | human review pending H2
 2026-10-04T06:15 | DATA (Claude Code, Pro, Opus 5.5) | H1 msg 278 contact opt-in recorded: qa.md #18 and #24, architecture.md, test-plan C-10..C-13; pitch note that the verdict is blank until Solve or Reset demo | review pending H3
+2026-10-04T06:13 | DATA (Claude Code, Pro, Opus 5.5) | CHAT msg 280 recorded: Photon CLI via npx (no lockfile change), placeholder email, approved /home copy; Q18 and test plan C-14 | review pending H3
