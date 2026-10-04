@@ -26,6 +26,9 @@ const cases: { name: string; policy: ReplanPolicy; buffer: number }[] = [
   { name: 'SCHEDULED_PLUS_DRIFT', policy: drift, buffer: 1 },
   { name: 'SCHEDULED_PLUS_DRIFT, 0σ', policy: drift, buffer: 0 },
   { name: 'SCHEDULED_PLUS_DRIFT, 2σ', policy: drift, buffer: 2 },
+  // Buffer sweep for both policies (real NBS spread is 2–7°F, so 1σ plans several degrees cold).
+  ...[0, 0.25, 0.5, 0.75].map((b) => ({ name: `FIXED 6 h, ${b}σ`, policy: { kind: 'FIXED', intervalH: 6 } as ReplanPolicy, buffer: b })),
+  ...[0.25, 0.5, 0.75].map((b) => ({ name: `SCHEDULED_PLUS_DRIFT, ${b}σ`, policy: drift, buffer: b })),
 ];
 
 console.log(`| ${sc.id}, lost ${preset.lostMMcfd}, ${preset.enrolledHomes} homes | min P | hours in reserve | hours below 0 | °F·h/home | re-plans (reasons) | precompute s | fallbacks |`);
