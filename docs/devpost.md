@@ -1,4 +1,4 @@
-# Thermal Reserve: Devpost draft
+# BoreaFlux: Devpost draft
 
 > Draft v1 by DATA (Oct 4, rewritten for the pressure console; claims follow AGENTS.md Section 5). H3 owns the final text. Placeholders are in [BRACKETS]; ⏳ marks numbers that must come from final test output before submission. Every number here is in `data/constants.json` or computed by `packages/model`; links are in `docs/sources.md`.
 
@@ -22,7 +22,7 @@ Smart-thermostat demand response already exists elsewhere, but short events most
 
 ⏳ Sections 2 and 3 describe the product as specified; before submitting, confirm each feature against the deployed app and cut anything that isn't live.
 
-Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat setbacks to keep a **modeled pipeline pressure index** (100 = pipes full, 0 = curtailment begins; not psi, not Enstar telemetry) above a reserve, with the least discomfort. It's a simulation: it does not control real thermostats.
+BoreaFlux simulates a fleet of Anchorage homes and dispatches thermostat setbacks to keep a **modeled pipeline pressure index** (100 = pipes full, 0 = curtailment begins; not psi, not Enstar telemetry) above a reserve, with the least discomfort. It's a simulation: it does not control real thermostats.
 
 - **Operator console (`/ops`).** Three charts on one clock: modeled system pressure, outdoor temperature (forecast vs actual), and home discomfort, with a verdict strip and a one-line status. Two presets replay Feb 2024 with less supply than it had: **Near-miss** (11.5 MMcf/day less) and **Stress** (28.5 MMcf/day less, the size of the 2024 storage-well failure). Solve, dispatch, and watch the live run re-plan as each new forecast arrives, on a map of 1,000 sample homes. The previous gas-volume console is kept at `/ops?ui=gas`. [SCREENSHOT: ops console, Near-miss mid-event]
 - **Household app (`/home`).** Scan a QR code, join in three taps, and see your indoor temperature, setpoint, status, gas saved and the live system pressure. Override any time; your share moves to other homes, never below the 62°F comfort floor. [SCREENSHOT: phone app]
@@ -69,7 +69,7 @@ Steady-state savings from a sustained setback at −20°F, automated homes only 
 | 25,000 | 1.42 MMcf/day | 2.28 MMcf/day | 7.1% | ~$24,900/day |
 | 50,000 | 2.85 MMcf/day | 4.55 MMcf/day | 14.2% | ~$49,800/day |
 
-What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,000 homes at 5°F save about 28 MMcf, under 1% of a 3 Bcf gap. Thermal Reserve is a deliverability tool for the coldest days, not a supply fix. We found no data on how many Anchorage homes have smart thermostats, so we report results per enrolled home instead of guessing.
+What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,000 homes at 5°F save about 28 MMcf, under 1% of a 3 Bcf gap. BoreaFlux is a deliverability tool for the coldest days, not a supply fix. We found no data on how many Anchorage homes have smart thermostats, so we report results per enrolled home instead of guessing.
 
 ## 6. Challenges we ran into
 

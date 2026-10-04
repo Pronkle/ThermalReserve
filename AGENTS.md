@@ -1,10 +1,13 @@
-# Thermal Reserve — Agent Handoff: Pressure Overhaul (AGENTS.md)
+# BoreaFlux (formerly Thermal Reserve) — Agent Handoff: Pressure Overhaul (AGENTS.md)
 
-Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5 · updated 08:15: control groups, log overlay, no chart captions, `/home` map and link step
+Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5 · updated 08:15: control groups, log overlay, no chart captions, `/home` map and link step · updated 08:55: renamed BoreaFlux
 
 ## 1. Start here
 
-You are one of the coding agents finishing **Thermal Reserve** at MHacks 2026. Tonight's job is one overhaul: the product moves from gas volumes (MMcf) to **pipeline pressure**. Read this whole file once, then read your own brief (Sections 10–13) twice. This file is the single source of truth; if anything else disagrees, this file wins until H1 changes it.
+You are one of the coding agents finishing **BoreaFlux** at MHacks 2026.
+
+**Name (H1, Oct 4 08:55).** The product is called **BoreaFlux**. Every user-facing place says BoreaFlux: site titles and headings, `/home`, the iMessage companion's texts, the pitch, Q&A, one-pager and Devpost. Infrastructure keeps its old names and must not be renamed: the repository, the `thermal-reserve*` databases, the Vercel URL, the `@thermal-reserve/*` packages and branch names.
+ Tonight's job is one overhaul: the product moves from gas volumes (MMcf) to **pipeline pressure**. Read this whole file once, then read your own brief (Sections 10–13) twice. This file is the single source of truth; if anything else disagrees, this file wins until H1 changes it.
 
 **The overhaul in seven lines.**
 
@@ -110,7 +113,7 @@ At 25,000 homes the fleet cannot always reach a 10-point reserve. The UI shows t
 
 ```
 +--------------------------------------------------------------------------------+
-| Thermal Reserve · Feb 2024 weather · 11.5 MMcf/day less supply · Fri 21:00 [QR]|
+| BoreaFlux · Feb 2024 weather · 11.5 MMcf/day less supply · Fri 21:00       [QR]|
 | <status sentence>                                                              |
 +--------------------------------------------------------------------------------+
 | VERDICT: lowest pressure | hours below line | discomfort °F·h/home | plan chip |
