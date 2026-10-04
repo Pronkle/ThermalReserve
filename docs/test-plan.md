@@ -139,6 +139,7 @@ Acceptance comes from CHAT's brief (`docs/agents/CHAT_BRIEF.md` §8–9). Add ex
 
 | # | Step | Expected | Result |
 | --- | --- | --- | --- |
+| C-0 | Before the run: the test phone's number is added as a project user in the Photon dashboard (Photon refuses other numbers) | Number listed in the dashboard | |
 | C-1 | On `/home` after joining, tap **Get updates by iMessage** and send the prefilled text | Reply "Linked to <nickname>", plus a contact card | |
 | C-2 | Operator: Demo preset, Optimized, Dispatch, Start at **1 h/s** | 3–6 texts for the whole run, none within 20 s of another, °F matching `/home`, each marked simulated | |
 | C-3 | Reply "why?" to the setback text | Typing indicator, then a 1–3 bubble answer citing that day's shortfall vs capacity and where the reheat lands, with labels | |
