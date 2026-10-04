@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildCohorts, compareStrategies, discomfortSeries, loadConstants, planBaseline, pressureIndex, pressureParams,
+  buildCohorts, compareStrategies, curtailedSeriesMMcf, discomfortSeries, loadConstants, planBaseline, pressureIndex, pressureParams,
   pressureSummary, runPlan, solvePlan, usableLinepackMMcf,
 } from '../src/index';
 import type { CohortSpec, ConstantsJson, PressureParams, Scenario } from '../src/index';
@@ -46,13 +46,22 @@ describe('pressure index', () => {
     expect(pressureIndex([0, 0], p, 95)).toEqual([100, 100]);
   });
 
-  it('curtailed gas is the sum of each below-zero episode’s deepest deficit; reserve hours and held', () => {
+  it('curtailed gas: one episode = its deepest deficit; a re-dip after partial recovery is not double-counted', () => {
+    const one = pressureSummary([50, 5, -10, -20, -5, 30], P(24, 10, 10));
+    expect(one.curtailedMMcf).toBeCloseTo(2, 9);
+    // W 10: 5 → −5 curtails 0.5 and empties the pipes; → 3 refills to 0.8; → −4 drains 0.7, leaving 0.1: no more
+    // curtailment. The old per-episode sum would say 0.5 + 0.4 = 0.9.
+    const two = pressureSummary([5, -5, 3, -4, 20], P(24, 10, 10));
+    expect(two.curtailedMMcf).toBeCloseTo(0.5, 9);
+    expect(curtailedSeriesMMcf([5, -5, 3, -4, 20], P(24, 10, 10))).toEqual([0, 0.5, 0.5, 0.5, 0.5]);
+  });
+
+  it('summary: hours below, first below, reserve hours and held', () => {
     const s = pressureSummary([50, 5, -10, -20, -5, 3, -4, 20], P(24, 10, 10));
     expect(s.hoursBelowZero).toBe(4);
     expect(s.firstBelowHour).toBe(2);
     expect(s.minIndex).toBe(-20);
     expect(s.minHour).toBe(3);
-    expect(s.curtailedMMcf).toBeCloseTo(2 + 0.4, 9);
     expect(s.hoursInReserve).toBe(2);
     expect(s.reserveHeld).toBe(-20);
     expect(pressureSummary([80, 7, 30], P(24, 10, 10)).reserveHeld).toBe(7);
@@ -89,8 +98,9 @@ describe('pressure-mode LP', () => {
     return { plan, run, s: score(run.hours.map((h) => h.systemMMcfh), p ?? P(266.5)), dh: run.totals.degreeHoursBelowNormal };
   };
 
-  // Anchors (W 9.1, R 266.5): daily LP +1.5 / 69; reserve 0 → +0.2 / 37; reserve 10 → +6.7 / 77. This model:
-  // +1.00 / 69.3, +0.17 / 39.6 (7% over the anchor's discomfort, reported), +6.21 / 76.6.
+  // Anchors (W 9.1, R 266.5): daily LP +1.5 / 69; reserve 0 → +0.2 / 37; reserve 10 → +6.7 / 77. This model, with the
+  // 1e4 reserve weight (H1, 08:11Z) and the 0.3-point planning margin: +1.00 / 69.3, +0.46 / 41.1 (the anchor was run
+  // with 1e3 and no margin, which gave 39.6 here), +6.21 / 76.6.
   it('reproduces the Section 3 LP rows', async () => {
     const daily = await solve();
     expect(Math.abs(daily.s.minIndex - 1.5)).toBeLessThanOrEqual(0.51);
@@ -98,7 +108,7 @@ describe('pressure-mode LP', () => {
     const r0 = await solve(P(266.5, 9.1, 0));
     expect(Math.abs(r0.s.minIndex - 0.2)).toBeLessThan(0.5);
     expect(r0.s.hoursBelowZero).toBe(0);
-    expect(r0.dh).toBeCloseTo(39.6, 0);
+    expect(r0.dh).toBeCloseTo(41.1, 0);
     const r10 = await solve(P(266.5, 9.1, 10));
     expect(Math.abs(r10.s.minIndex - 6.7)).toBeLessThan(0.5);
     expect(Math.abs(r10.dh / 77 - 1)).toBeLessThan(0.05);

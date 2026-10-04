@@ -14,7 +14,7 @@ export interface PressureSummary {
   minIndex: number; minHour: number;
   hoursBelowZero: number; firstBelowHour: number | null;
   hoursInReserve: number;          // 0 <= P < reserveIdx
-  curtailedMMcf: number;           // sum over below-zero episodes of each episode's deepest deficit
+  curtailedMMcf: number;           // clamped-replay total (= deepest deficit for a single below-zero episode); see curtailedSeriesMMcf
   reserveHeld: number;             // min(minIndex, reserveIdx), for "7 of 10 held"
 }
 
@@ -70,24 +70,47 @@ export function pressureIndex(systemMMcfh: (number | undefined)[], p: PressurePa
   return out;
 }
 
-export function pressureSummary(index: number[], p: PressureParams): PressureSummary {
-  let minIndex = Infinity, minHour = -1, hoursBelowZero = 0, hoursInReserve = 0, curtailedMMcf = 0;
-  let firstBelowHour: number | null = null;
-  let episodeMin = 0; // most negative P in the current below-zero episode (0 when not in one)
+/**
+ * Cumulative gas curtailed by the end of each hour (MMcf), from a clamped replay of the same series: each hour,
+ * curtail just enough to keep linepack ≥ 0. Rebuilt from the unclamped index alone: away from full, an hour's index
+ * change is (R/24 − D) whichever way linepack is counted; at 100 the pipes are full either way. With one below-zero
+ * episode the total equals that episode's deepest deficit (Section 3); with several it does not double-count gas
+ * already curtailed (H1 [REQUEST] 2026-10-04 08:13Z).
+ */
+export function curtailedSeriesMMcf(index: (number | undefined)[], p: PressureParams): (number | undefined)[] {
+  const W = p.wMMcf;
+  const out: (number | undefined)[] = new Array(index.length).fill(undefined);
+  let prev: number | null = null; // unclamped linepack at the end of the previous hour
+  let lc = 0, total = 0;          // clamped linepack, cumulative curtailment
   for (let t = 0; t < index.length; t++) {
     const P = index[t];
     if (P === undefined || !Number.isFinite(P)) break;
+    const L = (P * W) / 100;
+    if (prev === null) lc = L;
+    else if (P >= 100 - 1e-9) lc = W;
+    else lc = Math.min(W, lc + (L - prev));
+    if (lc < 0) { total -= lc; lc = 0; }
+    prev = L;
+    out[t] = total;
+  }
+  return out;
+}
+
+export function pressureSummary(index: number[], p: PressureParams): PressureSummary {
+  let minIndex = Infinity, minHour = -1, hoursBelowZero = 0, hoursInReserve = 0;
+  let firstBelowHour: number | null = null;
+  let n = 0;
+  for (let t = 0; t < index.length; t++) {
+    const P = index[t];
+    if (P === undefined || !Number.isFinite(P)) break;
+    n = t + 1;
     if (P < minIndex) { minIndex = P; minHour = t; }
     if (P < 0) {
       hoursBelowZero++;
       if (firstBelowHour === null) firstBelowHour = t;
-      episodeMin = Math.min(episodeMin, P);
-    } else {
-      if (P < p.reserveIdx) hoursInReserve++;
-      if (episodeMin < 0) { curtailedMMcf += (-episodeMin * p.wMMcf) / 100; episodeMin = 0; }
-    }
+    } else if (P < p.reserveIdx) hoursInReserve++;
   }
-  if (episodeMin < 0) curtailedMMcf += (-episodeMin * p.wMMcf) / 100;
+  const curtailedMMcf = n > 0 ? curtailedSeriesMMcf(index, p)[n - 1] ?? 0 : 0;
   if (minHour < 0) minIndex = 100;
   return { minIndex, minHour: Math.max(0, minHour), hoursBelowZero, firstBelowHour, hoursInReserve, curtailedMMcf, reserveHeld: Math.min(minIndex, p.reserveIdx) };
 }

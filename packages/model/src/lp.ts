@@ -16,7 +16,7 @@ import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, Thermal
 // Terminal: ta_c_H ≥ normal − 0.5.
 // Pressure mode (opts.pressure): the cap_d rows are replaced, for each hour t ≥ from, by a linepack balance in Mcf
 //   lp_{t+1} = lp_t + u_t − (fleet + override terms of cap_d) − non-enrolled_t + c_t,  0 ≤ lp ≤ W,  0 ≤ u_t ≤ R/24,
-//   lp_{t+1} + r_t ≥ reserve × W / 100,  lp_from = W × initialIdx / 100;  objective + 1e5 Σ c + 1e3 Σ r.
+//   lp_{t+1} + r_t ≥ (reserve + 0.3) × W / 100,  lp_from = W × initialIdx / 100;  objective + 1e5 Σ c + 1e4 Σ r.
 // Objective (OPTIMIZED): Σ homes (normal − ta) + 1e6 Σ s + 1e-6 Σ gas;  MAX_RELIEF swaps the first and last weights.
 // Exempt homes are outside the LP and inside non-enrolled demand. Targets = planned Ta at the end of each hour.
 
@@ -26,7 +26,7 @@ const SLACK_WEIGHT = 1e5;
 const SMALL_WEIGHT = 1e-6;
 // Pressure mode (Section 7): per Mcf of curtailment and per Mcf-hour below the reserve.
 const CURTAIL_WEIGHT = 1e5;
-const RESERVE_WEIGHT = 1e3;
+const RESERVE_WEIGHT = 1e4; // H1 [CONTRACT] 2026-10-04 08:11Z (was 1e3)
 // Same reason as CAPACITY_MARGIN: the hourly plan sees slightly less fleet gas than the 5-minute run, which left the run
 // up to 0.12 index points under a reserve the plan held exactly. Plan 0.3 points above it.
 const RESERVE_MARGIN_IDX = 0.3;
