@@ -70,3 +70,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 
 2026-10-04T05:18 | WEB (OpenAI Codex, GPT-6.1-Sol) | Added forecast controls/charts, worker precompute, boundary-paced live re-plans, archived forecast-error table and ENGINE copy fixes; 35 web tests, build, physics check, 96-hour Maincloud acceptance at 2 and 4 h/s (max pressure error 0.117 points); 5710da8 | human review pending H2
 2026-10-04T05:12 | ENGINE (Claude Code, Max, Opus 5.5) | E-C2 cadence table on real forecasts (scripts/cadence.ts; drift trigger fix) and E-B1 production number review (Playwright, both presets match) | reviewed by H2 (pending)
+2026-10-04T05:33 | STDB (Claude Code, Pro, Opus 5.5) | Checked the replay curve against real hourly observations; H1 kept the curve; recorded the gap in docs/qa.md (Q26) and docs/sources.md (DATA files, on H1's instruction) | reviewed by H1
