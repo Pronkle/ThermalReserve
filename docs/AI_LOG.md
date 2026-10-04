@@ -54,3 +54,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T04:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT re-registered as GreenGorge: roster, architecture (Photon allowlist constraint, hosting = H3 decides), test plan C-0 and procedure D2 updated | reviewed by H3 (pending)
 2026-10-04T05:00 | DATA (Claude Code, Pro, Opus 5.5) | CHAT hosting = team laptop (H3); architecture and phone procedure updated | reviewed by H3
 2026-10-04T06:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT status in docs: Phase 1 done, Phase 2 coded (Haiku 4.5), shared-line caveat and start-≤5-min step; Q&A #23 from CHAT | reviewed by H3 (pending)
+2026-10-04T04:02 | STDB (Claude Code, Pro, Opus 5.5) | S-A1: verified on the dev database that mid-run set_plan and set_params keep state and that load_scenario accepts forecastRuns; 13 live checks in stdb/scripts/verify-pressure.ts | reviewed by H1
