@@ -174,6 +174,16 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     }
   };
 
+  // Photon applies a person's opt-in a moment after their first text, so a reply sent right
+  // away can be refused ("Target not allowed"). Retry that case briefly instead of dropping it.
+  const sendReply = async (send: (t: string) => Promise<void>, text: string) => {
+    for (const waitMs of [0, 3_000, 10_000]) {
+      if (waitMs) await new Promise(r => setTimeout(r, waitMs));
+      try { await send(text); return; }
+      catch (e) { if (!/Target not allowed/i.test(String(e)) || waitMs === 10_000) throw e; log('[in] reply refused (opt-in not applied yet); retrying'); }
+    }
+  };
+
   for await (const msg of transport.inbound()) {
     try {
       // A text that arrives during startup waits for the live data (link codes, current state).
@@ -190,7 +200,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
         const reply = await handleInbound(deps, msg.address, msg.text);
         log(`[in] ${maskAddress(msg.address)}: ${reply.react ? `tapback ${reply.react}` : `${reply.texts.length} bubble(s)`}`);
         if (reply.react) await msg.react(reply.react);
-        if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await msg.send(t); });
+        if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await sendReply(t2 => msg.send(t2), t); });
         // After the first exchange, share our contact card once (Photon's deliverability advice).
         const linkedNow = store.contact(msg.address);
         if (linkedNow && !linkedNow.cardSent && transport.shareContactCard) {
@@ -208,7 +218,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
           const slow = setTimeout(() => { void msg.send('Checking the numbers…'); }, 8_000);
           const reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
           log(`[in] ${maskAddress(msg.address)}: ${reply.texts.length} bubble(s)`);
-          for (const t of reply.texts) await msg.send(t);
+          for (const t of reply.texts) await sendReply(t2 => msg.send(t2), t);
         });
       } finally {
         replyingUntil.set(msg.address, Date.now() + REPLY_GAP_MS);

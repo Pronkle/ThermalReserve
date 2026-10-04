@@ -123,6 +123,18 @@ describe('auto-onboarding', () => {
     expect(await onboard({ ...dead, sendText: async () => undefined }, req)).toBe('onboarded'); // a later retry works
   });
 
+  it('a START that arrives while the opener is being retried keeps the link (no deletion)', async () => {
+    const store = new Store(':memory:');
+    let tries = 0;
+    const d = { ...deps(store), retryDelaysMs: [0, 1, 1], sendText: async () => {
+      if (++tries === 1) store.setConsented(PHONE);        // they text START after the first refusal
+      throw new Error('Target not allowed');
+    } };
+    expect(await onboard(d, req)).toBe('onboarded');
+    expect(store.contact(PHONE)?.consented).toBe(true);
+    expect(tries).toBe(1);
+  });
+
   it('a Photon failure is reported and nothing is stored', async () => {
     const store = new Store(':memory:');
     const failing = { phones: async () => new Set<string>(), add: async () => { throw new Error('401'); }, assignedLine: async () => undefined };

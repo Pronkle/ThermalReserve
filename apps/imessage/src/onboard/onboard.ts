@@ -43,7 +43,12 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
   const user = toPhotonUser(req);
   const problem = validateUser(user);
   if (problem) { log(`[onboard] skipped: ${problem}`); return 'invalid'; }
-  if (deps.store.contact(req.phone)) return 'already linked';
+  if (deps.store.contact(req.phone)) {
+    // Already linked: just make sure /home still has their line to show (idempotent).
+    const line = await deps.photon.assignedLine(req.phone).catch(() => undefined);
+    if (line && deps.publishLine) await deps.publishLine(req.identity, line).catch(() => undefined);
+    return 'already linked';
+  }
   const home = deps.household(req.identity);
   if (!home) return 'no household';
   try {
@@ -70,10 +75,17 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
     let sent = false;
     for (const waitMs of deps.retryDelaysMs ?? [0, 20_000, 60_000]) {
       if (waitMs) await new Promise(r => setTimeout(r, waitMs));
+      if (deps.store.contact(req.phone)?.consented) break; // they texted START: no opener needed
       try { await deps.sendText(req.phone, body); sent = true; break; }
       catch (e) { log(`[onboard] opener to ${maskAddress(req.phone)} not delivered yet: ${String(e).slice(0, 120)}`); }
     }
-    if (!sent) { deps.store.forget(req.phone); log(`[onboard] ${maskAddress(req.phone)}: opener failed after retries; nothing stored`); return 'failed'; }
+    if (!sent) {
+      // They may have texted START meanwhile (that links them with consent): keep that link.
+      if (deps.store.contact(req.phone)?.consented) { log(`[onboard] ${maskAddress(req.phone)}: opener not needed, they already texted START`); return 'onboarded'; }
+      deps.store.forget(req.phone);
+      log(`[onboard] ${maskAddress(req.phone)}: opener failed after retries; nothing stored`);
+      return 'failed';
+    }
     deps.store.addHistory(req.phone, 'out', body, now);
     log(`[onboard] opener sent to ${maskAddress(req.phone)} for ${home.nickname}; waiting for START`);
     return 'onboarded';
