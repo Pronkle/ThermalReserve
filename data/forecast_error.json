@@ -1,0 +1,115 @@
+{
+  "label": "derived",
+  "unit": "°F, forecast minus observed",
+  "method": "Each archived run's daily max and min forecasts (NBS TXN, NBE beyond its range) minus the ACIS daily max and min for the same local date at PANC. Lead = hours from run time to the max (15:00) or min (07:00); binned to 6, 12, 24, 48, 72 h with upper edges 9, 18, 36, 60, 84 h.",
+  "scope": "Only the runs saved for each replay scenario (the days of the scenario, not the whole winter). Small samples.",
+  "source": "IEM MOS archive (data/raw/iem_mos_*.json) and ACIS StnData (data/raw/acis_panc_*.json)",
+  "scenarios": {
+    "feb2024": {
+      "runs": 21,
+      "firstRunIso": "2024-01-30T07:00:00Z",
+      "lastRunIso": "2024-02-04T07:00:00Z",
+      "byLead": [
+        {
+          "leadH": 6,
+          "n": 0,
+          "meanErrorF": null,
+          "rmseF": null
+        },
+        {
+          "leadH": 12,
+          "n": 6,
+          "meanErrorF": 0.33,
+          "rmseF": 2
+        },
+        {
+          "leadH": 24,
+          "n": 31,
+          "meanErrorF": 1.61,
+          "rmseF": 3.32
+        },
+        {
+          "leadH": 48,
+          "n": 42,
+          "meanErrorF": 2.1,
+          "rmseF": 2.93
+        },
+        {
+          "leadH": 72,
+          "n": 42,
+          "meanErrorF": 1.98,
+          "rmseF": 3.67
+        }
+      ]
+    },
+    "lastwinter": {
+      "runs": 21,
+      "firstRunIso": "2026-01-01T07:00:00Z",
+      "lastRunIso": "2026-01-06T07:00:00Z",
+      "byLead": [
+        {
+          "leadH": 6,
+          "n": 0,
+          "meanErrorF": null,
+          "rmseF": null
+        },
+        {
+          "leadH": 12,
+          "n": 6,
+          "meanErrorF": -2.17,
+          "rmseF": 3.29
+        },
+        {
+          "leadH": 24,
+          "n": 31,
+          "meanErrorF": 0.58,
+          "rmseF": 4.55
+        },
+        {
+          "leadH": 48,
+          "n": 42,
+          "meanErrorF": 1.67,
+          "rmseF": 4.39
+        },
+        {
+          "leadH": 72,
+          "n": 42,
+          "meanErrorF": 2.36,
+          "rmseF": 5.48
+        }
+      ]
+    }
+  },
+  "pooled": [
+    {
+      "leadH": 6,
+      "n": 0,
+      "meanErrorF": null,
+      "rmseF": null
+    },
+    {
+      "leadH": 12,
+      "n": 12,
+      "meanErrorF": -0.92,
+      "rmseF": 2.72
+    },
+    {
+      "leadH": 24,
+      "n": 62,
+      "meanErrorF": 1.1,
+      "rmseF": 3.98
+    },
+    {
+      "leadH": 48,
+      "n": 84,
+      "meanErrorF": 1.88,
+      "rmseF": 3.73
+    },
+    {
+      "leadH": 72,
+      "n": 84,
+      "meanErrorF": 2.17,
+      "rmseF": 4.67
+    }
+  ]
+}

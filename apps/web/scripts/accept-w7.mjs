@@ -18,7 +18,7 @@ try {
   await page.route('https://tile.openstreetmap.org/**', route => route.abort());
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
     await page.setViewportSize({ width, height });
-    await page.goto(`${url}/ops?db=thermal-reserve-dev`);
+    await page.goto(`${url}/ops?ui=gas&db=thermal-reserve-dev`);
     await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
     await page.locator('.map-fallback').waitFor();
     assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight));
@@ -40,7 +40,7 @@ try {
   await context.setOffline(true);
   // Chromium's offline emulation keeps established WebSockets open. Close the
   // transport too, then ensure retries fail offline and recover when restored.
-  await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
+  await page.evaluate(() => window.testSockets.filter(socket => new URL(socket.url).host !== location.host).forEach(socket => socket.close(1000, 'Offline acceptance check')));
   await page.getByText('Disconnected — retrying', { exact: false }).first().waitFor({ timeout: 15000 });
   await context.setOffline(false);
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 45000 });

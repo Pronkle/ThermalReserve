@@ -14,7 +14,8 @@ import waterMaskJson from '../water_mask.json';
 import calibrationJson from '../calibration.json';
 import presetsJson from '../presets.json';
 import ticksJson from '../deliverability_ticks.json';
-import { usableLinepackMMcf } from '@thermal-reserve/model';
+import forecastErrorJson from '../forecast_error.json';
+import { usableLinepackMMcf, type ForecastRun } from '@thermal-reserve/model';
 
 import {
   REQUIRED_CONSTANT_KEYS,
@@ -302,5 +303,82 @@ describe('pressure constants, presets and ticks (D-A1)', () => {
       expect(t.label.length).toBeGreaterThan(0);
       expect(t.source.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('forecast runs and forecast error (D-A3, D-B1)', () => {
+  const lagH = constants.forecast_lag_h.value as number;
+  const withRuns: { id: string; kind: string; startIso: string; hours: number; forecastRuns: Widen<ForecastRun>[] }[] =
+    [designJson, feb2024Json, lastwinterJson];
+
+  for (const sc of withRuns) {
+    it(`${sc.id}: every run has one entry per scenario hour and the Section 6 fields`, () => {
+      expect(sc.forecastRuns.length).toBeGreaterThan(0);
+      for (const r of sc.forecastRuns) {
+        expect(r.outdoorF, r.runIso).toHaveLength(sc.hours);
+        expect(r.sigmaF, r.runIso).toHaveLength(sc.hours);
+        for (const v of [...r.outdoorF, ...r.sigmaF]) expect(v === null || Number.isFinite(v), r.runIso).toBe(true);
+        expect(r.availableHour, r.runIso).toBe((Date.parse(r.runIso) - Date.parse(sc.startIso)) / 3_600_000 + lagH);
+        expect(r.label, r.runIso).toBe(sc.kind === 'replay' ? 'sourced' : 'assumed');
+        expect(r.source.length, r.runIso).toBeGreaterThan(0);
+        if (sc.kind === 'replay') {
+          expect(r.station).toBe('PANC');
+          expect(r.source).toMatch(/IEM MOS archive.*data\/raw\/iem_mos_nbs_panc_/);
+        } else {
+          expect(r.source).toMatch(/not a real forecast/);
+        }
+      }
+    });
+
+    it(`${sc.id}: includes a run usable at hour 0 and one issued in each 6 hours of the scenario`, () => {
+      const available = sc.forecastRuns.map((r) => r.availableHour).sort((a, b) => a - b);
+      expect(available.some((a) => a <= 0)).toBe(true);
+      const during = available.filter((a) => a > 0);
+      for (let i = 1; i < during.length; i++) expect(during[i] - during[i - 1]).toBe(6);
+      expect(during[during.length - 1]).toBeGreaterThanOrEqual(sc.hours - 7);
+    });
+
+    it(`${sc.id}: at hour 0 every scenario hour has a forecast from a run already issued`, () => {
+      const usable = sc.forecastRuns.filter((r) => r.availableHour <= 0);
+      for (let h = 0; h < sc.hours; h++) expect(usable.some((r) => r.outdoorF[h] !== null), `hour ${h}`).toBe(true);
+    });
+  }
+
+  it('design: constructed runs are 3°F too warm at 72 h of lead and exact at 0 h', () => {
+    const r = designJson.forecastRuns[0];
+    const runHour = r.availableHour - lagH;
+    expect(r.outdoorF[0]).toBeCloseTo(designJson.outdoorF[0] + 3 / 72, 1);
+    expect(r.outdoorF[runHour + 72]).toBeCloseTo(designJson.outdoorF[runHour + 72] + 3, 1);
+  });
+
+  it('raw forecast files record station, model and run times', async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const id of ['feb2024', 'lastwinter']) {
+      for (const model of ['NBS', 'NBE']) {
+        const raw = JSON.parse(readFileSync(new URL(`../raw/iem_mos_${model.toLowerCase()}_panc_${id}.json`, import.meta.url), 'utf8')) as {
+          request: { station: string; model: string; runtimes: string[] }; runs: { runIso: string; rows: { station: string; model: string }[] }[];
+        };
+        expect(raw.request.station).toBe('PANC');
+        expect(raw.request.model).toBe(model);
+        expect(raw.runs.map((r) => r.runIso)).toEqual(raw.request.runtimes);
+        for (const run of raw.runs) for (const row of run.rows) expect(row.station === 'PANC' && row.model === model).toBe(true);
+      }
+    }
+  });
+
+  it('forecast_error.json: leads 6, 12, 24, 48, 72 h with counts, and forecast_rmse_f follows the pooled RMSE', () => {
+    expect(forecastErrorJson.label).toBe('derived');
+    expect(forecastErrorJson.pooled.map((p) => p.leadH)).toEqual([6, 12, 24, 48, 72]);
+    for (const id of ['feb2024', 'lastwinter'] as const) {
+      const s = forecastErrorJson.scenarios[id];
+      expect(s.byLead.map((p) => p.leadH)).toEqual([6, 12, 24, 48, 72]);
+      expect(s.runs).toBeGreaterThan(0);
+    }
+    const rmse = constants.forecast_rmse_f.value as number[];
+    expect(rmse).toHaveLength(5);
+    forecastErrorJson.pooled.forEach((p, i) => {
+      const expected = p.rmseF ?? forecastErrorJson.pooled.slice(i).find((q) => q.rmseF !== null)?.rmseF;
+      expect(rmse[i]).toBe(expected);
+    });
   });
 });

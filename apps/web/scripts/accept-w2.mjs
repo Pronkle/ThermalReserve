@@ -13,7 +13,7 @@ try {
   for (const tab of [page, other]) {
     tab.on('pageerror', error => errors.push(error.message));
     await tab.route('https://tile.openstreetmap.org/**', route => route.abort());
-    await tab.goto('http://127.0.0.1:5173/ops?db=thermal-reserve-dev');
+    await tab.goto('http://127.0.0.1:5173/ops?ui=gas&db=thermal-reserve-dev');
     await tab.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   }
   page.on('dialog', dialog => dialog.accept(passcode));
@@ -41,8 +41,10 @@ try {
   await page.reload();
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   assert(await page.evaluate(() => sessionStorage.getItem('thermal-reserve.database') === 'thermal-reserve-dev'), 'Database override retained');
-  await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
+  await operator.setOffline(true);
+  await page.evaluate(() => window.testSockets.filter(socket => new URL(socket.url).host !== location.host).forEach(socket => socket.close()));
   await page.getByText(/Disconnected — retrying/).waitFor();
+  await operator.setOffline(false);
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('idle'));
