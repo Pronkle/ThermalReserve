@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { handleInbound } from '../src/concierge/inbound';
 import { Store } from '../src/memory/store';
 import { onboard, opener, placeholderEmail, type ContactRequest } from '../src/onboard/onboard';
-import { photonUsers, validateUser, type PhotonUser } from '../src/onboard/photon';
+import { photonUsers, validateUser, type PhotonUser, type PhotonUsers } from '../src/onboard/photon';
 import { Notifier } from '../src/watcher/notifier';
 import { config, consts, home, IDENTITY, NOON_ET, PHONE, sim } from './fixtures';
 
@@ -11,7 +11,7 @@ const user: PhotonUser = { firstName: 'Sam', lastName: 'Lee', phone: PHONE, emai
 
 function fakePhoton(existing: string[] = []) {
   const added: PhotonUser[] = [];
-  return { added, photon: { phones: async () => new Set([...existing, ...added.map(a => a.phone)]), add: async (u: PhotonUser) => { added.push(u); } } };
+  return { added, photon: { phones: async () => new Set([...existing, ...added.map(a => a.phone)]), add: async (u: PhotonUser) => { added.push(u); }, assignedLine: async () => '+16285550100' } as PhotonUsers };
 }
 
 describe('photon CLI wrapper', () => {
@@ -32,7 +32,7 @@ describe('photon CLI wrapper', () => {
 });
 
 describe('auto-onboarding', () => {
-  const deps = (store: Store, photon = fakePhoton().photon, sent: string[] = []) => ({
+  const deps = (store: Store, photon: PhotonUsers = fakePhoton().photon, sent: string[] = []) => ({
     store, consts, photon, household: (id: string) => (id === IDENTITY ? home() : undefined), sim: () => sim(0, { status: 'idle' }),
     sendText: async (_a: string, b: string) => { sent.push(b); }, now: () => NOON_ET, log: () => undefined,
   });
@@ -46,6 +46,18 @@ describe('auto-onboarding', () => {
     expect(sent).toEqual([opener('Test iPhone')]);
     expect(sent[0]).not.toMatch(/https?:|!/);
     expect(store.contact(PHONE)?.consented).toBe(false);
+  });
+
+  it('hands the assigned Photon line to /home after adding the person', async () => {
+    const published: [string, string][] = [];
+    await onboard({ ...deps(new Store(':memory:')), publishLine: async (id, line) => { published.push([id, line]); } }, req);
+    expect(published).toEqual([[IDENTITY, '+16285550100']]);
+  });
+
+  it('reads the assigned line from users ls', async () => {
+    const users = photonUsers(async () => JSON.stringify([{ phoneNumber: PHONE, assignedPhoneNumber: '+16285550100' }]));
+    expect(await users.assignedLine(PHONE)).toBe('+16285550100');
+    expect(await users.assignedLine('+15555550999')).toBeUndefined();
   });
 
   it('skips Photon when the number is already a project user, and never onboards twice', async () => {
@@ -113,7 +125,7 @@ describe('auto-onboarding', () => {
 
   it('a Photon failure is reported and nothing is stored', async () => {
     const store = new Store(':memory:');
-    const failing = { phones: async () => new Set<string>(), add: async () => { throw new Error('401'); } };
+    const failing = { phones: async () => new Set<string>(), add: async () => { throw new Error('401'); }, assignedLine: async () => undefined };
     expect(await onboard(deps(store, failing), req)).toBe('failed');
     expect(store.contact(PHONE)).toBeUndefined();
   });

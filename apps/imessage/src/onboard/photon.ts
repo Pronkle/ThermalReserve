@@ -9,6 +9,8 @@ export interface PhotonUser { firstName: string; lastName: string; email: string
 export interface PhotonUsers {
   phones(): Promise<Set<string>>;
   add(user: PhotonUser): Promise<void>;
+  // The shared-pool line Photon assigned to this person (they text it once to opt in).
+  assignedLine(phone: string): Promise<string | undefined>;
 }
 
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -38,12 +40,20 @@ export function cliRunner(env: NodeJS.ProcessEnv = process.env): Run {
   });
 }
 
+type UserRow = { phoneNumber?: string; assignedPhoneNumber?: string };
+
 export function photonUsers(run: Run = cliRunner()): PhotonUsers {
+  const list = async (): Promise<UserRow[]> => {
+    const out = JSON.parse(await run(['spectrum', 'users', 'ls'])) as unknown;
+    return (Array.isArray(out) ? out : (out as { users?: unknown[] }).users ?? (out as { data?: unknown[] }).data ?? []) as UserRow[];
+  };
   return {
     async phones() {
-      const out = JSON.parse(await run(['spectrum', 'users', 'ls'])) as unknown;
-      const rows = Array.isArray(out) ? out : (out as { users?: unknown[]; data?: unknown[] }).users ?? (out as { data?: unknown[] }).data ?? [];
-      return new Set(rows.map(r => (r as { phoneNumber?: string }).phoneNumber).filter((p): p is string => typeof p === 'string'));
+      return new Set((await list()).map(r => r.phoneNumber).filter((p): p is string => typeof p === 'string'));
+    },
+    async assignedLine(phone) {
+      const line = (await list()).find(r => r.phoneNumber === phone)?.assignedPhoneNumber;
+      return typeof line === 'string' && line ? line : undefined;
     },
     async add(u) {
       const problem = validateUser(u);
