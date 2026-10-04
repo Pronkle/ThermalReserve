@@ -21,7 +21,7 @@ export function pressurePlanId(scenarioId: string, strategy: Strategy, hour: num
 export function pressureView(run: RunResult, baseline: RunResult, config: FleetConfig, p: PressureParams) {
   const index = pressureIndex(run.hours.map(row => row.systemMMcfh), p) as number[];
   const discomfort = discomfortSeries(run, baseline, cohorts, config);
-  return { index, summary: pressureSummary(index, p), discomfort, curtailed: curtailedSeriesMMcf(index, p), degreeHours: discomfort.meanF.reduce((sum, x) => sum + x, 0), minIndoorF: Math.min(...run.hours.map(row => row.minTaF)) };
+  return { index, summary: pressureSummary(index, p), discomfort, curtailed: curtailedSeriesMMcf(index, p), holdingHours: run.hours.filter(hour => hour.cohorts.some(cohort => cohort.mode === 'holding')).length, degreeHours: discomfort.meanF.reduce((sum, x) => sum + x, 0), minIndoorF: Math.min(...run.hours.map(row => row.minTaF)) };
 }
 export function livePressure(demandByHour: Map<number, number>, hours: number, p: PressureParams) {
   return pressureIndex(Array.from({ length: hours }, (_, hour) => demandByHour.get(hour)), p);
