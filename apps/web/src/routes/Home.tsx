@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
 import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
-import { eventCountdown, heatStatus } from '../lib/household';
+import { eventCountdown, heatStatus, householdDayStart } from '../lib/household';
 import './home.css';
 
 const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
@@ -34,7 +34,7 @@ export function Home() {
     catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
     finally { setBusy(false); }
   }
-  const dayStart = Math.floor((config?.simHour ?? 0) / 24) * 24;
+  const dayStart = householdDayStart(config?.simHour ?? 0, config?.hours ?? 0);
   const today = aggregates.filter(row => row.hour >= dayStart && row.hour < dayStart + 24);
   const communitySavedMMcf = today.reduce((sum, row) => sum + row.reliefMmcf, 0);
   const baselineTodayMMcf = scenario?.systemMMcfh.slice(dayStart, dayStart + 24).reduce((sum, demand) => sum + demand, 0) ?? 0;
@@ -62,7 +62,7 @@ export function Home() {
           <div title="Derived: cumulative baseline household gas minus actual household gas since joining or reset. Recovery can reduce this total."><strong>{decimal.format(home.savedCf)} <span>cf</span></strong><span>Net gas saved this event</span><span className="metric-label">derived · includes recovery</span></div>
           <div title={`Derived: saved cf ÷ 1,000 × $${constants.marginalPriceUsdPerMcf}/Mcf. ${constants.raw.marginal_price_usd_mcf.label}: ${constants.raw.marginal_price_usd_mcf.source}`}><strong>{dollars.format(home.savedCf / 1000 * constants.marginalPriceUsdPerMcf)}</strong><span>Gas value, not a bill credit</span><span className="metric-label">derived</span></div>
         </div>
-        <h3>Community today</h3>
+        <h3>{config?.status === 'finished' ? 'Community on the final day' : 'Community today'}</h3>
         <p title="Derived: sum of completed hourly baseline fleet gas minus actual fleet gas in this simulation day."><strong>{decimal.format(communitySavedMMcf)} MMcf</strong> net saved <span className="metric-label">derived</span></p>
         {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
         <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>

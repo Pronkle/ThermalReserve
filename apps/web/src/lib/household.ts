@@ -2,6 +2,10 @@ import type { DbConnection } from '@thermal-reserve/stdb-bindings';
 import { constants } from './ops';
 
 type Household = ReturnType<DbConnection['db']['household']['iter']> extends IterableIterator<infer Row> ? Row : never;
+export function householdDayStart(simHour: number, hours: number) {
+  const displayHour = hours > 0 ? Math.min(simHour, Math.max(0, hours - 1)) : simHour;
+  return Math.floor(Math.max(0, displayHour) / 24) * 24;
+}
 export function heatStatus(home: Pick<Household, 'exempt' | 'overridden' | 'targetF' | 'taF'>) {
   if (home.exempt) return { name: 'Exempt', mode: 'exempt', targetF: constants.setpointDayF };
   if (home.overridden) return { name: 'Overridden', mode: 'overridden', targetF: constants.setpointDayF };
