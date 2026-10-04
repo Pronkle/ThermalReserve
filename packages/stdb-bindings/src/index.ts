@@ -43,6 +43,7 @@ import LoadHomesReducer from "./load_homes_reducer";
 import LoadScenarioReducer from "./load_scenario_reducer";
 import OverrideReducer from "./override_reducer";
 import PauseReducer from "./pause_reducer";
+import RemoveContactReducer from "./remove_contact_reducer";
 import ResetReducer from "./reset_reducer";
 import ResetHouseholdsReducer from "./reset_households_reducer";
 import SetContactReducer from "./set_contact_reducer";
@@ -194,6 +195,7 @@ const reducersSchema = __reducers(
   __reducerSchema("load_scenario", LoadScenarioReducer),
   __reducerSchema("override", OverrideReducer),
   __reducerSchema("pause", PauseReducer),
+  __reducerSchema("remove_contact", RemoveContactReducer),
   __reducerSchema("reset", ResetReducer),
   __reducerSchema("reset_households", ResetHouseholdsReducer),
   __reducerSchema("set_contact", SetContactReducer),
