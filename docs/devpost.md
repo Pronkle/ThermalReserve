@@ -4,7 +4,7 @@
 
 **Tagline:** Thermostat setbacks planned against modeled pipeline pressure, so Southcentral Alaska's gas grid stays above the curtailment line on the coldest evenings.
 
-**Links:** live app <https://thermal-reserve.vercel.app> · repo [REPO URL] · backup video [VIDEO URL]
+**Links:** live app <https://boreaflux.vercel.app> · repo [REPO URL] · backup video [VIDEO URL]
 
 **Team:** [H1 NAME], [H2 NAME], [H3 NAME]
 

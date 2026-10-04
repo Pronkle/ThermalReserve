@@ -1,6 +1,6 @@
 # Test plan
 
-Run by DATA with H3 at Checkpoint 3 (Sun 02:00–03:00), then the end-to-end test every hour after 06:00 (AGENTS.md Section 14). Production URL: <https://thermal-reserve.vercel.app>.
+Run by DATA with H3 at Checkpoint 3 (Sun 02:00–03:00), then the end-to-end test every hour after 06:00 (AGENTS.md Section 14). Production URL: <https://boreaflux.vercel.app>.
 
 **How to record.** Fill the Result column with PASS, FAIL, or SKIP (with reason). File every FAIL as a `[REQUEST]` to the owner with steps to reproduce, device and browser, and a screenshot path. Copy this file's tables into a dated section at the bottom for each run.
 
@@ -109,7 +109,7 @@ Production bundle `index-CMwD9--i.js` = main a60e3e3.
 
 | Check | Result |
 | --- | --- |
-| Two real phones joined via https://thermal-reserve.vercel.app/home and ticked through a `feb2024` OPTIMIZED run to hour 96 | PASS (H1 reports it worked; server shows 2 households) |
+| Two real phones joined via https://boreaflux.vercel.app/home and ticked through a `feb2024` OPTIMIZED run to hour 96 | PASS (H1 reports it worked; server shows 2 households) |
 | Household floor 62°F on both (P12 server side) | PASS (`floor_f` = 62 each) |
 | Live household saving vs model | PASS: `saved_cf` ≈ 63 cf vs NUMBERS.md ~64 cf (steady-average-light template) |
 | Event log: dispatch, 2 joins, override and reassign entries (E5, E6) | PASS (server side); which override entries came from the phones is not distinguishable |
