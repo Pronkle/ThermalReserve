@@ -32,8 +32,8 @@ function EventDayChart({ hourly, title }: { hourly: { hour: number; baselineCf: 
         <LineChart data={hourly} margin={{ top: 8, right: 8, bottom: 16, left: 0 }}>
           <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
           <ReferenceArea x1={6} x2={10} fill="#5BC0EB" fillOpacity={0.12} />
-          <XAxis dataKey="hour" type="number" domain={[0, 23]} ticks={[0, 6, 10, 12, 18, 23]} tickFormatter={(h) => `${String(h).padStart(2, '0')}:00`} tick={{ fontSize: 10 }} stroke="var(--muted)" label={{ value: 'Hour of day', position: 'bottom', fontSize: 10, fill: 'var(--muted)' }} />
-          <YAxis width={40} tick={{ fontSize: 10 }} stroke="var(--muted)" tickFormatter={(v) => one.format(Number(v))} />
+          <XAxis dataKey="hour" type="number" domain={[0, 23]} ticks={[0, 6, 10, 12, 18, 23]} tickFormatter={(h) => `${String(h).padStart(2, '0')}:00`} tick={{ fontSize: 12 }} stroke="var(--muted)" label={{ value: 'Hour of day', position: 'bottom', fontSize: 10, fill: 'var(--muted)' }} />
+          <YAxis width={40} tick={{ fontSize: 12 }} stroke="var(--muted)" tickFormatter={(v) => one.format(Number(v))} />
           <Tooltip formatter={(v) => `${two.format(Number(v))} cf per home · derived`} labelFormatter={(h) => `${String(h).padStart(2, '0')}:00`} />
           <Line name="Normal day" dataKey="baselineCf" stroke="#7A869A" dot={false} isAnimationActive={false} />
           <Line name="Event day" dataKey="eventCf" stroke="#126187" strokeWidth={2} dot={false} isAnimationActive={false} />
