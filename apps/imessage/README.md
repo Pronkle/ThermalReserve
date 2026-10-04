@@ -114,7 +114,7 @@ The watcher state and the queue are written in one transaction. Spectrum has no 
 
 On our shared-line plan, Photon routed a person's texts to our project only for a while after we had texted them. After about 35 minutes of silence, texts from the demo iPhone showed Delivered but never reached the companion or a bare listener. After one outbound text, replies arrived, including at a bare listener started 2 minutes later. The window's length isn't documented; it's somewhere between 2 and 35 minutes.
 
-What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion texts it once at startup ("…assistant is on…", with the link code when there is one household). During an event, our own updates keep the window open. Before the judged demo, restart the companion (or send any text to the phone) a few minutes ahead.
+What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion texts it once at startup ("…assistant is on… text START"). During an event, our own updates keep the window open. Before the judged demo, restart the companion (or send any text to the phone) a few minutes ahead.
 
 ## Honest limitations
 
@@ -128,7 +128,7 @@ What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion text
 ```
 src/main.imessage.ts   cloud iMessage entrypoint      src/main.terminal.ts   terminal entrypoint
 src/app.ts             wiring                          src/config.ts          env + constants
-src/stdb/mirror.ts     read-only Spacetime mirror      src/link.ts            link codes
+src/stdb/mirror.ts     read-only Spacetime mirror      src/link.ts            household short codes (Photon placeholder email)
 src/watcher/           detect, compose, notifier       src/concierge/         inbound rules + concierge agent
 src/insights/          Insights agent, tools, honesty   scripts/qa-terminal.sh  10-question acceptance run
 src/memory/store.ts    SQLite (node:sqlite)            spike/                 Phase 0 experiments + dev-run driver
