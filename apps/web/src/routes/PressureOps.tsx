@@ -52,11 +52,14 @@ export function PressureOps() {
   const data = useMemo(() => buildOpsData(scenario, cfg), [scenario, cfg]);
   const remoteTargets = JSON.stringify(live.plans.map(row => [row.cohortId, row.hour, row.targetF]));
   const remote = useMemo<Plan | undefined>(() => {
+    // A dispatched re-plan segment is incomplete without the later segments.
+    // Only the locally solved full schedule can score a forecast re-plan run.
+    if (input.planningMode === 'REPLAN') return;
     if (!sim || sim.scenarioId !== scenario.id || sim.planId !== pressurePlanId(scenario.id, input.strategy, 0, key)) return;
     const targetsF = cohorts.map(() => Array<number>(scenario.hours).fill(NaN));
     for (const [cohortId, h, target] of JSON.parse(remoteTargets) as number[][]) if (targetsF[cohortId]) targetsF[cohortId][h] = target;
     return { id: sim.planId, strategy: input.strategy, targetsF };
-  }, [remoteTargets, sim?.planId, sim?.scenarioId, key, scenario, input.strategy]);
+  }, [remoteTargets, sim?.planId, sim?.scenarioId, key, scenario, input.strategy, input.planningMode]);
   const replan = replans.get(key);
   const schedules = useMemo(() => segmentSchedules(scenario, key, replan?.segments ?? []), [scenario, key, replan]);
   const forecastRows = useMemo(() => forecastChartRows(scenario, replan?.segments ?? []), [scenario, replan]);
@@ -198,7 +201,7 @@ export function PressureOps() {
         <label className="planning-control">Planning mode<select aria-label="Planning mode" value={input.planningMode} onChange={event => setInput(previous => ({ ...previous, planningMode: event.target.value as PressureInputs['planningMode'] }))}><option value="OBSERVED">Observed weather</option><option value="SINGLE" disabled={!hasForecast}>One forecast</option><option value="REPLAN" disabled={!hasForecast}>Forecast + re-plans</option></select></label>
         <label title="Assumed: planning temperature = forecast minus buffer times forecast spread.">Cold buffer<output title="Derived: buffer times forecast spread at the peak-demand hour.">{peakBufferF === undefined ? '—' : temperature.format(peakBufferF)}°F at peak</output><select aria-label="Cold buffer" value={input.bufferSigma} disabled={input.planningMode === 'OBSERVED'} onChange={event => setInput(previous => ({ ...previous, bufferSigma: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, i) => i / 4).map(value => <option key={value} value={value}>{value}σ</option>)}</select></label>
       </div><div className="control-actions">
-        <button disabled={busy || solving || Boolean(sim && sim.simHour > 0)} onClick={() => void solveFor()}>{solving ? `Solving · ${(elapsed / 1000).toFixed(1)} s` : 'Solve plan'}</button>
+        <button disabled={busy || solving} onClick={() => void solveFor()}>{solving ? `Solving · ${(elapsed / 1000).toFixed(1)} s` : 'Solve plan'}</button>
         <button disabled={!connected || busy || solving || needsSolve} onClick={() => void command(async api => { if (sim?.scenarioId !== scenario.id) await loadPressurePreset(api, scenario, cfg); await api.setParams({ configJson: JSON.stringify({ ...cfg, speedHoursPerSec: speed }) }); await (dispatchablePlan ? dispatchPlan(api, dispatchablePlan) : dispatchPreview(api, scenario, cfg, input.strategy as 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER')); })}>Dispatch</button>
         <button disabled={!connected || busy || solving || needsSolve || (selectedPlan ? !schedules.some(item => item.plan.id === sim?.planId) && sim?.planId !== selectedPlan.id : sim?.strategy !== input.strategy)} onClick={() => { autoFailure.current = false; void command(api => api.start({})); }}>Start</button>
         <button disabled={!connected || busy} onClick={() => void command(api => api.pause({}))}>Pause</button>

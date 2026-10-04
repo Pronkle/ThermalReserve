@@ -78,3 +78,5 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T06:10 | DATA (Claude Code, Pro, Opus 5.5) | D-C1: devpost.md v1 for the pressure console (claims per Section 5, preset table, new sources); docs/demo-assets.md (screenshot list, /validation forecast-error copy, 90 s backup-video shot list) | review pending H3
 2026-10-04T06:15 | DATA (Claude Code, Pro, Opus 5.5) | CHAT delivery-rate wording recorded in architecture.md and qa.md (#25b) | review pending H3
 2026-10-04T06:25 | DATA (Claude Code, Pro, Opus 5.5) | D-B2: docs/pitch.md rewritten for the pressure console (3:00 script, 60 s version, spoken ADN answer from ENGINE's coverage table, rehearsal checklist); H1 story and names left as placeholders | review pending H3
+
+2026-10-04T06:02 | WEB (OpenAI Codex, GPT-6.1-Sol) | Fixed reload verdicts to require a full local re-plan schedule and enabled local solves at nonzero hours; 35 web tests, build, physics check, fresh/reloaded viewer and mid-run operator browser regression; 20b38d1 | human review pending H2
