@@ -51,7 +51,7 @@ try {
       await page.goto(`${url}/${route}`);
       await page.locator('h1').waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${route} fits ${width}px`);
-      assert((await page.title()).includes('Thermal Reserve'));
+      assert((await page.title()).includes('BoreaFlux'));
     }
   }
   results.push('home/whatif/validation: 360, 390, 430px and page titles');

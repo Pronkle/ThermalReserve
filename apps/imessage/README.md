@@ -1,4 +1,4 @@
-# Thermal Reserve iMessage companion
+# BoreaFlux iMessage companion
 
 A long-lived Node process that texts linked households through **Photon Spectrum** (`spectrum-ts`) when the simulated dispatch changes their heat. It reads the live SpacetimeDB tables (read-only) and keeps its own memory in local SQLite. Owner: CHAT. Brief: `docs/agents/CHAT_BRIEF.md`.
 
@@ -76,7 +76,7 @@ The watcher compares each linked household with the last state it told them abou
 
 - setback start (target ≥ 0.5°F below the normal 70°F), a depth change of 1°F or more, recovery, override and rejoin, event end (net `saved_cf`), and one "your heat stays steady" text for exempt homes.
 
-Changes are merged: at most one text per contact per 20 s. Anything that happens inside the window goes into a single catch-up list (oldest first, at most 5 lines plus "plus N smaller changes", ending with the current state and one question). Every text says "Thermal Reserve demo" and "(simulated)", uses the sim clock in Anchorage time like `/home`, and takes its numbers only from the household row and `data/constants.json`.
+Changes are merged: at most one text per contact per 20 s. Anything that happens inside the window goes into a single catch-up list (oldest first, at most 5 lines plus "plus N smaller changes", ending with the current state and one question). Every text says "BoreaFlux demo" and "(simulated)", uses the sim clock in Anchorage time like `/home`, and takes its numbers only from the household row and `data/constants.json`.
 
 Replies it understands now: `START`, `STOP` (deletes everything stored for the number), "thanks"/"ok"/👍 (answered with a tapback, no text), "only big changes" (summary only), "text me every change", "text me anytime" (ignores quiet hours), "no texts at night".
 

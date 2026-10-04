@@ -22,7 +22,7 @@ Everything above is on `main` and published to both databases.
 
 - Maincloud databases: `thermal-reserve` (production), `thermal-reserve-backup` (failover, reached
   with `?db=thermal-reserve-backup`) and `thermal-reserve-dev` (test), all owned by H1's Spacetime login. URI `wss://maincloud.spacetimedb.com`.
-- Vercel: project `thermal-reserve` in H1's team, https://thermal-reserve.vercel.app, with
+- Vercel: project `thermal-reserve` in H1's team, https://boreaflux.vercel.app, with
   `VITE_STDB_URI` and `VITE_STDB_DB` set for all environments. Not connected to GitHub: each
   deploy is manual (below).
 - Operator passcode for `thermal-reserve` and `thermal-reserve-backup`: H1 has it. For `thermal-reserve-dev` it is `dev-passcode`.

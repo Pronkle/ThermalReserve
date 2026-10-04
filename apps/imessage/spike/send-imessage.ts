@@ -17,7 +17,7 @@ const dm = await im.space.create(user);
 console.log(`[spike] DM ready with ${masked}; space type`, (dm as { type?: string }).type);
 
 const t0 = Date.now();
-await dm.send(text("Thermal Reserve test from the team's iMessage assistant (simulation only). Reply anything to check that replies reach us."));
+await dm.send(text("BoreaFlux test from the team's iMessage assistant (simulation only). Reply anything to check that replies reach us."));
 console.log(`[spike] sent in ${Date.now() - t0} ms`);
 
 const stop = setTimeout(async () => { console.log("[spike] listen window over"); await app.stop(); process.exit(0); }, listenSeconds * 1000);

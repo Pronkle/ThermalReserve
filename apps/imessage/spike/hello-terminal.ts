@@ -9,7 +9,7 @@ for await (const [space, message] of app.messages) {
   const body = message.content.type === "text" ? message.content.text : `(${message.content.type})`;
   console.error(`[spike] inbound from ${message.sender?.id ?? "?"}: ${body}`);
   await space.responding(async () => {
-    await space.send(text(`Thermal Reserve demo heard: ${body}`));
+    await space.send(text(`BoreaFlux demo heard: ${body}`));
   });
   if (body.trim().toLowerCase() === "bye") break;
 }

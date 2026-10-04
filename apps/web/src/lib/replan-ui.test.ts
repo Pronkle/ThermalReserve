@@ -4,7 +4,7 @@ import { boundarySpeed, forecastChartRows, replanMessage, segmentSchedules } fro
 import { scenarios } from './ops';
 const sc = scenarios[0];
 function segment(fromHour: number, value: number): ReplanSegment {
-  return { fromHour, reason: fromHour ? 'drift-temp' : 'start', runIso: sc.startIso, driftF: -2, solveMs: 10, deepenedF: 0.8,
+  return { fromHour, reason: fromHour ? 'drift-temp' : 'start', runIso: sc.startIso, driftF: -2, solveMs: 10, deepenedF: 0.8, turnDown: null,
     plan: { id: 'raw', strategy: 'OPTIMIZED', targetsF: [Array(sc.hours).fill(value)] },
     forecastF: Array(sc.hours).fill(value), sigmaF: Array(sc.hours).fill(2), planningOutdoorF: Array(sc.hours).fill(value - 2), expectedIdx: Array(sc.hours).fill(90) };
 }
@@ -20,6 +20,10 @@ it('changes forecast, spread and expected pressure at the segment boundary', () 
   expect(rows[6]).toMatchObject({ forecast: 5, band: [3, 7], planning: 3, expected: 90 });
   expect(forecastChartRows(sc, [])[0].forecast).toBeUndefined();
   expect(replanMessage(sc, segment(6, 5))).toContain('temperature drift: running 2.0°F cold');
+  expect(replanMessage(sc, segment(6, 5))).toContain('no change to the plan');
+  expect(replanMessage(sc, { ...segment(6, 5), turnDown: { hour: 30, before: 0, after: 0.62 } })).toContain('62% of homes will turn down');
+  expect(replanMessage(sc, { ...segment(6, 5), turnDown: { hour: 31, before: 0.4, after: 0.15 } })).toContain('fewer homes need to turn down');
+  expect(replanMessage(sc, segment(6, 5))).not.toContain('deepened');
 });
 
 it('shortens a simulation batch before odd-hour boundaries and restores desired speed afterward', () => {

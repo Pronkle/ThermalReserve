@@ -25,6 +25,9 @@ export interface ReplanSegment {
   sigmaF: number[];            // its ±1σ (0 where unknown and before fromHour)
   planningOutdoorF: number[];  // what the segment planned against: forecast + drift − buffer × σ
   expectedIdx: number[];       // pressure index this segment expected (stitched plan so far, its planning weather)
+  /** The upcoming hour where this re-plan most changed the share of enrolled (non-exempt) homes turning down, with the
+   *  share before and after (0–1). Null for the first plan, or when no hour changed by at least one percentage point. */
+  turnDown: { hour: number; before: number; after: number } | null;
 }
 
 const FORECAST_RMSE_LEADS_H = [6, 12, 24, 48, 72];
@@ -151,6 +154,17 @@ function meanSetbackF(sc: Scenario, cohorts: CohortParams[], plan: Plan, h: numb
   return s;
 }
 
+/** Share of enrolled non-exempt homes whose plan holds a setback (more than 0.05°F below normal) in hour h. */
+function turnDownShare(sc: Scenario, cohorts: CohortParams[], plan: Plan, h: number): number {
+  const clock = clockHourAt(sc, h);
+  let s = 0;
+  for (const c of cohorts) {
+    const t = plan.targetsF[c.id]?.[h];
+    if (t !== undefined && Number.isFinite(t) && normalSetpointF(c, clock) - t > 0.05) s += c.share;
+  }
+  return s;
+}
+
 function stitch(prev: Plan, next: Plan, fromHour: number, id: string): Plan {
   const targetsF = prev.targetsF.map((row, c) => row.map((v, h) => (h < fromHour ? v : next.targetsF[c]?.[h] ?? NaN)));
   const hours = prev.targetsF[0]?.length ?? 0;
@@ -189,13 +203,19 @@ export async function replanRun(
     const next = await solvePlan(det.scenario, cohorts, c, opts.strategy, consts, { timeoutMs: opts.timeoutMs, fromHour, initial, pressure: { ...p, initialIdx } });
     const plan = prev ? stitch(prev, next, fromHour, `${idPrefix}-rp${fromHour}`) : { ...next, id: `${idPrefix}-rp0` };
     let deepenedF = 0;
+    let turnDown: ReplanSegment['turnDown'] = null;
     if (prev) {
-      for (let h = fromHour; h < sc.hours; h++) deepenedF = Math.max(deepenedF, meanSetbackF(actual, cohorts, plan, h) - meanSetbackF(actual, cohorts, prev, h));
+      let bestDelta = 0.01;
+      for (let h = fromHour; h < sc.hours; h++) {
+        deepenedF = Math.max(deepenedF, meanSetbackF(actual, cohorts, plan, h) - meanSetbackF(actual, cohorts, prev, h));
+        const before = turnDownShare(actual, cohorts, prev, h), after = turnDownShare(actual, cohorts, plan, h);
+        if (Math.abs(after - before) > bestDelta) { bestDelta = Math.abs(after - before); turnDown = { hour: h, before, after }; }
+      }
     }
     // What this segment expects: the stitched plan run against its planning weather (observed before fromHour).
     const expectedIdx = indexOf(runPlan(det.scenario, cohorts, c, plan, consts));
     segments.push({
-      fromHour, reason, runIso: det.run?.runIso ?? null, driftF: drift?.errorF ?? 0, plan: next, solveMs: next.solveMs ?? 0, deepenedF,
+      fromHour, reason, runIso: det.run?.runIso ?? null, driftF: drift?.errorF ?? 0, plan: next, solveMs: next.solveMs ?? 0, deepenedF, turnDown,
       forecastF: det.forecastF, sigmaF: det.sigmaF, planningOutdoorF: det.planningOutdoorF, expectedIdx,
     });
     const act = runPlan(actual, cohorts, c, plan, consts);

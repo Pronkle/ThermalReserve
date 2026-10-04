@@ -1,4 +1,4 @@
-# Pitch: Thermal Reserve (pressure version)
+# Pitch: BoreaFlux (pressure version)
 
 DATA, Oct 4. Rewritten for the pressure console (AGENTS.md Sections 3, 4.3 and 5). Placeholders are in [BRACKETS]; H1's Anchorage story is left for H1 to write. Numbers are ENGINE's on `main` `c525a5c` (msg 198; H1 msg 244); re-check them on the verdict strip before rehearsing. Speaker split follows `docs/qa.md`: **H1** problem and impact, **H2** demo and technical, **H3** data and honesty.
 
@@ -21,7 +21,7 @@ The whole region runs on one pressurized system of pipes. When demand outruns wh
 
 "Smart thermostats can turn heat down a couple of degrees across thousands of homes at once. Utilities elsewhere already do this, but for short events, and short events backfire: when they end, every house reheats at once. Con Edison measured that about half the saving came back that way.
 
-Thermal Reserve plans those setbacks hour by hour against the pipes themselves, counting the reheating that follows, so the system stays above the curtailment line."
+BoreaFlux plans those setbacks hour by hour against the pipes themselves, counting the reheating that follows, so the system stays above the curtailment line."
 
 ### 0:55–2:15 · Demo (H2, on `/ops`; follows AGENTS.md Section 4.3)
 
@@ -31,8 +31,8 @@ Setup before judges arrive: Reset demo pressed, Near-miss loaded, solved, dispat
 2. **(1:05) No program.** Point at the gray and amber lines. "Doing nothing, or the usual four-hour morning setback, drops below the line on the coldest evening, for three hours."
 3. **(1:15) Start.** "Our plan eases 25,000 simulated homes a few degrees at the right hours. Watch the white live line, run on our server, trace the plan." When a re-plan appears in the log: "That's a new weather forecast arriving. We use the forecasts that existed at the time, and the plan is re-made every time a new one comes in."
 4. **(1:30) Judge joins.** Hand the phone or invite a judge to scan. "Any household can join in three taps. There's your home on the map. Tap Override." The log shows the override and the reassignment. "Other homes cover for you, and no home ever goes below 62 degrees."
-5. **(1:50) Verdict.** Pause near the minimum. "The lowest point stays above our 10-point safety reserve. The cost is comfort: on average about one and a half degrees cooler over three days." [Read the verdict strip's numbers aloud; expected lowest 10, 105 °F·h per home.]
-6. **(2:00) Stress.** Press Stress. "Now lose 28.5 million a day, the size of the 2024 storage-well failure. Here nobody can prevent curtailment, and the screen says so. The fleet cuts the gas that has to be curtailed from about 40 to about 34 million cubic feet: fewer customers cut, not none."
+5. **(1:50) Verdict.** Pause near the minimum. "The lowest point stays above our 10-point safety reserve. The cost is comfort: about 4.8 degrees cooler across 22 setback hours, and no home below 62." [Read the verdict strip's numbers aloud; expected lowest 10, 105 °F·h per home.]
+6. **(2:00) Stress.** Press Stress. "Now take away 15 million cubic feet a day. Here nobody can prevent curtailment, and the screen says so. The fleet roughly halves the gas that has to be curtailed, from about 3 to 1.6 million cubic feet, and the hours below the line from 17 to 7: fewer customers cut, not none."
 
 ### 2:15–2:45 · Why you can trust the numbers (H3)
 
@@ -40,13 +40,13 @@ Setup before judges arrive: Reset demo pressed, Near-miss loaded, solved, dispat
 
 ### 2:45–3:00 · Close (H1)
 
-"In February 2024 nobody was cut off, but the margin was about 10 million cubic feet. Thermal Reserve shows how thousands of thermostats, planned against the pipes and re-planned with every forecast, can turn a near miss into a held line, and make a bad night smaller. Next step: Enstar's real hourly data and a pilot with a few hundred Anchorage homes. Thank you."
+"In February 2024 nobody was cut off, but the margin was about 10 million cubic feet. BoreaFlux shows how thousands of thermostats, planned against the pipes and re-planned with every forecast, can turn a near miss into a held line, and make a bad night smaller. Next step: Enstar's real hourly data and a pilot with a few hundred Anchorage homes. Thank you."
 
 ## 60-second version
 
 (H1) "Southcentral Alaska's gas grid fails on one cold evening, not over a season: on January 31, 2024 Enstar came extremely close to being unable to deliver. When demand outruns supply, pressure in the shared pipes falls and customers get cut.
 
-(H2, on `/ops`) This is that cold snap with 11.5 million cubic feet a day less supply. Doing nothing drops our modeled pressure below the curtailment line for three hours. Thermal Reserve eases 25,000 simulated thermostats a few degrees at the right hours, re-planning as each new forecast arrives, and the pressure stays above a safety reserve, at about one and a half degrees cooler on average. With a loss the size of the 2024 well failure it can't prevent curtailment, but it cuts it by about a seventh.
+(H2, on `/ops`) This is that cold snap with 11.5 million cubic feet a day less supply. Doing nothing drops our modeled pressure below the curtailment line for three hours. BoreaFlux eases 25,000 simulated thermostats a few degrees at the right hours, re-planning as each new forecast arrives, and the pressure stays above a safety reserve, at about 4.8 degrees cooler across 22 setback hours. With 15 million a day less it can't prevent curtailment, but it roughly halves it.
 
 (H3) Every number is labeled and sourced, and the physics reproduces the snapback ConEd measured."
 

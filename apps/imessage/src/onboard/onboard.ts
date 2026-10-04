@@ -33,7 +33,7 @@ export interface OnboardDeps {
 }
 
 export const opener = (nickname: string) =>
-  `Thermal Reserve demo here for ${nickname}. You asked on the household page for heat updates by text during a simulated cold snap. Reply START to begin, or STOP and I won't text again.`;
+  `BoreaFlux demo here for ${nickname}. You asked on the household page for heat updates by text during a simulated cold snap. Reply START to begin, or STOP and I won't text again.`;
 
 export type OnboardResult = 'onboarded' | 'already linked' | 'invalid' | 'no household' | 'failed';
 

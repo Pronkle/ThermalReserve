@@ -35,3 +35,188 @@
   .pressure-controls .planning-control { grid-row: 1; grid-column: 3; }
   .pressure-side .log-panel { min-height: 65px; }
 }
+/* H1-approved two-column judging layout: controls left, charts right. */
+.pressure-console-shell .pressure-grid { grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.65fr); height: 100%; }
+.pressure-console-shell .pressure-side { overflow: auto; gap: 10px; }
+.pressure-console-shell .pressure-side .main-navigation { gap: 4px; }
+.pressure-console-shell .main-navigation a { padding: 6px 8px; font-size: 11px; }
+.pressure-console-shell .pressure-heading { align-items: center; margin: 0 !important; gap: 10px; }
+.pressure-console-shell .pressure-heading h1 { font-size: 24px; margin: 0; }
+.pressure-console-shell .pressure-status { font-size: 13px; margin-bottom: 0; }
+.pressure-console-shell .verdict-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 0; }
+.pressure-console-shell .planning-chip { grid-column: 1 / -1; }
+.pressure-console-shell .verdict-tile strong { font-size: 24px; }
+.pressure-console-shell .verdict-tile small { display: block; font-size: 10px; margin-top: 3px; }
+.pressure-console-shell .pressure-charts { grid-template-rows: minmax(0, 45fr) minmax(0, 25fr) minmax(0, 30fr); height: 100%; }
+.pressure-chart-slot { min-height: 0; display: flex; }
+.pressure-chart-slot > figure { flex: 1; height: 100%; width: 100%; min-width: 0; }
+.pressure-console-shell .pressure-controls .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.pressure-console-shell .pressure-controls .planning-control { grid-column: auto; grid-row: auto; }
+.pressure-console-shell .pressure-controls label { font-size: 11px; }
+.pressure-console-shell .pressure-controls select { font-size: 11px; min-height: 28px; }
+.pressure-console-shell .pressure-side button { font-size: 11px; min-height: 30px; }
+.pressure-console-shell .pressure-side .log-panel { flex: 0 0 auto; min-height: 0; max-height: 180px; }
+.pressure-console-shell .log-panel summary { font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+.pressure-console-shell .log-panel[open] summary { margin-bottom: 8px; }
+@media (max-width: 1000px) {
+  .pressure-console-shell .pressure-grid { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .pressure-console-shell .pressure-side { min-height: 0; overflow: visible; }
+  .pressure-console-shell .pressure-charts { height: 780px; }
+}
+@media (min-width: 1001px) {
+  .pressure-console-shell .pressure-controls .controls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 8px; }
+  .pressure-console-shell .pressure-controls .planning-control { grid-row: 1; grid-column: 3; }
+  .pressure-console-shell .pressure-controls label { font-size: 10px; }
+  .pressure-console-shell .pressure-controls select { font-size: 10px; min-height: 25px; }
+  .pressure-console-shell .pressure-side .log-panel { max-height: 110px; }
+}
+
+/* ENGINE, H1 msg 344: bigger text everywhere and controls grouped by purpose (Situation, Run, Plan, Fleet). Scoped to
+   the redesigned console so ?ui=gas is untouched. This block is last on purpose: it supersedes the size overrides above. */
+.pressure-console-shell .main-navigation a { font-size: 13px; padding: 6px 10px; }
+.pressure-console-shell .pressure-heading h1 { font-size: 26px; }
+.pressure-console-shell .pressure-status { font-size: 15px; line-height: 1.3; }
+.pressure-console-shell .verdict-tile, .pressure-console-shell .planning-chip { padding: 6px 10px; gap: 2px; }
+.pressure-console-shell .verdict-tile > span { font-size: 12px; line-height: 1.25; }
+.pressure-console-shell .verdict-tile strong { font-size: 28px; }
+.pressure-console-shell .verdict-tile small { font-size: 13px; }
+.pressure-console-shell .planning-chip { font-size: 13px; }
+.pressure-console-shell .metric-label { font-size: 11px; }
+
+.pressure-console-shell .pressure-controls { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+.pressure-console-shell .control-group { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.pressure-console-shell .control-group h2 { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.pressure-console-shell .control-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 12px; }
+.pressure-console-shell .control-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pressure-console-shell .pressure-controls label { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 6px; font-size: 13px; line-height: 1.2; }
+.pressure-console-shell .pressure-controls output { font-size: 13px; font-weight: 600; margin: 0; }
+.pressure-console-shell .pressure-controls label > input, .pressure-console-shell .pressure-controls label > select, .pressure-console-shell .pressure-controls .delivery-ticks { grid-column: 1 / -1; margin: 0; }
+.pressure-console-shell .pressure-controls select { font-size: 13px; min-height: 28px; padding: 3px 6px; }
+.pressure-console-shell .pressure-controls input[type=range] { height: 16px; }
+.pressure-console-shell .delivery-ticks { font-size: 11px; gap: 10px; }
+.pressure-console-shell .delivery-ticks span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pressure-console-shell .preset-row { display: flex; gap: 8px; }
+.pressure-console-shell .preset-row .preset-bar { display: contents; }
+.pressure-console-shell .pressure-side button { font-size: 13px; padding: 5px 10px; min-height: 30px; }
+.pressure-console-shell .preset-row button, .pressure-console-shell .primary-actions button { flex: 1; font-weight: 600; }
+.pressure-console-shell .primary-actions { display: flex; gap: 6px; margin: 0; }
+.pressure-console-shell .control-group-quiet label, .pressure-console-shell .control-group-quiet output { font-size: 12px; }
+.pressure-console-shell .secondary-actions { display: flex; gap: 6px; margin: 0; }
+.pressure-console-shell .secondary-actions button { font-size: 12px; min-height: 26px; padding: 3px 8px; background: transparent; color: var(--muted); }
+.pressure-console-shell .solve-status, .pressure-console-shell .control-note { font-size: 12px; margin: 0; }
+.pressure-console-shell .log-panel summary { font-size: 14px; }
+.pressure-console-shell .event-list { font-size: 12px; }
+
+.pressure-console-shell .pressure-charts h2 { font-size: 14px; }
+.pressure-console-shell .pressure-explainer, .pressure-console-shell .pressure-legend, .pressure-console-shell .pressure-charts figcaption { font-size: 12px; }
+/* Fit pass (1280×800 with no left-column scroll). */
+.pressure-console-shell .pressure-grid { grid-template-columns: minmax(400px, 1fr) minmax(0, 1.6fr); }
+.pressure-console-shell .pressure-side { gap: 7px; }
+.pressure-console-shell .main-navigation { flex-wrap: nowrap; }
+.pressure-console-shell .main-navigation a { font-size: 12.5px; padding: 5px 8px; white-space: nowrap; }
+.pressure-console-shell .pressure-heading h1 { font-size: 23px; white-space: nowrap; }
+.pressure-console-shell .verdict-tile > span:last-child { font-size: 11px; }
+.pressure-console-shell .verdict-tile strong { font-size: 26px; }
+.pressure-console-shell .planning-chip { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 5px 10px; }
+.pressure-console-shell .pressure-controls { gap: 6px; padding: 8px 12px; }
+.pressure-console-shell .control-group { gap: 5px; padding-bottom: 6px; }
+.pressure-console-shell .control-row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pressure-console-shell .control-row.three label { grid-template-columns: minmax(0, 1fr); }
+.pressure-console-shell .control-row.three output { justify-self: start; }
+.pressure-console-shell .run-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; align-items: center; }
+.pressure-console-shell .run-status { display: flex; flex-direction: column; gap: 1px; }
+.pressure-console-shell .log-panel { flex: 0 0 auto; padding: 6px 12px; }
+.pressure-console-shell .log-panel[open] { flex: 1 1 auto; min-height: 120px; }
+.pressure-console-shell .join-qr-button { font-size: 13px; padding: 3px 8px 3px 3px; }
+.pressure-console-shell .join-qr-button svg { width: 40px; height: 40px; }
+.pressure-console-shell .verdict-tile strong { white-space: nowrap; }
+.pressure-console-shell .verdict-tile small { font-size: 12px; }
+.pressure-console-shell .verdict-tile > span:last-child { line-height: 1.2; }
+.pressure-console-shell .pressure-controls select { width: 100%; }
+.pressure-console-shell .control-group-situation .control-row label { grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+.pressure-console-shell .control-group-situation .control-row label > select { grid-column: auto; }
+.pressure-console-shell .secondary-actions button { min-height: 24px; padding: 2px 8px; }
+.pressure-console-shell .control-row .planning-control { grid-row: auto; grid-column: auto; }
+.pressure-console-shell .verdict-tile strong small { display: inline; margin-left: 2px; }
+.pressure-console-shell .verdict-tile { padding: 5px 9px; }
+.pressure-console-shell .planning-basis { font-size: 12px; color: var(--muted); margin: 0; }
+.pressure-console-shell .pressure-side { gap: 5px; }
+.pressure-console-shell .pressure-controls { gap: 5px; }
+.pressure-console-shell .control-group { padding-bottom: 5px; gap: 4px; }
+.pressure-console-shell .pressure-status { margin: 0; }
+/* An opened event log (auto-opens on a household join or override) floats over the bottom of the left column, so the
+   column never scrolls; it covers the rarely used Fleet controls, not the verdict or Run buttons. */
+.pressure-console-shell .pressure-side { position: relative; }
+.pressure-console-shell .log-panel[open] { position: absolute; left: 0; right: 0; bottom: 0; max-height: 34%; overflow: auto; z-index: 20; box-shadow: 0 -8px 24px rgb(0 0 0 / .45); min-height: 0; }
+/* Narrow screens: undo the 1280-fit choices above (fixed column minimum, no-wrap nav, floating log). */
+@media (max-width: 1000px) {
+  .pressure-console-shell .pressure-grid { grid-template-columns: minmax(0, 1fr); }
+  .pressure-console-shell .main-navigation { flex-wrap: wrap; }
+  .pressure-console-shell .pressure-heading h1 { white-space: normal; }
+  .pressure-console-shell .control-row.three { grid-template-columns: minmax(0, 1fr); }
+  .pressure-console-shell .run-row { grid-template-columns: minmax(0, 1fr); }
+  .pressure-console-shell .preset-row, .pressure-console-shell .primary-actions, .pressure-console-shell .secondary-actions { flex-wrap: wrap; }
+  .pressure-console-shell .verdict-strip { grid-template-columns: minmax(0, 1fr); }
+  .pressure-console-shell .log-panel[open] { position: static; max-height: none; box-shadow: none; }
+}
+@media (max-width: 500px) { .pressure-console-shell .control-row.two { grid-template-columns: minmax(0, 1fr); } }
+/* Connected status ("Connected · thermal-reserve · Operator") stays on one line so the event-log bar stays in view. */
+.pressure-console-shell .run-status .solve-status, .pressure-console-shell .run-status .control-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* BoreaFlux theme for the operator console (H2): logo navy background, lighter navy panels, gold as a quiet accent
+   (active tab, selected preset, focus, slider thumbs). Chart series colours are unchanged. Scoped to the console. */
+.pressure-console-shell.theme-dark {
+  --background: #0B215D; --surface: #11296B; --border: #24418A; --text: #EEF2FA; --muted: #AAB7D6; --accent: #E9C25A;
+}
+.pressure-console-shell .console-logo { display: block; width: 100%; height: auto; border-radius: 10px; flex-shrink: 0; }
+.pressure-console-shell .console-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 !important; }
+.pressure-console-shell .pressure-side > h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
+.pressure-console-shell .main-navigation a.active { background: transparent; color: var(--accent); outline: none; box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
+.pressure-console-shell .main-navigation a:hover { color: var(--text); }
+.pressure-console-shell button { background: #0E2463; border-color: var(--border); }
+.pressure-console-shell button:hover:not(:disabled) { border-color: #3A5AA8; }
+.pressure-console-shell .preset-row button[aria-pressed="true"], .pressure-console-shell .preset-row button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.pressure-console-shell .primary-actions button:first-child:not(:disabled) { border-color: rgb(233 194 90 / .55); }
+.pressure-console-shell select { background: #0E2463; }
+.pressure-console-shell input[type=range] { accent-color: #C9A84E; }
+.pressure-console-shell .control-group h2 { color: #C9B27A; }
+.pressure-console-shell .join-qr-button { background: #0E2463; }
+.pressure-console-shell .pressure-charts figure { background: #0E2665; }
+.pressure-console-shell .console-brand-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 !important; }
+.pressure-console-shell .console-brand-row .console-logo { width: auto; max-width: calc(100% - 175px); height: 58px; min-width: 0; object-fit: contain; object-position: left center; }
+.pressure-console-shell .pressure-side > .main-navigation { margin-top: -2px; }
+.pressure-console-shell .console-brand-row .join-qr-button { flex-shrink: 0; white-space: nowrap; }
+/* H2 round 2: darker navy page, the logo kept on its own navy in a box, more air above the tabs, sliders in the exact
+   FLUX gold (#F8C549, sampled from the logo). */
+.pressure-console-shell.theme-dark { --background: #05112F; --surface: #0A1A45; --border: #1C3270; --muted: #B3C0DE; --accent: #F8C549; }
+.pressure-console-shell .pressure-charts figure { background: #091840; }
+.pressure-console-shell button, .pressure-console-shell select, .pressure-console-shell .join-qr-button { background: #08173F; }
+.pressure-console-shell button:hover:not(:disabled) { border-color: #34529E; }
+.pressure-console-shell .primary-actions button:first-child:not(:disabled) { border-color: rgb(248 197 73 / .55); }
+.pressure-console-shell input[type=range] { accent-color: #F8C549; }
+.pressure-console-shell .control-group h2 { color: #CDB679; }
+.pressure-console-shell .console-brand-row { margin-bottom: 6px !important; }
+.pressure-console-shell .console-logo-box { flex: 1 1 auto; min-width: 0; background: #0B215D; border: 1px solid #1F3B86; border-radius: 10px; padding: 5px 12px; }
+.pressure-console-shell .console-logo-box .console-logo { display: block; max-width: 100%; height: 46px; width: auto; object-fit: contain; object-position: left center; border-radius: 0; }
+.pressure-console-shell .console-brand-row .join-qr-button { align-self: stretch; }
+.pressure-console-shell .console-logo-box { padding: 4px 12px; } .pressure-console-shell .console-logo-box .console-logo { height: 42px; }
+/* H2 round 3: logo centred and filling the box width (equal margins all round; the box grows taller, not wider), and
+   each control group in its own box. */
+.pressure-console-shell .console-logo-box { display: flex; align-items: center; justify-content: center; padding: 9px 12px; }
+.pressure-console-shell .console-logo-box .console-logo { width: 100%; height: auto; max-width: 100%; object-position: center; }
+.pressure-console-shell .pressure-controls { background: transparent; border: 0; padding: 0; gap: 6px; }
+.pressure-console-shell .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px 8px; gap: 4px; }
+.pressure-console-shell .secondary-actions { padding: 0 2px; }
+.pressure-console-shell .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pressure-console-shell .group-head .secondary-actions { padding: 0; gap: 4px; }
+.pressure-console-shell .group-head .secondary-actions button { min-height: 22px; padding: 1px 7px; font-size: 11.5px; }
+.pressure-console-shell .pressure-side { gap: 4px; } .pressure-console-shell .pressure-controls { gap: 5px; } .pressure-console-shell .control-group { padding: 5px 10px 6px; }
+.pressure-console-shell .pressure-controls { gap: 10px; } .pressure-console-shell .pressure-side { gap: 6px; }
+.pressure-console-shell .pressure-side { gap: 5px; } .pressure-console-shell .main-navigation a { padding-top: 3px; padding-bottom: 3px; } .pressure-console-shell .verdict-tile { padding-top: 3px; padding-bottom: 3px; } .pressure-console-shell .log-panel { padding-top: 4px; padding-bottom: 4px; }
+.pressure-console-shell .pressure-controls { gap: 9px; }
+/* The page CSS reset zeroes margins, which un-centres modal dialogs; put the join QR dialog back in the middle. */
+.join-qr-dialog { margin: auto; }
+.join-qr-dialog a { color: #1A3A8F; }
+.join-qr-dialog h2 { font-size: 20px; color: #0B215D; margin: 0 0 6px; }
+/* H2: charts sit directly on the page background, no boxes. */
+.pressure-console-shell .pressure-charts figure { background: transparent; border-color: transparent; box-shadow: none; }

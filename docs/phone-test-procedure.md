@@ -2,7 +2,7 @@
 
 Step-by-step script for the real-phone run of `docs/test-plan.md`. Screen text below is copied from the app on `main` (a60e3e3 and later), so testers can match it word for word. Record every result in the test plan's "Runs" section; file each FAIL to its owner as a `[REQUEST]` (see "Filing a failure" at the end).
 
-**Production URL:** <https://thermal-reserve.vercel.app> · **Database:** `thermal-reserve` (production). Use `?db=thermal-reserve-dev` only if H1 says so.
+**Production URL:** <https://boreaflux.vercel.app> · **Database:** `thermal-reserve` (production). Use `?db=thermal-reserve-dev` only if H1 says so.
 
 ## Roles
 
@@ -17,7 +17,7 @@ Step-by-step script for the real-phone run of `docs/test-plan.md`. Screen text b
 ## Before you start (01:45)
 
 1. **Passcode:** get the production operator passcode from H1 in person. Never type it into chat, mail, or the repo.
-2. **Phones:** on each phone, clear site data for `thermal-reserve.vercel.app` (iPhone: Settings → Safari → Advanced → Website Data; Android Chrome: site settings → Clear & reset). Turn off battery saver. Have a stopwatch ready on another phone or watch.
+2. **Phones:** on each phone, clear site data for `boreaflux.vercel.app` (iPhone: Settings → Safari → Advanced → Website Data; Android Chrome: site settings → Clear & reset). Turn off battery saver. Have a stopwatch ready on another phone or watch.
 3. **Laptops:** open a fresh browser profile (or a private window) on the Mac and the second-screen laptop.
 4. **Check the deploy:** on the Mac, open `/ops`. The header shows a QR code labeled "Join a home", and the chart legend reads "No program · Naive morning setback · …". If not, stop: production isn't on W4 yet (tell DATA).
 5. **Recorder:** copy sections 1–5 of `docs/test-plan.md` into a new "Run 1 (02:00)" section.

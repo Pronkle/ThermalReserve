@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
+import { useAggregates, useConnection, useMyContactLine, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
 import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
-import { eventCountdown, heatStatus, householdDayStart, householdLinkCode } from '../lib/household';
+import { eventCountdown, heatStatus, householdDayStart } from '../lib/household';
 import { livePressureReading } from '../lib/pressure-ui';
+import { HouseholdMap } from '../components/HouseholdMap';
 import './home.css';
 
 const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
@@ -10,6 +11,7 @@ export function Home() {
   const live = useConnection();
   const config = useSimConfig();
   const home = useMyHousehold();
+  const contactLine = useMyContactLine();
   const reducers = useReducers();
   const aggregates = useAggregates();
   const [step, setStep] = useState(0);
@@ -24,22 +26,28 @@ export function Home() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [contactState, setContactState] = useState<'idle' | 'saving' | 'failed' | 'saved'>('idle');
-  const [linkCode, setLinkCode] = useState('');
+  const [awaitingLine, setAwaitingLine] = useState(false);
+  const hadAssignedLine = useRef(false);
   const identityHex = home?.identity.toHexString();
-  useEffect(() => {
-    setLinkCode('');
-    if (!identityHex) return;
-    let current = true;
-    void householdLinkCode(identityHex).then(code => { if (current) setLinkCode(code); }).catch(() => { /* Optional companion must never block heat controls. */ });
-    return () => { current = false; };
-  }, [identityHex]);
   const connected = live.status === 'connected';
+  const pendingLineKey = `thermal-reserve.imessage-pending:${live.database}:${live.identity}`;
+  useEffect(() => {
+    if (!connected) return;
+    if (!home || contactLine || hadAssignedLine.current) {
+      try { sessionStorage.removeItem(pendingLineKey); } catch { /* Still works without storage. */ }
+      setAwaitingLine(false);
+      if (!home || !contactLine && hadAssignedLine.current) setContactState('idle');
+      hadAssignedLine.current = Boolean(contactLine);
+      return;
+    }
+    try { if (sessionStorage.getItem(pendingLineKey) === '1') setAwaitingLine(true); } catch { /* Optional persistence. */ }
+  }, [connected, identityHex, contactLine?.line, pendingLineKey]);
   const previouslyJoined = useRef(false);
   useEffect(() => {
     if (home) previouslyJoined.current = true;
     else if (connected && previouslyJoined.current) {
       previouslyJoined.current = false; setStep(0); setTextUpdates(false); setContactState('idle');
-      setFirstName(''); setLastName(''); setPhone(''); setError('');
+      setFirstName(''); setLastName(''); setPhone(''); setError('The operator reset the demo and removed your enrollment and text-update details. Join again to continue.');
     }
   }, [home, connected]);
   const scenario = scenarios.find(item => item.id === config?.scenarioId);
@@ -57,6 +65,10 @@ export function Home() {
     try {
       await api.setContact({ firstName, lastName, phone });
       setContactState('saved'); setFirstName(''); setLastName(''); setPhone('');
+      if (!contactLine) {
+        setAwaitingLine(true);
+        try { sessionStorage.setItem(pendingLineKey, '1'); } catch { /* No contact fields are persisted. */ }
+      }
     } catch (failure) { setContactState('failed'); throw failure; }
   }
   const contactFields = <div className="contact-fields">
@@ -73,7 +85,7 @@ export function Home() {
   const status = home ? heatStatus(home) : undefined;
   const pressure = config ? livePressureReading(new Map(aggregates.map(row => [row.hour, row.systemMmcf])), config.hours, config.capacityMmcfd, Number(constants.raw.reserve_default_idx?.value ?? 0)) : undefined;
   return <section className="household-page">
-    <p className="eyebrow">Thermal Reserve · household demo</p>
+    <p className="eyebrow">BoreaFlux · household demo</p>
     <h1>Your home</h1>
     {live.status !== 'connected' && <p className="home-connection" role="status">{live.status === 'unconfigured' ? 'Live connection is not configured.' : live.status === 'connecting' ? 'Connecting to the community…' : 'Disconnected — retrying. Your heat controls return when connected.'}</p>}
     {error && <p className="home-error" role="alert">{error}</p>}
@@ -88,9 +100,14 @@ export function Home() {
         {home.overridden && !home.exempt && <p className="steady-heat">Normal heat restored. You can rejoin when ready.</p>}
         <p className="home-limit" title={`${constants.raw.max_depth_default_f.label}: operator-selected setback limit; household comfort floor.`}>Program limit: up to {temperature.format(maxDepthF)}°F lower, never below {temperature.format(Math.max(home.floorF, constants.floorDefaultF))}°F <span className="metric-label">assumed</span></p>
       </div>
-      {contactState !== 'idle' && <section className="panel home-contact" aria-labelledby="contact-title">
+      <HouseholdMap />
+      {(contactState !== 'idle' || awaitingLine || contactLine) && <section className="panel home-contact" aria-labelledby="contact-title">
         <h2 id="contact-title">iMessage updates</h2>
-        {contactState === 'saved' ? <p role="status">You opted in to iMessage updates. Reply STOP any time.</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
+        {contactLine ? <>
+          <p>Text <strong>START</strong> to <strong className="assigned-line">{contactLine.line}</strong> to turn on iMessage updates.</p>
+          <a className="home-primary text-updates-link" href={`sms:${contactLine.line}&body=START`}>Text START</a>
+          <p className="home-limit">Use the phone number you entered when opting in. Text STOP any time to delete your text-update details.</p>
+        </> : contactState === 'saved' || awaitingLine ? <p role="status">Setting up your iMessage line…</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
           <p>Your home has joined. Correct your details to finish opting in.</p>
           {contactFields}
           <button className="home-primary" disabled={!connected || busy} onClick={() => void act(saveContact)}>Save iMessage details</button>
@@ -115,11 +132,6 @@ export function Home() {
         {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
         <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>
       </section>
-      {linkCode && <section className="panel home-imessage" aria-labelledby="imessage-title">
-        <h2 id="imessage-title">Get updates by iMessage</h2>
-        <p>Reply <strong className="link-code">Link my home {linkCode}</strong> in your Thermal Reserve iMessage thread to get heat updates by text. Reply STOP any time.</p>
-        <p className="home-limit">Demo: works when the team's iMessage assistant is running.</p>
-      </section>}
     </> : step === 0 ? <div className="panel enrollment-intro">
       <h2>Steady heat. A stronger community.</h2>
       <p>Try an Anchorage home in our cold-snap simulation. You stay in control of your heat.</p>
@@ -148,6 +160,6 @@ export function Home() {
       {!config?.hours && <p className="home-limit">The operator needs to load a scenario before you can join.</p>}
       <button className="home-back" onClick={() => setStep(1)}>Back</button>
     </div>}
-    <details className="why-heat panel"><summary>Why this matters</summary><p>If gas runs short, Enstar's plan cuts large commercial and industrial customers first. When pressure falls too low, Enstar must cut customers, businesses first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time.</p><p>Thermal Reserve simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
+    <details className="why-heat panel"><summary>Why this matters</summary><p>If gas runs short, Enstar's plan cuts large commercial and industrial customers first. When pressure falls too low, Enstar must cut customers, businesses first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time.</p><p>BoreaFlux simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
   </section>;
 }

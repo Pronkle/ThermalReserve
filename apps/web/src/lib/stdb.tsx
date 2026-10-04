@@ -10,6 +10,7 @@ interface Snapshot {
   homes: Row<'sampleHome'>[];
   events: Row<'eventLog'>[];
   plans: Row<'planHour'>[];
+  contactLines: Row<'myContactLine'>[];
 }
 interface LiveState extends Snapshot {
   connection?: DbConnection;
@@ -18,7 +19,7 @@ interface LiveState extends Snapshot {
   database: string;
   error?: string;
 }
-const empty: LiveState = { cohorts: [], aggregates: [], households: [], homes: [], events: [], plans: [], status: 'unconfigured', database: '' };
+const empty: LiveState = { cohorts: [], aggregates: [], households: [], homes: [], events: [], plans: [], contactLines: [], status: 'unconfigured', database: '' };
 const Context = createContext<LiveState>(empty);
 
 export function databaseName(search: string, configured: string, storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>): string {
@@ -35,6 +36,7 @@ export function databaseName(search: string, configured: string, storage?: Pick<
 function snapshot(connection: DbConnection): Snapshot {
   return {
     config: [...connection.db.simConfig.iter()][0],
+    contactLines: [...connection.db.myContactLine.iter()],
     plans: [...connection.db.planHour.iter()],
     cohorts: [...connection.db.cohortState.iter()],
     aggregates: [...connection.db.aggregateHour.iter()].sort((a, b) => a.hour - b.hour),
@@ -83,12 +85,12 @@ export function StdbProvider({ children }: { children: ReactNode }) {
           if (disposed || attempt !== generation) { conn.disconnect(); return; }
           try { localStorage.setItem(tokenKey, issuedToken); } catch { /* The connection still works without persistence. */ }
           setState(previous => ({ ...previous, identity: identity.toHexString() }));
-          for (const table of [conn.db.simConfig, conn.db.cohortState, conn.db.aggregateHour, conn.db.household, conn.db.sampleHome, conn.db.eventLog, conn.db.planHour]) {
+          for (const table of [conn.db.simConfig, conn.db.cohortState, conn.db.aggregateHour, conn.db.household, conn.db.sampleHome, conn.db.eventLog, conn.db.planHour, conn.db.myContactLine]) {
             table.onInsert(refresh); table.onUpdate(refresh); table.onDelete(refresh);
           }
           conn.subscriptionBuilder().onApplied(() => { ready = true; delay = 500; refresh(); })
             .onError(ctx => { retry(ctx.event ?? new Error('Live subscription failed')); conn.disconnect(); })
-            .subscribe(['SELECT * FROM sim_config', 'SELECT * FROM cohort_state', 'SELECT * FROM aggregate_hour', 'SELECT * FROM household', 'SELECT * FROM sample_home', 'SELECT * FROM event_log', 'SELECT * FROM cohort', 'SELECT * FROM plan_hour', 'SELECT * FROM weather_hour']);
+            .subscribe(['SELECT * FROM sim_config', 'SELECT * FROM cohort_state', 'SELECT * FROM aggregate_hour', 'SELECT * FROM household', 'SELECT * FROM sample_home', 'SELECT * FROM event_log', 'SELECT * FROM cohort', 'SELECT * FROM plan_hour', 'SELECT * FROM weather_hour', 'SELECT * FROM my_contact_line']);
         }).onConnectError((_ctx, error) => retry(error)).onDisconnect((_ctx, error) => retry(error)).build();
     }
     connect();
@@ -104,6 +106,10 @@ export const useHouseholds = () => useConnection().households;
 export const useSampleHomes = () => useConnection().homes;
 export const useEventLog = (limit = 20) => useConnection().events.slice(0, limit);
 export const useReducers = () => useConnection().connection?.reducers;
+export function useMyContactLine() {
+  const { contactLines, identity } = useConnection();
+  return contactLines.find(row => row.identity.toHexString() === identity);
+}
 export function useMyHousehold() {
   const { households, identity } = useConnection();
   return households.find(home => home.identity.toHexString() === identity);

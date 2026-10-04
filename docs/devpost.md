@@ -1,10 +1,10 @@
-# Thermal Reserve: Devpost draft
+# BoreaFlux: Devpost draft
 
 > Draft v1 by DATA (Oct 4, rewritten for the pressure console; claims follow AGENTS.md Section 5). H3 owns the final text. Placeholders are in [BRACKETS]; ⏳ marks numbers that must come from final test output before submission. Every number here is in `data/constants.json` or computed by `packages/model`; links are in `docs/sources.md`.
 
 **Tagline:** Thermostat setbacks planned against modeled pipeline pressure, so Southcentral Alaska's gas grid stays above the curtailment line on the coldest evenings.
 
-**Links:** live app <https://thermal-reserve.vercel.app> · repo [REPO URL] · backup video [VIDEO URL]
+**Links:** live app <https://boreaflux.vercel.app> · repo [REPO URL] · backup video [VIDEO URL]
 
 **Team:** [H1 NAME], [H2 NAME], [H3 NAME]
 
@@ -22,12 +22,12 @@ Smart-thermostat demand response already exists elsewhere, but short events most
 
 ⏳ Sections 2 and 3 describe the product as specified; before submitting, confirm each feature against the deployed app and cut anything that isn't live.
 
-Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat setbacks to keep a **modeled pipeline pressure index** (100 = pipes full, 0 = curtailment begins; not psi, not Enstar telemetry) above a reserve, with the least discomfort. It's a simulation: it does not control real thermostats.
+BoreaFlux simulates a fleet of Anchorage homes and dispatches thermostat setbacks to keep a **modeled pipeline pressure index** (100 = pipes full, 0 = curtailment begins; not psi, not Enstar telemetry) above a reserve, with the least discomfort. It's a simulation: it does not control real thermostats.
 
-- **Operator console (`/ops`).** Three charts on one clock: modeled system pressure, outdoor temperature (forecast vs actual), and home discomfort, with a verdict strip and a one-line status. Two presets replay Feb 2024 with less supply than it had: **Near-miss** (11.5 MMcf/day less) and **Stress** (28.5 MMcf/day less, the size of the 2024 storage-well failure). Solve, dispatch, and watch the live run re-plan as each new forecast arrives, on a map of 1,000 sample homes. The previous gas-volume console is kept at `/ops?ui=gas`. [SCREENSHOT: ops console, Near-miss mid-event]
-- **Household app (`/home`).** Scan a QR code, join in three taps, and see your indoor temperature, setpoint, status, gas saved and the live system pressure. Override any time; your share moves to other homes, never below the 62°F comfort floor. [SCREENSHOT: phone app]
+- **Operator console (`/ops`).** Three charts on one clock: modeled system pressure, outdoor temperature (forecast vs actual), and home discomfort, with a verdict strip and a one-line status. Two presets replay Feb 2024 with less supply than it had: **Near-miss** (11.5 MMcf/day less) and **Stress** (15 MMcf/day less, an assumed case). Solve, dispatch, and watch the live run re-plan as each new forecast arrives; the event log shows each re-plan, join and override. The previous gas-volume console is kept at `/ops?ui=gas`. [SCREENSHOT: ops console, Near-miss mid-event]
+- **Household app (`/home`).** Scan a QR code, join in three taps, and see your home on a live map of Anchorage, your indoor temperature, setpoint, status, gas saved and the live system pressure. Override any time; your share moves to other homes, never below the 62°F comfort floor. [SCREENSHOT: phone app]
 - **What-if calculator (`/whatif`).** Pick participation, setback depth, outdoor temperature, and days; see MMcf/day, share of the needle-peak supply, and value, with every formula and constant shown. [SCREENSHOT]
-- **Validation (`/validation`).** The same physics run under ConEd-like and SoCalGas-like conditions, next to the published results, with pass bands, plus the archived forecasts' error by lead time. [SCREENSHOT: validation page]
+- **Validation (`/validation`).** The same physics run under ConEd-like conditions next to the published snapback result, an Anchorage gas-per-home check, and the archived forecasts' error by lead time. [SCREENSHOT: validation page]
 
 ## 3. How we built it
 
@@ -69,7 +69,7 @@ Steady-state savings from a sustained setback at −20°F, automated homes only 
 | 25,000 | 1.42 MMcf/day | 2.28 MMcf/day | 7.1% | ~$24,900/day |
 | 50,000 | 2.85 MMcf/day | 4.55 MMcf/day | 14.2% | ~$49,800/day |
 
-What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,000 homes at 5°F save about 28 MMcf, under 1% of a 3 Bcf gap. Thermal Reserve is a deliverability tool for the coldest days, not a supply fix. We found no data on how many Anchorage homes have smart thermostats, so we report results per enrolled home instead of guessing.
+What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,000 homes at 5°F save about 28 MMcf, under 1% of a 3 Bcf gap. BoreaFlux is a deliverability tool for the coldest days, not a supply fix. We found no data on how many Anchorage homes have smart thermostats, so we report results per enrolled home instead of guessing.
 
 ## 6. Challenges we ran into
 
@@ -82,14 +82,15 @@ What this does **not** do: solve the seasonal shortfall. Over 20 cold days, 25,0
 
 ## 7. Accomplishments, what we learned, and what's next
 
-In Feb 2024 nobody was cut off, and we don't claim our program would have saved it. We ask what happens with less supply (feb2024 replay, 25,000 homes, all derived from the model):
+### Accomplishments that we're proud of
 
-| Preset | Supply lost vs Feb 2024 | No program | 25,000 homes, re-planned on forecasts |
-| --- | --- | --- | --- |
-| Near-miss | 11.5 MMcf/day | modeled pressure below the curtailment line for 3 hours (lowest −6.9); about 0.66 MMcf curtailed | stays above the 10-point reserve (lowest 10.2); about 1.5°F cooler on average over the three days (105 °F·h per home); 16 re-plans |
-| Stress | 28.5 MMcf/day | about 40.2 MMcf curtailed | about 34.4 MMcf curtailed (14% less), at 402 °F·h per home; the fleet reduces curtailment but cannot remove it |
-
-[⏳ ADD after the end-to-end test: the live run tracks the planned pressure within X points. WEB measured a 0.117-point maximum error on Maincloud at 2 and 4 h/s (AI log, 05:18); confirm on production.]
+- **Planning against how the grid actually fails.** Southcentral's gas system fails on one cold evening, when pressure in the shared pipes runs out, not over a season. Our optimizer plans hour by hour against a modeled pressure balance: a linear program over 24 home types and 96 hours that keeps pressure above a 10-point reserve with the least discomfort, counting the reheating that follows. It runs in the browser; in a 972-case sweep it never fell back, and the slowest solve took 453 ms.
+- **Honest results on real history.** Nobody was cut off in Feb 2024, so we replay that cold snap with less supply. With 11.5 MMcf/day less, doing nothing drops modeled pressure below the curtailment line for 3 hours; 25,000 simulated homes keep it above the reserve the whole time, at about 4.8°F cooler across 22 setback hours, with no home below 62°F. With 15 MMcf/day less (an assumed case), the fleet can't prevent curtailment, and the screen says so: it cuts the curtailed gas from 2.99 to 1.57 MMcf and the hours below the line from 17 to 7.
+- **No hindsight.** The replays plan with the weather forecasts that existed at the time (21 archived National Blend of Models runs per replay) and re-plan as each new one arrives. When we found that a single plan made from the first forecast falls below the line, because the forecasts ran warm, we changed our claim instead of hiding it.
+- **Physics checked against real pilots.** The same house model reproduces the snapback ConEd measured (46.5% of savings kept vs 48% published) and gives 1.04 Mcf per home on a −20°F day, in line with Enstar's average home, calibrated on 30 years of Anchorage weather.
+- **Live and shared.** SpacetimeDB runs the same physics file as the browser every second; a judge joins from a phone in three taps, appears on the live map, and can override while the console reassigns their share.
+- **Every number traceable.** Each number on screen is labeled sourced, derived or assumed, every source link was opened and checked, and we corrected our own figures when the sources disagreed.
+- **A full pivot overnight without breaking the build.** Five AI coding agents, coordinated through Agent Mail with frozen contracts and a test-gated merge, moved the whole product from daily gas volumes to hourly pressure in a few hours while `main` stayed deployable.
 
 **Learned:** short events mostly move gas use around; the hour the grid is tightest matters more than the day's total, and plans have to be re-made as forecasts change.
 

@@ -20,7 +20,7 @@ function recentHandoffs(dataDir: string) {
 }
 
 const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Thermal Reserve agents</title><style>
+<title>BoreaFlux agents</title><style>
 :root{--bg:#0B1220;--surface:#111A2E;--text:#E6EDF7;--muted:#9AA8BF;--blue:#5BC0EB;--amber:#F2A541;--green:#30A46C;--red:#E5484D;--line:#22304d}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,sans-serif}
 header{padding:16px 24px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:18px}header p{margin:4px 0 0;color:var(--muted)}
@@ -32,7 +32,7 @@ section{background:var(--surface);border:1px solid var(--line);border-radius:12p
 .q{font-weight:600}.a{color:var(--muted);margin-top:6px}
 pre{margin:0;white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,monospace;color:var(--muted);max-height:70vh;overflow:auto}
 .ln-handoff{color:var(--blue)}.ln-send{color:var(--text)}.ln-hold{color:var(--amber)}.ln-honesty{color:var(--red)}.ln-usage{color:#6f7d96}
-</style></head><body><header><h1>Thermal Reserve iMessage companion</h1><p>The concierge agent hands data questions to the Insights agent, which answers only from tool results. Simulation only.</p></header>
+</style></head><body><header><h1>BoreaFlux iMessage companion</h1><p>The concierge agent hands data questions to the Insights agent, which answers only from tool results. Simulation only.</p></header>
 <main><section><h2>Handoffs, newest first</h2><div id="h"></div></section><section><h2>Live log</h2><pre id="log"></pre></section></main>
 <script>
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
