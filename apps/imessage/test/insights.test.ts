@@ -192,7 +192,7 @@ describe('concierge agent', () => {
   it('the memory card and recent conversation reach the model (persistent context)', async () => {
     const store = linked();
     store.updatePersonMemory(PHONE, m => ({ ...m, preferredName: 'Sam' }));
-    store.addHistory(PHONE, 'out', 'Thermal Reserve demo, since my last text (simulated):\n• Fri 02:00 heat lowered to 65°F', NOON_ET);
+    store.addHistory(PHONE, 'out', 'BoreaFlux demo, since my last text (simulated):\n• Fri 02:00 heat lowered to 65°F', NOON_ET);
     store.addHistory(PHONE, 'in', 'why the first one?', NOON_ET);
     const call = scripted('Hi Sam.');
     await converse({ store, world: world(), consts, call, log: () => undefined }, PHONE, IDENTITY, 'why the first one?');

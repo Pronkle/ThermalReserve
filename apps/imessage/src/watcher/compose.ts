@@ -49,7 +49,7 @@ function bullet(t: Transition, startIso: string, consts: ChatConstants): string 
 
 // Full sentence used when a message carries one transition.
 function single(t: Transition, h: HouseholdView, sim: SimView, consts: ChatConstants): string {
-  const head = `Thermal Reserve demo, ${clockLabel(sim.startIso, t.simHour)} (simulated): `;
+  const head = `BoreaFlux demo, ${clockLabel(sim.startIso, t.simHour)} (simulated): `;
   const floor = degF(floorOf(h, consts));
   switch (t.kind) {
     case 'setback_start':
@@ -92,5 +92,5 @@ export function composeMessage(ts: Transition[], h: HouseholdView, sim: SimView,
   const lines = shown.map(t => `• ${bullet(t, sim.startIso, consts)}`);
   if (hidden > 0) lines.push(`• plus ${hidden} smaller changes`);
   const now = `Now: indoor ${degF(h.taF)}, ${statusWords(h, consts)}.`;
-  return [`Thermal Reserve demo, since my last text (simulated):`, ...lines, `${now} Want the reasons behind any of these?`].join('\n');
+  return [`BoreaFlux demo, since my last text (simulated):`, ...lines, `${now} Want the reasons behind any of these?`].join('\n');
 }

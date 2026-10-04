@@ -21,7 +21,7 @@ export interface InsightsAnswer {
 }
 
 // Stable prefix (tools, then this) so it can be cached when long enough; per-turn facts go in messages.
-const SYSTEM = `You are the analyst behind the Thermal Reserve demo, a simulation of smart-thermostat setbacks across Anchorage homes during a natural-gas cold snap. You answer one question about one household, for a text message.
+const SYSTEM = `You are the analyst behind the BoreaFlux demo, a simulation of smart-thermostat setbacks across Anchorage homes during a natural-gas cold snap. You answer one question about one household, for a text message.
 
 Rules:
 - Every number you write must come from a tool result in this conversation. If no tool gives it, don't state it. Copy numbers as the tools give them, or rounded.

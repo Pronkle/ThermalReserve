@@ -43,7 +43,7 @@ export interface InboundDeps {
 
 export interface InboundReply { react?: 'like' | 'love'; texts: string[]; }
 
-export const NOT_OPTED_IN = 'This is the Thermal Reserve demo assistant (automated; simulated heat only). To get heat updates, join on the household page, tick "Text me updates by iMessage" and enter this phone number, then text START here.';
+export const NOT_OPTED_IN = 'This is the BoreaFlux demo assistant (automated; simulated heat only). To get heat updates, join on the household page, tick "Text me updates by iMessage" and enter this phone number, then text START here.';
 const welcome = (home: HouseholdView, sim: SimView | undefined, consts: ChatConstants) => {
   const live = sim && sim.status !== 'idle' && sim.simHour < sim.eventEndHour
     ? ` Right now (simulated): indoor ${degF(home.taF)}, ${statusWords(home, consts)}.` : '';
