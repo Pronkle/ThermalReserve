@@ -2,7 +2,7 @@
 
 A long-lived Node process that texts linked households through **Photon Spectrum** (`spectrum-ts`) when the simulated dispatch changes their heat. It reads the live SpacetimeDB tables (read-only) and keeps its own memory in local SQLite. Owner: CHAT. Brief: `docs/agents/CHAT_BRIEF.md`.
 
-Status: Phase 1 (proactive notifications, linking, STOP) verified on a real iPhone. Phase 2 (two cooperating agents answering questions) is built and unit-tested with a scripted model; the live 10-question run waits for a working `ANTHROPIC_API_KEY`.
+Status: Phase 1 (proactive notifications, linking, STOP) and Phase 2 (two cooperating agents) verified on a real iPhone. Phase 3 (memory, back-off, contact card, agent screen) is built and tested offline; not yet run on a phone.
 
 ## Run it
 
@@ -35,6 +35,7 @@ Other settings, all optional:
 | `CHAT_TZ` | `America/New_York` | Recipient time zone for quiet hours (22:00–08:00) |
 | `CHAT_HELLO_TO` | unset | A phone (E.164, put it in `.env` only) to text once at startup; see "Photon routing window" |
 | `CHAT_DEBUG` | off | `1`: log every raw Spectrum event (numbers masked) |
+| `CHAT_VIEWER_PORT` | 8787 | Agent screen on `http://127.0.0.1:<port>/` (`0` turns it off) |
 
 During judging the process runs on a team laptop (H1-approved exception to "no laptop process"). If it stops, the website is unaffected; texts just stop.
 
@@ -71,9 +72,19 @@ The **Concierge** (chatting) runs on **Claude Haiku 4.5** (`claude-haiku-4-5`) t
 
 Prompt caching: the stable prefix (tools, then the system prompt) is marked for caching. Sonnet 5.5 caches prefixes from 512 tokens, so Insights' ~1,200-token prefix caches; Haiku 4.5 needs 4,096, so the concierge's doesn't.
 
+## Social and persistent context (Phase 3)
+
+- **Memory, limited to the mission.** The concierge's `remember` tool accepts only three categories plus texting preferences: *household* (who needs steady heat or feels the cold, e.g. "infant in the back bedroom"; no diagnoses or other people's names), *comfort* (what feels too cold, cold rooms), *schedule* (when the home is empty or occupied), and a name to use and short or detailed answers. Code enforces it: unknown categories are dropped, at most 5 notes per category, 120 characters each, phone numbers, emails and markup stripped, unknown fields ignored on read.
+- **Uses what it remembers.** Each turn gets a memory card (including "last talked 3 hours ago") and the last 16 texts; after a restart the hello says "Last time you asked: …".
+- **Backs off when ignored.** After 2 update texts with no reply, the second one says "You haven't replied, so I'll only send the end-of-event summary unless you text me." and nothing else goes out until the summary (which lists everything held). Any text from them resets it.
+- **Doesn't talk over itself.** Update texts wait while a reply to that person is being drafted, plus 5 s after it.
+- **Contact card** once, after the first exchange (`shareContactCard`, cloud iMessage only).
+- **Agent screen** at `http://127.0.0.1:8787/`: each handoff as concierge → insights → tools → honesty result, with the question and answer, beside the live log. Localhost only; log lines are already masked.
+- **How savings are calculated** comes from the `savings_method` tool (twin-difference method, labeled efficiency and gas heat content), not from the model.
+
 ## What it stores
 
-`apps/imessage/data/chat-<database>.sqlite` (gitignored): phone number ↔ household identity, preferences, last notified state, the queue of unsent changes, an outbox, the last 30 turns per conversation, and a small person memory (preferred name, verbosity, what they care about, questions already answered). `data/handoff.jsonl` holds questions and answers, not phone numbers. STOP, or the household disappearing (`reset_households`), deletes all of it for that number. Logs mask numbers to the last 4 digits.
+`apps/imessage/data/chat-<database>.sqlite` (gitignored): phone number ↔ household identity, preferences, last notified state, the queue of unsent changes, an outbox, the last 30 turns per conversation, and the limited person memory above (plus questions already answered and when you last talked). `data/handoff.jsonl` holds questions and answers, not phone numbers. STOP, or the household disappearing (`reset_households`), deletes all of it for that number. Logs mask numbers to the last 4 digits.
 
 ## Restart safety
 

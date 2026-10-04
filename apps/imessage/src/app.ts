@@ -10,9 +10,16 @@ import { Store } from './memory/store';
 import { Mirror } from './stdb/mirror';
 import type { Transport } from './transport/spectrum';
 import { Notifier } from './watcher/notifier';
+import { Feed, startViewer } from './viewer';
 
 export async function runCompanion(transport: Transport, config: ChatConfig = loadConfig()) {
-  const log = (line: string) => console.log(`${new Date().toISOString().slice(11, 19)} ${line}`);
+  const feed = new Feed();
+  const log = (line: string) => {
+    const stamped = `${new Date().toISOString().slice(11, 19)} ${line}`;
+    console.log(stamped);
+    feed.push(stamped);
+  };
+  const viewer = startViewer(Number(process.env.CHAT_VIEWER_PORT ?? 8787), config.dataDir, feed, log);
   const consts = loadChatConstants();
   const store = new Store(join(config.dataDir, `chat-${config.stdbDb}.sqlite`));
   const settled = store.settleInterruptedSends(Date.now());
@@ -56,8 +63,12 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
       const homes = mirror.households();
       const linked = store.contact(config.helloTo!);
       const only = homes.length === 1 ? ` For ${homes[0].nickname}, that's Link my home ${linkCode(homes[0].identity)}.` : '';
+      // A returning person gets a nod to what was remembered (persistent context after a restart).
+      const lastAsked = linked
+        ? store.history(config.helloTo!).filter(t => t.direction === 'in' && classify(t.body) === 'other').at(-1)?.body.trim().slice(0, 80)
+        : undefined;
       const body = linked
-        ? `Thermal Reserve demo assistant is back on (simulation only). You're linked to ${linked.nickname}.`
+        ? `Thermal Reserve demo assistant is back on (simulation only). You're linked to ${linked.nickname}.${lastAsked ? ` Last time you asked: "${lastAsked}". Ask me anything about it.` : ''}`
         : `Thermal Reserve demo assistant is on (simulation only). To get heat updates, text Link my home and your code from the household page.${only}`;
       try {
         await transport.sendText(config.helloTo!, body);
@@ -76,6 +87,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     stopping = true;
     log(`[chat] ${signal}: stopping`);
     clearInterval(timer);
+    viewer?.close();
     mirror.disconnect();
     await transport.stop().catch(() => undefined);
     store.close();
@@ -130,6 +142,13 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
         log(`[in] ${maskAddress(msg.address)}: ${reply.react ? `tapback ${reply.react}` : `${reply.texts.length} bubble(s)`}`);
         if (reply.react) await msg.react(reply.react);
         if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await msg.send(t); });
+        // After the first exchange, share our contact card once (Photon's deliverability advice).
+        const linkedNow = store.contact(msg.address);
+        if (linkedNow && !linkedNow.cardSent && transport.shareContactCard) {
+          store.markCardSent(msg.address);
+          try { await transport.shareContactCard(msg.address); log(`[card] shared with ${maskAddress(msg.address)}`); }
+          catch (e) { log(`[card] not shared: ${String(e).slice(0, 120)}`); }
+        }
         continue;
       }
       // A conversation turn: typing indicator while the agents work, and a short holding bubble

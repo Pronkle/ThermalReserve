@@ -5,7 +5,7 @@ import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { ChatConstants } from '../config';
-import type { PersonMemory, Store } from '../memory/store';
+import { addNote, type MemoryCategory, type PersonMemory, type Store } from '../memory/store';
 import { checkHonesty } from '../insights/honesty';
 import { ask, type InsightsAnswer, type ModelCall } from '../insights/agent';
 import type { World } from '../types';
@@ -20,15 +20,16 @@ How you work:
 - Relay the analyst's answer in the person's style and length. You may shorten it; keep every number exactly as given, or drop it.
 - If they feel cold or unhappy: one line of empathy, the floor from the facts card ("never below ..."), and how to get normal heat right away: the Override button on the household page. Don't argue.
 - Preferences ("only big changes", "text me every change", "text me anytime", "no texts at night") go to set_preference; confirm in one line.
-- Things worth remembering about the person (a name to use, who they worry about, whether they like numbers or short answers) go to remember.
+- Remember only what matters for heating them through a gas emergency, with remember: who in the home needs steady heat or feels the cold (an infant, an elderly parent, someone with a medical need; no diagnoses or names of others), temperature comfort (what feels too cold, rooms that get cold), when the home is empty or occupied, and how they like to be texted (a name to use, short or detailed). Never store anything else: no other personal details, opinions, addresses, contacts or money.
+- If someone vulnerable to cold lives there, mention once that the Override button gives normal heat right away, any time.
 - Small talk or off-topic: one friendly line, then steer back gently. If asked, say you're an automated assistant for a simulation; don't pretend to be a person.
-- Use what you remember about them (the memory card) when it helps, briefly.
+- Use what you remember (the memory card) when it helps, briefly. If you last talked a while ago, a short nod to it is natural ("Last time you asked about Friday…"), not a recap.
 
 Style: like a considerate person texting. 1 to 3 short bubbles separated by a blank line. Plain words, °F, no exclamation marks, no markdown or lists, never "AI-powered".`;
 
 const TOOLS: Anthropic.Tool[] = [
   { name: 'ask_insights', description: 'Hand a data question to the analyst agent. Returns its answer, grounded in the live simulation and model. Use for anything with numbers or reasons.', input_schema: { type: 'object', properties: { question: { type: 'string', description: 'One standalone question, with any time or event named explicitly.' } }, required: ['question'], additionalProperties: false } },
-  { name: 'remember', description: 'Save something about this person for later conversations.', input_schema: { type: 'object', properties: { preferredName: { type: 'string' }, verbosity: { type: 'string', enum: ['short', 'normal', 'detailed'] }, caresAbout: { type: 'string', description: 'One short note, e.g. "worried about the baby\'s room"' } }, additionalProperties: false } },
+  { name: 'remember', description: 'Save one heating-relevant fact about this person for later conversations. Categories: household (who needs steady heat or feels the cold), comfort (temperature preferences, cold rooms), schedule (when the home is empty or occupied). Also a preferred name or answer length.', input_schema: { type: 'object', properties: { category: { type: 'string', enum: ['household', 'comfort', 'schedule'] }, note: { type: 'string', description: 'One short note, e.g. "infant in the back bedroom", "feels cold below 66°F", "away weekdays 9 to 5"' }, preferredName: { type: 'string' }, verbosity: { type: 'string', enum: ['short', 'normal', 'detailed'] } }, additionalProperties: false } },
   { name: 'set_preference', description: 'Change how often to text: notifyLevel "summary" (only the end-of-event summary) or "all"; anytime true to allow texts at night.', input_schema: { type: 'object', properties: { notifyLevel: { type: 'string', enum: ['summary', 'all'] }, anytime: { type: 'boolean' } }, additionalProperties: false } },
 ];
 
@@ -56,12 +57,24 @@ function factsCard(deps: ConciergeDeps, identity: string): string {
   ].join('\n');
 }
 
-function memoryCard(memory: PersonMemory): string {
+function ago(ms: number): string {
+  const min = Math.round(ms / 60000);
+  if (min < 2) return 'just now';
+  if (min < 90) return `${min} minutes ago`;
+  const h = Math.round(min / 60);
+  return h < 36 ? `${h} hours ago` : `${Math.round(h / 24)} days ago`;
+}
+
+export function memoryCard(memory: PersonMemory, now = Date.now()): string {
+  const notes = memory.notes ?? {};
   const parts = [
     memory.preferredName && `call them ${memory.preferredName}`,
     memory.verbosity && `prefers ${memory.verbosity} answers`,
-    memory.caresAbout?.length && `cares about: ${memory.caresAbout.join('; ')}`,
+    notes.household?.length && `household: ${notes.household.join('; ')}`,
+    notes.comfort?.length && `comfort: ${notes.comfort.join('; ')}`,
+    notes.schedule?.length && `schedule: ${notes.schedule.join('; ')}`,
     memory.answered?.length && `already answered: ${memory.answered.slice(-4).join(' | ')}`,
+    memory.lastTalkedAt && `last talked ${ago(now - memory.lastTalkedAt)}`,
   ].filter(Boolean);
   return parts.length ? `Memory card: ${parts.join('; ')}.` : 'Memory card: nothing saved yet.';
 }
@@ -89,10 +102,11 @@ export async function converse(deps: ConciergeDeps, address: string, identity: s
   const { store } = deps;
   const memory = store.personMemory(address);
   const facts = factsCard(deps, identity);
+  const card = memoryCard(memory);
   const history = store.history(address).slice(0, -1); // the current inbound text is already stored last
   const messages: Anthropic.MessageParam[] = [{
     role: 'user',
-    content: `${facts}\n${memoryCard(memory)}\n${transcript(history)}\n\nTheir new text: ${text}`,
+    content: `${facts}\n${card}\n${transcript(history)}\n\nTheir new text: ${text}`,
   }];
   const insights: InsightsAnswer[] = [];
 
@@ -117,12 +131,17 @@ export async function converse(deps: ConciergeDeps, address: string, identity: s
         store.updatePersonMemory(address, m => ({ ...m, answered: [...(m.answered ?? []), question].slice(-8), lastExplanation: result.answer }));
         results.push({ type: 'tool_result', tool_use_id: block.id, content: result.answer });
       } else if (block.name === 'remember') {
-        store.updatePersonMemory(address, m => ({
-          ...m,
-          preferredName: typeof input.preferredName === 'string' ? input.preferredName.slice(0, 40) : m.preferredName,
-          verbosity: typeof input.verbosity === 'string' ? input.verbosity as PersonMemory['verbosity'] : m.verbosity,
-          caresAbout: typeof input.caresAbout === 'string' ? [...(m.caresAbout ?? []), input.caresAbout.slice(0, 120)].slice(-6) : m.caresAbout,
-        }));
+        const category = input.category as MemoryCategory | undefined;
+        store.updatePersonMemory(address, m => {
+          let next: PersonMemory = {
+            ...m,
+            preferredName: typeof input.preferredName === 'string' ? input.preferredName.slice(0, 40) : m.preferredName,
+            verbosity: input.verbosity === 'short' || input.verbosity === 'normal' || input.verbosity === 'detailed' ? input.verbosity : m.verbosity,
+          };
+          if (category && typeof input.note === 'string') next = addNote(next, category, input.note);
+          return next;
+        });
+        (deps.log ?? console.log)(`[memory] saved ${category ?? 'preference'}`);
         results.push({ type: 'tool_result', tool_use_id: block.id, content: 'saved' });
       } else if (block.name === 'set_preference') {
         store.setPreference(address, {
@@ -139,13 +158,14 @@ export async function converse(deps: ConciergeDeps, address: string, identity: s
 
   const draft = final ? final.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n').trim() : '';
   // The concierge may only repeat numbers that Insights, the facts card, or the person gave.
-  const evidence = [...insights.flatMap(r => [r.answer, ...r.toolCalls.map(t => t.output)]), facts, text];
+  const evidence = [...insights.flatMap(r => [r.answer, ...r.toolCalls.map(t => t.output)]), facts, card, text];
   const check = checkHonesty(draft, evidence);
   let reply = draft;
   if (!draft || !check.ok) {
     (deps.log ?? console.log)(`[honesty] concierge reply ${draft ? `added ${check.unsupported.join(', ')}` : 'empty'}; sending the analyst's answer instead`);
     reply = insights.at(-1)?.answer ?? fallbackReply(deps, identity, text);
   }
+  store.updatePersonMemory(address, m => ({ ...m, lastTalkedAt: Date.now() }));
   return { bubbles: toBubbles(reply), insights };
 }
 

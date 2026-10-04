@@ -10,12 +10,38 @@ import type { Transition } from '../types';
 export type NotifyLevel = 'all' | 'summary';
 
 // Small per-person memory the concierge updates through its remember tool (brief §6.4).
+// Limited to what matters for heating during a gas emergency (H3, Oct 4): who in the home needs
+// steady heat, temperature comfort, when the home is occupied, and how they like to be texted.
+export type MemoryCategory = 'household' | 'comfort' | 'schedule';
+export const MEMORY_CATEGORIES: MemoryCategory[] = ['household', 'comfort', 'schedule'];
+export const MAX_NOTES_PER_CATEGORY = 5;
+export const MAX_NOTE_CHARS = 120;
+
 export interface PersonMemory {
   preferredName?: string;
   verbosity?: 'short' | 'normal' | 'detailed';
-  caresAbout?: string[];
+  notes?: Partial<Record<MemoryCategory, string[]>>;
   answered?: string[];          // questions already answered, so it doesn't repeat itself
   lastExplanation?: string;
+  lastTalkedAt?: number;
+}
+
+// Contact details never go into memory, even if a note contains them.
+export function cleanNote(text: string): string {
+  return text
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email removed]')
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, '[number removed]')
+    .replace(/<[^>]*>/g, '')
+    .trim()
+    .slice(0, MAX_NOTE_CHARS);
+}
+
+export function addNote(memory: PersonMemory, category: MemoryCategory, text: string): PersonMemory {
+  const note = cleanNote(text);
+  if (!note || !MEMORY_CATEGORIES.includes(category)) return memory;
+  const existing = memory.notes?.[category] ?? [];
+  if (existing.includes(note)) return memory;
+  return { ...memory, notes: { ...memory.notes, [category]: [...existing, note].slice(-MAX_NOTES_PER_CATEGORY) } };
 }
 
 export interface Contact {
@@ -29,6 +55,7 @@ export interface Contact {
   lastState: NotifiedState | undefined;
   lastSentAt: number;        // real ms of the last proactive send (throttle)
   lastInboundAt: number;
+  cardSent: boolean;         // contact card shared after the first exchange
 }
 
 export interface Pending { id: string; address: string; transition: Transition; createdAt: number; }
@@ -38,6 +65,7 @@ export interface OutboxRow { id: string; address: string; body: string; status: 
 interface ContactRow {
   address: string; identity: string; nickname: string; linked_at: number; notify_level: string;
   anytime: number; unanswered: number; last_state: string | null; last_sent_at: number; last_inbound_at: number;
+  card_sent: number;
 }
 
 export class Store {
@@ -67,6 +95,9 @@ export class Store {
       CREATE TABLE IF NOT EXISTS failure (
         id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL, error TEXT NOT NULL, at INTEGER NOT NULL);
     `);
+    // Columns added after the first release of the file.
+    const cols = (this.db.prepare('PRAGMA table_info(contact)').all() as { name: string }[]).map(c => c.name);
+    if (!cols.includes('card_sent')) this.db.exec('ALTER TABLE contact ADD COLUMN card_sent INTEGER NOT NULL DEFAULT 0');
   }
 
   close() { this.db.close(); }
@@ -90,7 +121,7 @@ export class Store {
       address: r.address, identity: r.identity, nickname: r.nickname, linkedAt: r.linked_at,
       notifyLevel: r.notify_level === 'summary' ? 'summary' : 'all', anytime: r.anytime === 1,
       unanswered: r.unanswered, lastState: r.last_state ? JSON.parse(r.last_state) : undefined,
-      lastSentAt: r.last_sent_at, lastInboundAt: r.last_inbound_at,
+      lastSentAt: r.last_sent_at, lastInboundAt: r.last_inbound_at, cardSent: r.card_sent === 1,
     };
   }
 
@@ -130,6 +161,10 @@ export class Store {
     if (patch.anytime !== undefined) this.db.prepare('UPDATE contact SET anytime = ? WHERE address = ?').run(patch.anytime ? 1 : 0, address);
   }
 
+  markCardSent(address: string) {
+    this.db.prepare('UPDATE contact SET card_sent = 1 WHERE address = ?').run(address);
+  }
+
   noteInbound(address: string, body: string, now: number) {
     this.db.prepare('UPDATE contact SET unanswered = 0, last_inbound_at = ? WHERE address = ?').run(now, address);
     this.addHistory(address, 'in', body, now);
@@ -148,7 +183,15 @@ export class Store {
 
   personMemory(address: string): PersonMemory {
     const r = this.db.prepare('SELECT json FROM person_memory WHERE address = ?').get(address) as { json: string } | undefined;
-    return r ? JSON.parse(r.json) : {};
+    if (!r) return {};
+    // Only the known fields survive a read (older files may hold other keys).
+    const m = JSON.parse(r.json) as PersonMemory;
+    const notes: PersonMemory['notes'] = {};
+    for (const c of MEMORY_CATEGORIES) if (Array.isArray(m.notes?.[c])) notes[c] = m.notes![c]!.map(cleanNote).filter(Boolean).slice(-MAX_NOTES_PER_CATEGORY);
+    return {
+      preferredName: m.preferredName, verbosity: m.verbosity, notes,
+      answered: m.answered, lastExplanation: m.lastExplanation, lastTalkedAt: m.lastTalkedAt,
+    };
   }
 
   updatePersonMemory(address: string, fn: (m: PersonMemory) => PersonMemory) {

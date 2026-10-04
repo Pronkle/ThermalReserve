@@ -22,6 +22,11 @@ export interface NotifierDeps {
   log?: (line: string) => void;
 }
 
+// After this many proactive texts with no reply, only the end-of-event summary goes out until
+// they text again (CHAT brief §6.1: social awareness and deliverability in one).
+export const UNANSWERED_LIMIT = 2;
+export const BACKOFF_NOTICE = "You haven't replied, so I'll only send the end-of-event summary unless you text me.";
+
 export function inQuietHours(nowMs: number, cfg: Pick<ChatConfig, 'quietStartHour' | 'quietEndHour' | 'timeZone'>): boolean {
   const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: cfg.timeZone, hour: '2-digit', hourCycle: 'h23' }).format(nowMs));
   return cfg.quietStartHour > cfg.quietEndHour
@@ -75,8 +80,12 @@ export class Notifier {
     if (pending.length === 0) return;
     const now = this.now();
     const transitions = pending.map(p => p.transition);
-    if (contact.notifyLevel === 'summary' && !transitions.some(t => t.kind === 'event_end')) {
+    const hasEnd = transitions.some(t => t.kind === 'event_end');
+    if (contact.notifyLevel === 'summary' && !hasEnd) {
       return this.hold(contact, `summary-only preference; ${pending.length} change(s) saved for the event summary`);
+    }
+    if (contact.unanswered >= UNANSWERED_LIMIT && !hasEnd) {
+      return this.hold(contact, `${contact.unanswered} texts unanswered; ${pending.length} change(s) saved for the event summary`);
     }
     if (now - pending[0].createdAt < config.debounceMs) return;
     if (this.deps.isBusy?.(contact.address)) {
@@ -94,7 +103,9 @@ export class Notifier {
     const sim = this.deps.sim();
     if (!h || !sim) return;
 
-    const body = composeMessage(transitions, h, sim, consts);
+    // The text that reaches the limit says, once, that we're backing off.
+    const backingOff = contact.notifyLevel === 'all' && !hasEnd && contact.unanswered === UNANSWERED_LIMIT - 1;
+    const body = composeMessage(transitions, h, sim, consts) + (backingOff ? `\n${BACKOFF_NOTICE}` : '');
     const ids = pending.map(p => p.id);
     const id = createHash('sha256').update(`${contact.address}\n${ids.join('\n')}`).digest('hex').slice(0, 24);
     if (!store.beginSend({ id, address: contact.address, body, transitionIds: ids }, now)) return;

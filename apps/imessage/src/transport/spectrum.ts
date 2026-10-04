@@ -15,6 +15,8 @@ export interface InboundText {
 export interface Transport {
   inbound(): AsyncIterable<InboundText>;
   sendText(address: string, body: string): Promise<void>;
+  // Shares our own contact card in the conversation (cloud iMessage only).
+  shareContactCard?(address: string): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -23,6 +25,7 @@ export interface Transport {
 export function spectrumTransport(
   app: SpectrumInstance,
   openSpace?: (address: string) => Promise<Space>,
+  contactCard?: (space: Space) => Promise<void>,
 ): Transport {
   const spaces = new Map<string, Space>();
 
@@ -58,6 +61,7 @@ export function spectrumTransport(
       const space = await spaceFor(address);
       await space.send(text(body));
     },
+    shareContactCard: contactCard ? async address => contactCard(await spaceFor(address)) : undefined,
     stop: () => app.stop(),
   };
 }

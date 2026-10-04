@@ -7,4 +7,8 @@ import { spectrumTransport } from './transport/spectrum';
 
 const app = await Spectrum({ providers: [imessage.config()], telemetry: false, options: { logLevel: 'warn' } });
 const im = imessage(app);
-await runCompanion(spectrumTransport(app, async address => im.space.create(await im.user(address))));
+await runCompanion(spectrumTransport(
+  app,
+  async address => im.space.create(await im.user(address)),
+  async space => { await imessage(space).shareContactCard(); },
+));

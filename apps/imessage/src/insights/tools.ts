@@ -258,6 +258,28 @@ export function explainDecision(ctx: ToolContext, input: { hour?: number }) {
   };
 }
 
+// How "net gas saved" is computed, from the Spacetime tick (stdb/src/index.ts) and
+// packages/model/src/physics.ts, so the answer describes the real method.
+export function savingsMethod(ctx: ToolContext) {
+  const h = ctx.world.household(ctx.identity);
+  const k = (key: string) => constant(ctx, { key });
+  return {
+    summary: 'Each home is simulated twice in 5-minute steps: once following the plan and once as a twin that keeps normal heat. Net gas saved is the twin\'s gas minus the home\'s gas, added up since joining. It includes the reheat after a setback, so it can fall when heat comes back up.',
+    steps: [
+      'A two-node heat model of the home (indoor air and the building mass) tracks heat lost to the outdoors and heat from the furnace.',
+      'Each 5-minute step, the furnace heat needed to hold the target temperature is computed, capped at the furnace size.',
+      'Gas = heat ÷ (furnace efficiency × gas heat content).',
+      'The twin does the same at the normal setpoint; savings = twin gas − actual gas, summed.',
+    ],
+    furnaceEfficiency: k('eta_furnace'),
+    gasHeatContentBtuPerCf: k('hhv_btu_per_cf'),
+    gasValueUsdPerMcf: k('marginal_price_usd_mcf'),
+    thisHomeNetSavedCf: h ? num(h.savedCf, 'cubic feet', `${SIMULATED}; includes reheat`, 0) : null,
+    simulated: true,
+    notMeasured: 'Nothing is measured from a real furnace or thermostat; it is all simulated.',
+  };
+}
+
 export function constant(_ctx: ToolContext, input: { key: string }) {
   const c = constantsJson[input.key] as { value: unknown; unit?: string; label?: string; source?: string } | undefined;
   if (!c) throw new ToolError(`Unknown constant ${input.key}. Known keys: ${Object.keys(constantsJson).join(', ')}`);
@@ -292,6 +314,7 @@ export const TOOLS: Anthropic.Tool[] = [
   { name: 'weather', description: 'Outdoor °F per hour from the scenario, with its source.', input_schema: { type: 'object', properties: { fromHour: hourProp, toHour: hourProp }, additionalProperties: false } },
   { name: 'gas_day', description: 'One gas day (24 h from scenario start): no-program system demand, capacity, shortfall, and live relief so far.', input_schema: { type: 'object', properties: { day: { type: 'number', description: 'Gas day index from scenario start (0-based). Omit for today.' } }, additionalProperties: false } },
   { name: 'compare_strategies', description: 'The strategy this home is on (thisHomeIsOn) and, for comparison, no program, a simple 4-hour morning setback and a rule-based stagger: per gas day how much demand each leaves above capacity, plus net savings. Always say which strategy a number belongs to.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
+  { name: 'savings_method', description: 'How "net gas saved" is calculated (the simulation method, efficiency and gas heat content with labels), plus this home\'s current net saved. Use for "how do you know" or "how is that measured" questions.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
   { name: 'constant', description: 'One sourced/derived/assumed constant from data/constants.json with its unit, label and source (e.g. needle_peak_mmcfd, marginal_price_usd_mcf, floor_default_f, customers, shortfall_bcf).', input_schema: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'], additionalProperties: false } },
   { name: 'what_if', description: 'Steady-state what-if for many homes: MMcf/day saved, share of the needle peak, of the 2024 deliverability loss and of the shortfall, dollars per day, with formulas.', input_schema: { type: 'object', properties: { participationPct: { type: 'number', description: 'Percent of ~150,000 customers, 0–50' }, setbackF: { type: 'number', description: '1–10 °F' }, outdoorF: { type: 'number' }, days: { type: 'number' }, tier2Pct: { type: 'number' } }, required: ['participationPct', 'setbackF'], additionalProperties: false } },
 ];
@@ -304,6 +327,7 @@ export function runTool(ctx: ToolContext, name: string, input: Record<string, un
     case 'weather': return weather(ctx, input as { fromHour?: number; toHour?: number });
     case 'gas_day': return gasDay(ctx, input as { day?: number });
     case 'compare_strategies': return compareStrategiesTool(ctx);
+    case 'savings_method': return savingsMethod(ctx);
     case 'constant': return constant(ctx, input as { key: string });
     case 'what_if': return whatIfTool(ctx, input as { participationPct: number; setbackF: number });
     default: throw new ToolError(`Unknown tool ${name}`);

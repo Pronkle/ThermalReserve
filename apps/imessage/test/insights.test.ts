@@ -176,9 +176,9 @@ describe('concierge agent', () => {
 
   it('remember and set_preference persist', async () => {
     const store = linked();
-    const call = scripted([use('remember', { caresAbout: "worried about the baby's room" }), use('set_preference', { notifyLevel: 'summary' })], 'Noted. I\'ll only send the summary.');
+    const call = scripted([use('remember', { category: 'household', note: "infant in the back bedroom" }), use('set_preference', { notifyLevel: 'summary' })], 'Noted. I\'ll only send the summary.');
     await converse({ store, world: world(), consts, call, log: () => undefined }, PHONE, IDENTITY, 'only big changes, the baby room gets cold');
-    expect(store.personMemory(PHONE).caresAbout).toEqual(["worried about the baby's room"]);
+    expect(store.personMemory(PHONE).notes?.household).toEqual(['infant in the back bedroom']);
     expect(store.contact(PHONE)?.notifyLevel).toBe('summary');
   });
 
