@@ -127,11 +127,11 @@ flowchart LR
 **H1's decisions (Oct 4, msg 167):**
 - Dependencies approved, in `apps/imessage` only: `spectrum-ts`, `@anthropic-ai/sdk`; SQLite via Node's built-in `node:sqlite` (`better-sqlite3` only if that fails).
 - Link design **A** (inbound-first text with a code; no Spacetime schema change). B only if A proves impossible.
-- Hosting during judging: a hosted service (Railway, Fly or Render) preferred; **a human must create the account (asked of H3)**. No laptop exception granted yet.
+- Hosting during judging: a hosted service (Railway, Fly or Render). **H3 creates the account (confirmed Oct 4)**; CHAT picks the service and lists what to set up. No laptop exception.
 - The Sunday 10:00 code freeze applies to CHAT, and the four web routes must never depend on it.
 - `apps/imessage` tests must pass offline with no credentials (merge gate). CHAT reads `thermal-reserve-dev` read-only with its own identity.
 
-**Still open:** the hosting account (H3); Photon project and API keys (humans; never committed).
+**Still open:** which hosting service (CHAT recommends, H3 creates); Photon project and API keys (humans; never committed).
 
 ## Decisions worth knowing
 
