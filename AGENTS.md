@@ -62,7 +62,7 @@ Every agent needs this section; it is the whole reason for the overhaul.
 2. Inflow is capped by wells plus storage withdrawal. On the Feb 2024 record cold day, CINGSA storage was maxed out and Hilcorp could add only about 10 MMcf/day (ADN, Feb 6 2024).
 3. When demand exceeds inflow, linepack drains and pressure falls; Southcentral is one pressurized system (Alaska Beacon, Jul 28 2026).
 4. Low pressure forces curtailment by tariff order: interruptible service, power plants and large users first, homes last (Enstar tariff §1220).
-5. If pressure is lost in an area, service is shut off and relit house by house (Aquidneck Island, RI, 2019: about 7,100 customers, about a week).
+5. If pressure is lost in an area, service is shut off and relit house by house (Aquidneck Island, RI, 2019: about 7,500 customers, about a week).
 
 **The pressure index.** Hour by hour, with inflow u, demand D (MMcf/h), linepack L (MMcf):
 
