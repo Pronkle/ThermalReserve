@@ -2,6 +2,8 @@
 
 Two hosted pieces make up the product: a **SpacetimeDB module on Maincloud** that holds all shared state and runs the simulation clock, and a **static React app on Vercel** that every screen loads. No laptop process runs during judging; the operator console is a browser tab.
 
+**Planned third piece (CHAT, in progress; see "iMessage companion" below):** a long-lived Node process (`apps/imessage`) that texts enrolled households through Photon's Spectrum framework. It needs somewhere to run during judging, which conflicts with the rule above until H1 decides (team laptop exception, or a host such as Railway, Fly or Render).
+
 The browser computes whole-horizon comparisons and the LP (deterministic, needed instantly for charts). The server owns the live run that every phone and the map watch. One physics source file (`packages/model/src/physics.ts`) runs in both places, and a test asserts the two agree on a fixed scenario.
 
 ## System diagram
@@ -73,6 +75,7 @@ sequenceDiagram
 | Physics, strategies, LP, validation, what-if | Pure TypeScript, `packages/model` | Browser; `physics.ts` and `types.ts` also inside the module | ENGINE |
 | LP solver | `highs` (HiGHS compiled to WebAssembly), CPLEX LP text | Browser Web Worker | ENGINE |
 | Web app | React, Vite, TypeScript, Tailwind, React Router (`apps/web`) | Vercel static build | WEB |
+| iMessage companion (planned) | Node 22, Photon Spectrum (`spectrum-ts`), Claude API, SQLite (`apps/imessage`) | Long-lived process; host to be decided by H1 | CHAT |
 | Charts, map, QR | Recharts; Leaflet with OpenStreetMap tiles (SVG fallback); qrcode.react | Browser | WEB |
 | Data and scenarios | JSON in `data/`, rebuilt offline by `npm run data` from saved ACIS responses | Repo, bundled into the web build | DATA |
 | Tests | Vitest in each workspace | Developer machines; merge gate | Each owner |
@@ -92,6 +95,36 @@ flowchart LR
   shape["demand_shape.json (assumed)"] --> scen
   scen --> files["scenarios/design.json,<br/>feb2024.json, lastwinter.json"]
 ```
+
+## iMessage companion (CHAT, planned; not built yet)
+
+Owner: CHAT (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. Everything in this section is the brief's design, not shipped code; remove or update it once CHAT's phases land.
+
+```mermaid
+flowchart LR
+  stdb2["SpacetimeDB<br/>public tables (read-only)"] -- "subscription<br/>(stdb-bindings)" --> mirror["stdb mirror"]
+  subgraph chat["apps/imessage (one long-lived Node 22 process)"]
+    mirror --> watcher["watcher<br/>per-household change detector"]
+    watcher --> concierge["Concierge agent<br/>conversation, tone, timing, memory"]
+    concierge -- "asks" --> insights["Insights agent<br/>Claude + tools over the mirror<br/>and packages/model"]
+    concierge --> memory[("SQLite memory<br/>contacts, preferences, history, outbox")]
+    concierge --> transport["Spectrum transport<br/>cloud iMessage (prod) · terminal (dev)"]
+  end
+  model2["packages/model<br/>(dependency, not edited)"] --> insights
+  transport <--> phone["Household iPhone<br/>(Messages)"]
+```
+
+| Part | What it does | Notes |
+| --- | --- | --- |
+| Transport | Photon Spectrum (`spectrum-ts`): cloud iMessage provider in production, terminal provider for offline development | Spectrum is required for the prize track; no other iMessage bridge |
+| Watcher | Turns household state changes (setback start, depth change, recovery, override, event end) into notable events; throttles and coalesces them into one catch-up message | At most one proactive text per household per ~20 s; never one per tick |
+| Concierge | Owns the conversation: intent, tone, tapbacks, quiet hours, preferences, STOP | Never computes numbers itself |
+| Insights | Answers "why" questions with deterministic tools (`household_now`, `plan_window`, `weather`, `gas_day`, `explain_decision`, `compare_strategies`, `constant`, `what_if`) | Every number must come from a tool result; a post-check rejects any number no tool produced |
+| Memory | SQLite in `apps/imessage/data/` (gitignored): contacts, per-person memory, thread history, outbox | Deleted on STOP and when the household is reset |
+
+**Phone ↔ household link:** preferred design A is inbound-first: the user texts a code from `/home`, so no phone number is stored in SpacetimeDB. Fallback B adds a private `household_contact` table (H1 approval, STDB implements). Decided in CHAT's Phase 0.
+
+**Open decisions (owners):** where the process runs during judging (H1); new dependencies `spectrum-ts`, `@anthropic-ai/sdk`, a SQLite library (H1); link design A or B (H1 + CHAT); Photon project and API keys (humans; never committed).
 
 ## Decisions worth knowing
 

@@ -133,6 +133,22 @@ Production bundle `index-CMwD9--i.js` = main a60e3e3.
 | Lighthouse 13.5.0 accessibility: `/home` 100, `/whatif` 100 | PASS (target ≥ 90) | W7 acceptance |
 | **Real Safari, real phones** | **Not covered by automation**: Run 1 at 02:00 (procedure D6, Parts B–D) | B1–B8 Safari column, P1–P12 |
 
+## 4b. iMessage companion (CHAT) ⏳ only if CHAT ships
+
+Acceptance comes from CHAT's brief (`docs/agents/CHAT_BRIEF.md` §8–9). Add exact expected values once CHAT's Phase 1–2 land.
+
+| # | Step | Expected | Result |
+| --- | --- | --- | --- |
+| C-1 | On `/home` after joining, tap **Get updates by iMessage** and send the prefilled text | Reply "Linked to <nickname>", plus a contact card | |
+| C-2 | Operator: Demo preset, Optimized, Dispatch, Start at **1 h/s** | 3–6 texts for the whole run, none within 20 s of another, °F matching `/home`, each marked simulated | |
+| C-3 | Reply "why?" to the setback text | Typing indicator, then a 1–3 bubble answer citing that day's shortfall vs capacity and where the reheat lands, with labels | |
+| C-4 | Reply "that's cold for my kid" | Brief empathy, the 62°F floor, how to override | |
+| C-5 | Reply "thanks" | A tapback only, no text | |
+| C-6 | Reply "STOP" | One confirmation, then no further texts | |
+| C-7 | Restart the companion mid-run | No duplicate texts; a later reply uses remembered context | |
+| C-8 | Reset households on `/ops` | Within one minute the companion forgets that phone and its memory | |
+| C-9 | Every number in every answer | Appears in that turn's tool output (honesty check log shows pass) | |
+
 ## 5. Failure modes
 
 | # | How to cause it | Expected | Result |
