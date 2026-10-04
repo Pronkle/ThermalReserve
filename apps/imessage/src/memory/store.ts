@@ -56,6 +56,7 @@ export interface Contact {
   lastSentAt: number;        // real ms of the last proactive send (throttle)
   lastInboundAt: number;
   cardSent: boolean;         // contact card shared after the first exchange
+  consented: boolean;        // false for contacts we texted first until they reply YES
 }
 
 export interface Pending { id: string; address: string; transition: Transition; createdAt: number; }
@@ -65,7 +66,7 @@ export interface OutboxRow { id: string; address: string; body: string; status: 
 interface ContactRow {
   address: string; identity: string; nickname: string; linked_at: number; notify_level: string;
   anytime: number; unanswered: number; last_state: string | null; last_sent_at: number; last_inbound_at: number;
-  card_sent: number;
+  card_sent: number; consented: number;
 }
 
 export class Store {
@@ -98,6 +99,7 @@ export class Store {
     // Columns added after the first release of the file.
     const cols = (this.db.prepare('PRAGMA table_info(contact)').all() as { name: string }[]).map(c => c.name);
     if (!cols.includes('card_sent')) this.db.exec('ALTER TABLE contact ADD COLUMN card_sent INTEGER NOT NULL DEFAULT 0');
+    if (!cols.includes('consented')) this.db.exec('ALTER TABLE contact ADD COLUMN consented INTEGER NOT NULL DEFAULT 1');
   }
 
   close() { this.db.close(); }
@@ -121,7 +123,7 @@ export class Store {
       address: r.address, identity: r.identity, nickname: r.nickname, linkedAt: r.linked_at,
       notifyLevel: r.notify_level === 'summary' ? 'summary' : 'all', anytime: r.anytime === 1,
       unanswered: r.unanswered, lastState: r.last_state ? JSON.parse(r.last_state) : undefined,
-      lastSentAt: r.last_sent_at, lastInboundAt: r.last_inbound_at, cardSent: r.card_sent === 1,
+      lastSentAt: r.last_sent_at, lastInboundAt: r.last_inbound_at, cardSent: r.card_sent === 1, consented: r.consented !== 0,
     };
   }
 
@@ -135,16 +137,23 @@ export class Store {
   }
 
   // Linking a new household to an address replaces any earlier link and its queue.
-  link(address: string, identity: string, nickname: string, state: NotifiedState, now: number) {
+  // `consented: false` is for contacts we text first (auto-onboarding): nothing proactive goes out
+  // until they reply YES. Texting "Link <code>" is consent in itself.
+  link(address: string, identity: string, nickname: string, state: NotifiedState, now: number, opts: { consented?: boolean } = {}) {
+    const consented = opts.consented === false ? 0 : 1;
     this.transaction(() => {
       this.db.prepare('DELETE FROM pending WHERE address = ?').run(address);
-      this.db.prepare(`INSERT INTO contact (address, identity, nickname, linked_at, last_state, last_inbound_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+      this.db.prepare(`INSERT INTO contact (address, identity, nickname, linked_at, last_state, last_inbound_at, consented)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(address) DO UPDATE SET identity = excluded.identity, nickname = excluded.nickname,
           linked_at = excluded.linked_at, last_state = excluded.last_state, unanswered = 0,
-          last_inbound_at = excluded.last_inbound_at`)
-        .run(address, identity, nickname, now, JSON.stringify(state), now);
+          last_inbound_at = excluded.last_inbound_at, consented = excluded.consented`)
+        .run(address, identity, nickname, now, JSON.stringify(state), consented ? now : 0, consented);
     });
+  }
+
+  setConsented(address: string) {
+    this.db.prepare('UPDATE contact SET consented = 1 WHERE address = ?').run(address);
   }
 
   // STOP and household removal: delete everything stored for this address.

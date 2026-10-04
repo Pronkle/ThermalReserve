@@ -35,7 +35,9 @@ import {
 
 // Import all reducer arg schemas
 import CancelOverrideReducer from "./cancel_override_reducer";
+import ClaimContactReaderReducer from "./claim_contact_reader_reducer";
 import ClaimOperatorReducer from "./claim_operator_reducer";
+import ClearContactReducer from "./clear_contact_reducer";
 import JoinHouseholdReducer from "./join_household_reducer";
 import LoadHomesReducer from "./load_homes_reducer";
 import LoadScenarioReducer from "./load_scenario_reducer";
@@ -43,6 +45,7 @@ import OverrideReducer from "./override_reducer";
 import PauseReducer from "./pause_reducer";
 import ResetReducer from "./reset_reducer";
 import ResetHouseholdsReducer from "./reset_households_reducer";
+import SetContactReducer from "./set_contact_reducer";
 import SetParamsReducer from "./set_params_reducer";
 import SetPlanReducer from "./set_plan_reducer";
 import StartReducer from "./start_reducer";
@@ -53,6 +56,7 @@ import StartReducer from "./start_reducer";
 import AggregateHourRow from "./aggregate_hour_table";
 import CohortRow from "./cohort_table";
 import CohortStateRow from "./cohort_state_table";
+import ContactFeedRow from "./contact_feed_table";
 import EventLogRow from "./event_log_table";
 import HouseholdRow from "./household_table";
 import PlanHourRow from "./plan_hour_table";
@@ -170,12 +174,21 @@ const tablesSchema = __schema({
       { name: 'weather_hour_hour_key', constraint: 'unique', columns: ['hour'] },
     ],
   }, WeatherHourRow),
+  contactFeed: __table({
+    name: 'contact_feed',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, ContactFeedRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("cancel_override", CancelOverrideReducer),
+  __reducerSchema("claim_contact_reader", ClaimContactReaderReducer),
   __reducerSchema("claim_operator", ClaimOperatorReducer),
+  __reducerSchema("clear_contact", ClearContactReducer),
   __reducerSchema("join_household", JoinHouseholdReducer),
   __reducerSchema("load_homes", LoadHomesReducer),
   __reducerSchema("load_scenario", LoadScenarioReducer),
@@ -183,6 +196,7 @@ const reducersSchema = __reducers(
   __reducerSchema("pause", PauseReducer),
   __reducerSchema("reset", ResetReducer),
   __reducerSchema("reset_households", ResetHouseholdsReducer),
+  __reducerSchema("set_contact", SetContactReducer),
   __reducerSchema("set_params", SetParamsReducer),
   __reducerSchema("set_plan", SetPlanReducer),
   __reducerSchema("start", StartReducer),
@@ -192,22 +206,62 @@ const reducersSchema = __reducers(
 const proceduresSchema = __procedures(
 );
 
+type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "tables"> & {
+  tables: typeof tablesSchema.schemaType.tables & {
+    /** @deprecated Use `contactFeed` instead. This alias will be removed in the next major version. */
+    readonly "contact_feed": Omit<typeof tablesSchema.schemaType.tables["contactFeed"], "accessorName"> & { readonly accessorName: "contact_feed" };
+  };
+};
+
 /** The remote SpacetimeDB module schema, both runtime and type information. */
 const REMOTE_MODULE = {
   versionInfo: {
     cliVersion: "2.10.2" as const,
   },
-  tables: tablesSchema.schemaType.tables,
+  tables: tablesSchema.schemaType.tables as __SchemaWithTableAccessorAliases["tables"],
   reducers: reducersSchema.reducersType.reducers,
   ...proceduresSchema,
 } satisfies __RemoteModule<
-  typeof tablesSchema.schemaType,
+  __SchemaWithTableAccessorAliases,
   typeof reducersSchema.reducersType,
   typeof proceduresSchema
 >;
 
+const tableAccessorAliases = {
+  "contact_feed": "contactFeed",
+} as const;
+
+function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
+  const out = Object.create(Object.getPrototypeOf(target)) as T & Record<string, unknown>;
+  Object.defineProperties(out, Object.getOwnPropertyDescriptors(target));
+  for (const [deprecatedAccessor, targetAccessor] of Object.entries(tableAccessorAliases)) {
+    if (deprecatedAccessor in out) {
+      continue;
+    }
+    Object.defineProperty(out, deprecatedAccessor, {
+      enumerable: true,
+      configurable: false,
+      get: () => out[targetAccessor],
+    });
+  }
+  return freeze ? Object.freeze(out) : out;
+}
+
+type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
+export type DbView = __DbViewBase & {
+  /** @deprecated Use `contactFeed` instead. This alias will be removed in the next major version. */
+  readonly "contact_feed": __DbViewBase["contactFeed"];
+};
+
+type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
+export type Tables = __TablesBase & {
+  /** @deprecated Use `contactFeed` instead. This alias will be removed in the next major version. */
+  readonly "contact_feed": __TablesBase["contactFeed"];
+};
+
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */
-export const tables: __QueryBuilder<typeof tablesSchema.schemaType> = __makeQueryBuilder(tablesSchema.schemaType);
+const tablesBase: __TablesBase = __makeQueryBuilder(tablesSchema.schemaType);
+export const tables: Tables = __withTableAccessorAliases(tablesBase, true) as Tables;
 
 /** The reducers available in this remote SpacetimeDB module. */
 export const reducers = __convertToAccessorMap(reducersSchema.reducersType.reducers);
@@ -216,13 +270,13 @@ export const reducers = __convertToAccessorMap(reducersSchema.reducersType.reduc
 export const procedures = __convertToAccessorMap(proceduresSchema.procedures);
 
 /** The context type returned in callbacks for all possible events. */
-export type EventContext = __EventContextInterface<typeof REMOTE_MODULE>;
+export type EventContext = Omit<__EventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for reducer events. */
-export type ReducerEventContext = __ReducerEventContextInterface<typeof REMOTE_MODULE>;
+export type ReducerEventContext = Omit<__ReducerEventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for subscription events. */
-export type SubscriptionEventContext = __SubscriptionEventContextInterface<typeof REMOTE_MODULE>;
+export type SubscriptionEventContext = Omit<__SubscriptionEventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for error events. */
-export type ErrorContext = __ErrorContextInterface<typeof REMOTE_MODULE>;
+export type ErrorContext = Omit<__ErrorContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The subscription handle type to manage active subscriptions created from a {@link SubscriptionBuilder}. */
 export type SubscriptionHandle = __SubscriptionHandleImpl<typeof REMOTE_MODULE>;
 
@@ -234,6 +288,13 @@ export class DbConnectionBuilder extends __DbConnectionBuilder<DbConnection> {}
 
 /** The typed database connection to manage connections to the remote SpacetimeDB instance. This class has type information specific to the generated module. */
 export class DbConnection extends __DbConnectionImpl<typeof REMOTE_MODULE> {
+  declare db: DbView;
+
+  constructor(config: __DbConnectionConfig<typeof REMOTE_MODULE>) {
+    super(config);
+    this.db = __withTableAccessorAliases(this.db) as DbView;
+  }
+
   /** Creates a new {@link DbConnectionBuilder} to configure and connect to the remote SpacetimeDB instance. */
   static builder = (): DbConnectionBuilder => {
     return new DbConnectionBuilder(REMOTE_MODULE, (config: __DbConnectionConfig<typeof REMOTE_MODULE>) => new DbConnection(config));

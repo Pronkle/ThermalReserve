@@ -178,8 +178,33 @@ const operatorSecret = table(
   }
 );
 
+// Private: contact details a household opts in to share so the iMessage companion can text it
+// (H1-approved change to Contract C, Oct 4). Never in a public table; no email, no address.
+export const householdContact = table(
+  { name: 'household_contact' },
+  {
+    identity: t.identity().primaryKey(),
+    first_name: t.string(),
+    last_name: t.string(),
+    phone: t.string(), // E.164, for example +19075550123
+    opted_in_at: t.timestamp(),
+  }
+);
+
+// Private: the one identity allowed to read household_contact through the contact_feed view
+// (the iMessage companion). Set by claim_contact_reader.
+const contactReader = table(
+  { name: 'contact_reader' },
+  {
+    id: t.u32().primaryKey(), // single row, id = 0
+    identity: t.identity(),
+  }
+);
+
 const spacetimedb = schema({
   operatorSecret,
+  householdContact,
+  contactReader,
   simConfig,
   weatherHour,
   cohort,

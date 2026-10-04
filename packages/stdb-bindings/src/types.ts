@@ -60,6 +60,15 @@ export const CohortState = __t.object("CohortState", {
 });
 export type CohortState = __Infer<typeof CohortState>;
 
+export const ContactFeed = __t.object("ContactFeed", {});
+export type ContactFeed = __Infer<typeof ContactFeed>;
+
+export const ContactReader = __t.object("ContactReader", {
+  id: __t.u32(),
+  identity: __t.identity(),
+});
+export type ContactReader = __Infer<typeof ContactReader>;
+
 export const EventLog = __t.object("EventLog", {
   id: __t.u64(),
   simHour: __t.f64(),
@@ -90,6 +99,15 @@ export const Household = __t.object("Household", {
   online: __t.bool(),
 });
 export type Household = __Infer<typeof Household>;
+
+export const HouseholdContact = __t.object("HouseholdContact", {
+  identity: __t.identity(),
+  firstName: __t.string(),
+  lastName: __t.string(),
+  phone: __t.string(),
+  optedInAt: __t.timestamp(),
+});
+export type HouseholdContact = __Infer<typeof HouseholdContact>;
 
 export const OperatorSecret = __t.object("OperatorSecret", {
   id: __t.u32(),

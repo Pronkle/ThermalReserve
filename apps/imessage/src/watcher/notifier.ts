@@ -50,6 +50,7 @@ export class Notifier {
     const sim = this.deps.sim();
     if (!sim) return;
     for (const contact of this.deps.store.contacts()) {
+      if (!contact.consented) continue; // texted first, no YES yet: say nothing
       const h = this.deps.household(contact.identity);
       if (!h) continue;
       const { next, transitions } = detect(contact.lastState, h, sim, this.deps.consts);
@@ -74,7 +75,7 @@ export class Notifier {
   }
 
   private async flushContact(contact: Contact) {
-    if (this.inFlight.has(contact.address)) return;
+    if (this.inFlight.has(contact.address) || !contact.consented) return;
     const { store, config, consts } = this.deps;
     const pending = store.pending(contact.address);
     if (pending.length === 0) return;
