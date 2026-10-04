@@ -62,8 +62,8 @@ Answer in two sentences, for example: "With 25,000 homes, a February 2024-type c
 
 ## Rehearsal checklist
 
-- [ ] **Until WEB's fix for msg 263 is deployed:** after any page reload, press **Solve plan** before reading the verdict strip. Before Solve it can score only the dispatched segment and show "Lowest pressure −7 · 2 h below" under Optimized, which is wrong. Remove this line once the fix is live.
 - [ ] Reset demo between judges (one press); check Near-miss is paused at hour 0.
+- [ ] After a page load the verdict strip is blank ("Not solved for these inputs: press Solve plan") until Solve plan or Reset demo is pressed. That is expected; press one before reading numbers aloud (ENGINE msg 276).
 - [ ] Verdict strip numbers read aloud match production (ENGINE's production check after `c525a5c`).
 - [ ] Phone on the production URL, QR code reachable; fallback: judges watch rather than join.
 - [ ] If the pressure screen fails, demo `/ops?ui=gas` and switch the claim to "plans against a daily supply limit" (Section 5).

@@ -2,8 +2,6 @@
 
 DATA, Oct 4. For H3 (screenshots, video) and WEB (copy). Numbers are ENGINE's on `main` `d79dbda` (msg 198; H1 msg 244); re-check them on production before capturing. Claims follow AGENTS.md Section 5: say "modeled" near "pressure", "re-planned as each new forecast arrived", never "sized before the cold snap", never "our program would have saved Feb 2024".
 
-> **Until WEB's fix for msg 263 is deployed:** after any page reload, press **Solve plan** before reading the verdict strip. Before Solve it can score only the dispatched segment and show "Lowest pressure −7 · 2 h below" under Optimized, which is wrong. Remove this line once the fix is live.
-
 ## 1. Devpost screenshots (capture on https://thermal-reserve.vercel.app)
 
 Browser at 1280×800 for `/ops`, phone at 390 px for the others. Fresh profile, light-on-dark ops theme as shipped.

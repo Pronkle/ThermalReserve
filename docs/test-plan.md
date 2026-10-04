@@ -149,6 +149,10 @@ Acceptance comes from CHAT's brief (`docs/agents/CHAT_BRIEF.md` §8–9). Add ex
 | C-7 | Restart the companion mid-run | No duplicate texts; a later reply uses remembered context | |
 | C-8 | Reset households on `/ops` | Within one minute the companion forgets that phone and its memory | |
 | C-9 | Every number in every answer | Appears in that turn's tool output (honesty check log shows pass) | |
+| C-10 | (H1 msg 278, once live) Join on `/home` with the opt-in **unchecked** and all contact fields empty | Join works in three taps; no `household_contact` row is written | |
+| C-11 | Join with first name, last name, a real phone and the opt-in **checked** | `set_contact` succeeds; the companion adds the number to Photon and sends a text-only opener; no phone appears in any public table, URL or info-level log | |
+| C-12 | Enter an invalid phone (letters, too short) with the opt-in checked | A clear error on `/home`; nothing stored | |
+| C-13 | Reset households on `/ops` | The `household_contact` rows are gone, and the companion forgets the number within one minute | |
 
 ## 5. Failure modes
 
