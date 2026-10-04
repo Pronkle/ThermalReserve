@@ -199,7 +199,9 @@ export async function replanRun(
       forecastF: det.forecastF, sigmaF: det.sigmaF, planningOutdoorF: det.planningOutdoorF, expectedIdx,
     });
     const act = runPlan(actual, cohorts, c, plan, consts);
-    return { plan, act, actIdx: indexOf(act), run: det.run, forecastF: det.forecastF, expectedIdx };
+    // The drift trigger compares against the forecast in use: the run plus any drift correction, without the buffer.
+    const inUseF = det.planningOutdoorF.map((f, h) => f + opts.bufferSigma * det.sigmaF[h]);
+    return { plan, act, actIdx: indexOf(act), run: det.run, forecastF: det.forecastF, inUseF, expectedIdx };
   };
 
   let cur = await solveSegment(0, 'start', null, null, null);
@@ -213,7 +215,7 @@ export async function replanRun(
         if (pol.intervalH > 0 && h % pol.intervalH === 0) reason = 'fixed';
       } else {
         const k = h - 1; // last observed hour
-        tempCount = Math.abs(sc.outdoorF[k] - cur.forecastF[k]) > pol.driftTempF ? tempCount + 1 : 0;
+        tempCount = Math.abs(sc.outdoorF[k] - cur.inUseF[k]) > pol.driftTempF ? tempCount + 1 : 0;
         const newer = latestRun(sc, h);
         if (newer && newer !== cur.run) reason = 'forecast';
         else if (tempCount >= pol.driftHours) reason = 'drift-temp';

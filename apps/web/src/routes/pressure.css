@@ -22,3 +22,16 @@
 }
 .pressure-heading .clock-status span { margin-top: 2px; font-size: 10px; line-height: 1.2; }
 .verdict-tile { padding-top: 4px; padding-bottom: 4px; }.pressure-side .pressure-map { height: 110px; }.pressure-map .map-frame { min-height: 45px; }
+@media (min-width: 1001px) {
+  .pressure-controls .controls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pressure-controls .delivery-control { grid-column: 1 / -1; }
+  .pressure-side .pressure-map { height: 100px; }
+  .pressure-controls .controls-grid label { font-size: 9px; }
+  .pressure-controls .controls-grid select { min-height: 22px; padding: 2px 3px; }
+  .pressure-side button { min-height: 23px; padding: 3px 7px; }
+}
+
+@media (min-width: 1001px) {
+  .pressure-controls .planning-control { grid-row: 1; grid-column: 3; }
+  .pressure-side .log-panel { min-height: 65px; }
+}
