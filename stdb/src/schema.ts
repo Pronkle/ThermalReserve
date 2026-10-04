@@ -186,7 +186,7 @@ export const householdContact = table(
     identity: t.identity().primaryKey(),
     first_name: t.string(),
     last_name: t.string(),
-    phone_e164: t.string(),
+    phone: t.string(), // E.164, for example +19075550123
     opted_in_at: t.timestamp(),
   }
 );

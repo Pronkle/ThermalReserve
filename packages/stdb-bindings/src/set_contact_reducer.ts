@@ -13,5 +13,5 @@ import {
 export default {
   firstName: __t.string(),
   lastName: __t.string(),
-  phoneE164: __t.string(),
+  phone: __t.string(),
 };

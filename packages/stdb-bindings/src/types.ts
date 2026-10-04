@@ -104,7 +104,7 @@ export const HouseholdContact = __t.object("HouseholdContact", {
   identity: __t.identity(),
   firstName: __t.string(),
   lastName: __t.string(),
-  phoneE164: __t.string(),
+  phone: __t.string(),
   optedInAt: __t.timestamp(),
 });
 export type HouseholdContact = __Infer<typeof HouseholdContact>;
