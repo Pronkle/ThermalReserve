@@ -142,7 +142,7 @@ export function PressureOps() {
     const nextKey = pressureInputKey(sc.id, actualCfg, nextInput);
     try {
       const forecastSolve = nextInput.planningMode !== 'OBSERVED';
-      pending.current = forecastSolve ? launchReplan({ sc, cohorts, cfg: actualCfg, consts: constants, p: nextPressure, opts: { mode: nextInput.planningMode, bufferSigma: nextInput.bufferSigma, strategy: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: numberConstant('drift_temp_f'), driftHours: numberConstant('drift_hours'), driftPressureIdx: numberConstant('drift_pressure_idx'), driftFadeH: numberConstant('drift_fade_h') } } }) : launchSolve({ sc, cohorts, cfg: actualCfg, mode: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', consts: constants, opts: { pressure: nextPressure } });
+      pending.current = forecastSolve ? launchReplan({ sc, cohorts, cfg: actualCfg, consts: constants, p: nextPressure, opts: { mode: nextInput.planningMode, bufferSigma: nextInput.bufferSigma, strategy: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: Infinity, driftHours: numberConstant('drift_hours'), driftPressureIdx: Infinity, driftFadeH: numberConstant('drift_fade_h') } } }) : launchSolve({ sc, cohorts, cfg: actualCfg, mode: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', consts: constants, opts: { pressure: nextPressure } });
       const solved = await pending.current.result;
       if (attempt !== generation.current) return;
       const result = 'segments' in solved ? solved : undefined;
