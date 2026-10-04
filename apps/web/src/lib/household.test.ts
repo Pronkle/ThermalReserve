@@ -1,7 +1,15 @@
 import { expect, it } from 'vitest';
-import { heatStatus, eventCountdown } from './household';
+import { heatStatus, eventCountdown, householdDayStart } from './household';
 import { constants } from './ops';
 import { householdUrl } from '../components/JoinQr';
+
+it('keeps final community savings on the last simulation day', () => {
+  expect(householdDayStart(0, 96)).toBe(0);
+  expect(householdDayStart(24, 96)).toBe(24);
+  expect(householdDayStart(95.5, 96)).toBe(72);
+  expect(householdDayStart(96, 96)).toBe(72);
+  expect(householdDayStart(0, 0)).toBe(0);
+});
 
 it('shows exemption and override before any cohort setback', () => {
   const home = { exempt: false, overridden: false, targetF: constants.setpointDayF - 5, taF: constants.setpointDayF - 4 };
