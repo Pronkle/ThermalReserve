@@ -55,3 +55,13 @@
 }
 
 .household-page .metric-label { font-size: 12px; }
+
+.household-map .own-household-map-dot { animation: own-home-glow 1.8s ease-in-out infinite; }
+.household-map .dot.own-home { background: #6EDBA4; box-shadow: 0 0 8px #6EDBA4; }
+@keyframes own-home-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px #6EDBA4); }
+  50% { filter: drop-shadow(0 0 8px #6EDBA4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .household-map .own-household-map-dot { animation: none; filter: drop-shadow(0 0 3px #6EDBA4); }
+}
