@@ -43,7 +43,7 @@ try {
   await opted.getByRole('alert').filter({ hasText: 'first_name: required' }).waitFor();
   await opted.getByLabel('First name', { exact: true }).fill('WEB');
   await opted.getByRole('button', { name: 'Save iMessage details', exact: true }).click();
-  await opted.getByText('You opted in to iMessage updates. Reply STOP any time.', { exact: true }).waitFor();
+  await opted.getByText('Setting up your iMessage line…', { exact: true }).waitFor();
   assert.equal(await opted.getByRole('alert').count(), 0);
   assert.equal(await opted.getByLabel('Phone', { exact: true }).count(), 0);
   assert(await opted.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
