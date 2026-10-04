@@ -56,7 +56,7 @@ export interface Contact {
   lastSentAt: number;        // real ms of the last proactive send (throttle)
   lastInboundAt: number;
   cardSent: boolean;         // contact card shared after the first exchange
-  consented: boolean;        // false for contacts we texted first until they reply YES
+  consented: boolean;        // false for contacts we texted first until they reply START
 }
 
 export interface Pending { id: string; address: string; transition: Transition; createdAt: number; }
@@ -138,7 +138,7 @@ export class Store {
 
   // Linking a new household to an address replaces any earlier link and its queue.
   // `consented: false` is for contacts we text first (auto-onboarding): nothing proactive goes out
-  // until they reply YES. Texting "Link <code>" is consent in itself.
+  // until they reply START. A first text from a /home opt-in is consent in itself.
   link(address: string, identity: string, nickname: string, state: NotifiedState, now: number, opts: { consented?: boolean } = {}) {
     const consented = opts.consented === false ? 0 : 1;
     this.transaction(() => {

@@ -5,7 +5,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { converse, fallbackReply } from './concierge/agent';
 import { classify, handleInbound } from './concierge/inbound';
 import type { ModelCall } from './insights/agent';
-import { linkCode } from './link';
 import { Store } from './memory/store';
 import { Mirror } from './stdb/mirror';
 import type { Transport } from './transport/spectrum';
@@ -41,7 +40,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
   };
 
   // Auto-onboarding (H3, H1-approved Oct 4): opted-in households from /home are added to Photon
-  // and get one opener asking for YES. On with CHAT_ONBOARD=1 and the operator passcode.
+  // and get one opener asking for START. On with CHAT_ONBOARD=1 and the operator passcode.
   const onboardOn = process.env.CHAT_ONBOARD === '1' && !!process.env.CHAT_OPERATOR_PASSCODE;
   const photon = photonUsers(cliRunner());
   let onboarding = Promise.resolve();
@@ -93,14 +92,13 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     void mirror.whenReady().then(async () => {
       const homes = mirror.households();
       const linked = store.contact(config.helloTo!);
-      const only = homes.length === 1 ? ` For ${homes[0].nickname}, that's Link my home ${linkCode(homes[0].identity)}.` : '';
       // A returning person gets a nod to what was remembered (persistent context after a restart).
       const lastAsked = linked
         ? store.history(config.helloTo!).filter(t => t.direction === 'in' && classify(t.body) === 'other').at(-1)?.body.trim().slice(0, 80)
         : undefined;
       const body = linked
-        ? `Thermal Reserve demo assistant is back on (simulation only). You're linked to ${linked.nickname}.${lastAsked ? ` Last time you asked: "${lastAsked}". Ask me anything about it.` : ''}`
-        : `Thermal Reserve demo assistant is on (simulation only). To get heat updates, text Link my home and your code from the household page.${only}`;
+        ? `BoreaFlux demo assistant is back on (simulation only). You're linked to ${linked.nickname}.${lastAsked ? ` Last time you asked: "${lastAsked}". Ask me anything about it.` : ''}`
+        : 'BoreaFlux demo assistant is on (simulation only). If you opted in on the household page with this number, text START to get heat updates.';
       try {
         await transport.sendText(config.helloTo!, body);
         store.addHistory(config.helloTo!, 'out', body, Date.now());

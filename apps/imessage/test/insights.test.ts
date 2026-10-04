@@ -6,7 +6,6 @@ import { ask, type ModelCall } from '../src/insights/agent';
 import { checkHonesty, extractNumbers } from '../src/insights/honesty';
 import { scenario } from '../src/insights/model';
 import { explainDecision, householdNow, runTool } from '../src/insights/tools';
-import { linkCode } from '../src/link';
 import { Store } from '../src/memory/store';
 import type { HouseholdView, SimView, World } from '../src/types';
 import { consts, home, IDENTITY, NOON_ET, PHONE, sim } from './fixtures';
@@ -174,6 +173,14 @@ describe('concierge agent', () => {
     expect(r.bubbles).toEqual(['Indoor is 65.4°F (simulated).']);
   });
 
+  it('an empty concierge reply still gets the data: the text goes to insights directly', async () => {
+    const lines: string[] = [];
+    const call = scripted([use('remember', { category: 'comfort', note: 'feels cold below 66°F' })], '', [use('household_now')], 'Indoor is 65.4°F (simulated).');
+    const r = await converse({ store: linked(), world: world(), consts, call, log: l => lines.push(l) }, PHONE, IDENTITY, 'how warm is it now?');
+    expect(r.bubbles).toEqual(['Indoor is 65.4°F (simulated).']);
+    expect(lines.some(l => l.startsWith('[handoff] concierge → insights: "how warm is it now?"'))).toBe(true);
+  });
+
   it('remember and set_preference persist', async () => {
     const store = linked();
     const call = scripted([use('remember', { category: 'household', note: "infant in the back bedroom" }), use('set_preference', { notifyLevel: 'summary' })], 'Noted. I\'ll only send the summary.');
@@ -185,7 +192,7 @@ describe('concierge agent', () => {
   it('the memory card and recent conversation reach the model (persistent context)', async () => {
     const store = linked();
     store.updatePersonMemory(PHONE, m => ({ ...m, preferredName: 'Sam' }));
-    store.addHistory(PHONE, 'out', 'Thermal Reserve demo, since my last text (simulated):\n• Fri 02:00 heat lowered to 65°F', NOON_ET);
+    store.addHistory(PHONE, 'out', 'BoreaFlux demo, since my last text (simulated):\n• Fri 02:00 heat lowered to 65°F', NOON_ET);
     store.addHistory(PHONE, 'in', 'why the first one?', NOON_ET);
     const call = scripted('Hi Sam.');
     await converse({ store, world: world(), consts, call, log: () => undefined }, PHONE, IDENTITY, 'why the first one?');
@@ -209,9 +216,9 @@ describe('concierge agent', () => {
 
   it('inbound routes non-control texts from linked contacts to the concierge', async () => {
     const store = new Store(':memory:');
-    const deps = { store, consts, households: () => [home()], sim: () => sim(0, { status: 'idle' }), now: () => NOON_ET, log: () => undefined,
+    const deps = { store, consts, households: () => [home()], sim: () => sim(0, { status: 'idle' }), now: () => NOON_ET, log: () => undefined, optedInHousehold: (a: string) => (a === PHONE ? IDENTITY : undefined),
       converse: async (_a: string, identity: string, text: string) => [`concierge(${identity === IDENTITY}) ${text}`] };
-    await handleInbound(deps, PHONE, `link ${linkCode(IDENTITY)}`);
+    await handleInbound(deps, PHONE, 'START');
     expect((await handleInbound(deps, PHONE, 'why now?')).texts).toEqual(['concierge(true) why now?']);
     expect((await handleInbound(deps, PHONE, 'thanks')).react).toBe('like');
   });

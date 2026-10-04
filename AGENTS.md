@@ -1,10 +1,13 @@
-# Thermal Reserve — Agent Handoff: Pressure Overhaul (AGENTS.md)
+# BoreaFlux (formerly Thermal Reserve) — Agent Handoff: Pressure Overhaul (AGENTS.md)
 
-Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5
+Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5 · updated 08:15: control groups, log overlay, no chart captions, `/home` map and link step · updated 08:55: renamed BoreaFlux
 
 ## 1. Start here
 
-You are one of the coding agents finishing **Thermal Reserve** at MHacks 2026. Tonight's job is one overhaul: the product moves from gas volumes (MMcf) to **pipeline pressure**. Read this whole file once, then read your own brief (Sections 10–13) twice. This file is the single source of truth; if anything else disagrees, this file wins until H1 changes it.
+You are one of the coding agents finishing **BoreaFlux** at MHacks 2026.
+
+**Name (H1, Oct 4 08:55).** The product is called **BoreaFlux**. Every user-facing place says BoreaFlux: site titles and headings, `/home`, the iMessage companion's texts, the pitch, Q&A, one-pager and Devpost. Infrastructure keeps its old names and must not be renamed: the repository, the `thermal-reserve*` databases, the Vercel URL, the `@thermal-reserve/*` packages and branch names.
+ Tonight's job is one overhaul: the product moves from gas volumes (MMcf) to **pipeline pressure**. Read this whole file once, then read your own brief (Sections 10–13) twice. This file is the single source of truth; if anything else disagrees, this file wins until H1 changes it.
 
 **The overhaul in seven lines.**
 
@@ -100,9 +103,17 @@ At 25,000 homes the fleet cannot always reach a 10-point reserve. The UI shows t
 - Removed: the Staggered strategy, the Gas details drawer (`?ui=gas` stays), the header clock and status block, the "Live" eyebrow, and the re-plan ticks on the temperature chart.
 - ENGINE edits `PressureChart.tsx`, `TemperatureChart.tsx`, `DiscomfortChart.tsx` and a new `ChartTooltip.tsx` (H2's authority, H1 approved); WEB owns the rest of `apps/web`.
 
+**Further changes approved by H1 on Oct 4 at 08:15 (H2's requests and H1's msg 344). These also win over the text below:**
+- Operator controls sit in four titled groups: Situation (presets, Reset demo, scenario, supply lost), Run (Solve, Dispatch, Start, Pause, speed), Plan (forecast basis, strategy, planning mode, reserve, cold buffer) and Fleet (homes, max setback, comfort floor), with Apply inputs, Reset and Reset households in a small row at the bottom. Text is larger throughout.
+- The event log opens as an overlay over the lower part of the left column (by click, or by itself on a join or override) and never covers the verdict, the Run buttons or the charts.
+- The three charts have no captions. The verdict strip and status sentence carry the numbers.
+- The `/home` map: small dots; three plain-word states, "Saving gas now" (blue `#5BC0EB`), "Warming back up" (amber `#F2A541`) and "Normal" (dim gray, which includes overridden and exempt homes); the viewer's own home is a larger green dot (`#6EDBA4`) with a soft pulse (off under `prefers-reduced-motion`), labeled "You", and the map centers on it.
+- After an iMessage opt-in, `/home` shows the household's assigned line in large type and a button that opens Messages with "START" filled in. There are no link codes: the companion links a number only if it opted in on `/home`, on its first text, and the earlier card for people who did not opt in is removed (H1, Oct 4 08:50, H3's wording).
+- For this work ENGINE may also edit WEB's console files (`PressureOps.tsx`, `pressure.css`, `public.css`, `VerdictStrip.tsx`, `PresetBar.tsx`, `Validation.tsx`); WEB keeps `/home`, the maps, `stdb.tsx` and `replan-ui`.
+
 ```
 +--------------------------------------------------------------------------------+
-| Thermal Reserve · Feb 2024 weather · 11.5 MMcf/day less supply · Fri 21:00 [QR]|
+| BoreaFlux · Feb 2024 weather · 11.5 MMcf/day less supply · Fri 21:00       [QR]|
 | <status sentence>                                                              |
 +--------------------------------------------------------------------------------+
 | VERDICT: lowest pressure | hours below line | discomfort °F·h/home | plan chip |

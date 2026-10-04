@@ -13,7 +13,7 @@ export function App() {
   const pressureConsole = dark && new URLSearchParams(search).get('ui') !== 'gas';
   useEffect(() => {
     const page = navigation.find(({ to }) => to === pathname);
-    document.title = `${page?.label ?? 'Welcome'} · Thermal Reserve`;
+    document.title = `${page?.label ?? 'Welcome'} · BoreaFlux`;
   }, [pathname]);
 
   return (

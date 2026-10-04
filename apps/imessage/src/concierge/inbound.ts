@@ -1,23 +1,23 @@
-// Inbound texts (CHAT brief §5.1, §6.3). Phase 1 handles the control words with rules; Phase 2
-// routes questions to the Insights agent through `answerQuestion`.
+// Inbound texts (CHAT brief §5.1, §6.3). No link codes (H3, Oct 4): a household opts in on /home
+// with its phone number, then texts START; STOP ends it. Control words are handled by rules;
+// everything else goes to the concierge agent.
 import type { ChatConstants } from '../config';
 import { maskAddress } from '../config';
-import { linkCode, parseLinkCode } from '../link';
 import type { Store } from '../memory/store';
 import type { HouseholdView, SimView } from '../types';
 import { degF, statusWords } from '../watcher/compose';
 import { initialState } from '../watcher/detect';
 
-export type Intent = 'stop' | 'link' | 'unlink' | 'ack' | 'anytime' | 'quiet' | 'summary_only' | 'all_updates' | 'other';
+export type Intent = 'stop' | 'start' | 'ack' | 'anytime' | 'quiet' | 'summary_only' | 'all_updates' | 'other';
 
 const STOP_WORDS = /^(stop|stopall|unsubscribe|cancel|end|quit|stop texting( me)?|leave me alone)[.!]?$/i;
+const START_WORDS = /^(start|unstop|subscribe|join|yes|y|yeah|yep)[.!]?$/i;
 const ACK = /^(ok(ay)?|k|kk|thanks?|thank you|thx|ty|got it|cool|great|nice|sounds good|perfect|👍|🙏|❤️|👌)[.!]*$/iu;
 
 export function classify(text: string): Intent {
   const t = text.trim();
   if (STOP_WORDS.test(t)) return 'stop';
-  if (parseLinkCode(t)) return 'link';
-  if (/^(no|nope|not my home|that'?s not (my|our) home)[.!]?$/i.test(t)) return 'unlink';
+  if (START_WORDS.test(t)) return 'start';
   if (ACK.test(t)) return 'ack';
   if (/\b(text|message) me any ?time\b|\bnight texts? (are )?(ok|fine)\b/i.test(t)) return 'anytime';
   if (/\b(not|no|don'?t) (text|message)( me)? at night\b|\bquiet hours\b/i.test(t)) return 'quiet';
@@ -33,7 +33,7 @@ export interface InboundDeps {
   sim: () => SimView | undefined;
   now?: () => number;
   log?: (line: string) => void;
-  // A number that opted in on /home (contact_feed): its first text links it to that household.
+  // The household that opted in on /home with this phone number (contact_feed), if any.
   optedInHousehold?: (address: string) => string | undefined;
   // STOP also deletes the household's private contact row in the database, if it has one.
   onStop?: (address: string, identity: string) => Promise<void>;
@@ -43,84 +43,65 @@ export interface InboundDeps {
 
 export interface InboundReply { react?: 'like' | 'love'; texts: string[]; }
 
-const UNLINKED_HELP = 'This is the Thermal Reserve demo assistant (automated; simulated heat only). To get heat updates, text Link and your home\'s code from the household page.';
+export const NOT_OPTED_IN = 'This is the BoreaFlux demo assistant (automated; simulated heat only). To get heat updates, join on the household page, tick "Text me updates by iMessage" and enter this phone number, then text START here.';
+const welcome = (home: HouseholdView, sim: SimView | undefined, consts: ChatConstants) => {
+  const live = sim && sim.status !== 'idle' && sim.simHour < sim.eventEndHour
+    ? ` Right now (simulated): indoor ${degF(home.taF)}, ${statusWords(home, consts)}.` : '';
+  return `Thank you. You're set for ${home.nickname}: I'll text you when a cold-snap event changes its heat (a simulation; no real thermostat).${live} Ask me anything, or reply STOP at any time.`;
+};
 
 export async function handleInbound(deps: InboundDeps, address: string, text: string): Promise<InboundReply> {
   const now = (deps.now ?? Date.now)();
   const log = deps.log ?? (line => console.log(line));
   const { store } = deps;
-  let contact = store.contact(address);
+  const contact = store.contact(address);
   const intent = classify(text);
 
-  // Opted in on /home, texting us for the first time: that text is the consent Photon and we need.
-  if (!contact && intent !== 'stop' && intent !== 'link' && deps.optedInHousehold) {
-    const identity = deps.optedInHousehold(address);
+  if (intent === 'stop') {
+    if (contact && deps.onStop) {
+      try { await deps.onStop(address, contact.identity); }
+      catch (e) { log(`[link] ${maskAddress(address)} STOP: database contact not removed: ${String(e).slice(0, 120)}`); }
+    }
+    store.forget(address);
+    log(`[link] ${maskAddress(address)} stopped; contact and memory deleted`);
+    return { texts: ['You\'re unsubscribed and I\'ve deleted what I stored for this number. I won\'t text again unless you text me first.'] };
+  }
+
+  // Not linked yet: link to the household that opted in on /home with this number. Their text
+  // (START, or anything else) is the consent; it also opts them in with Photon.
+  if (!contact) {
+    const identity = deps.optedInHousehold?.(address);
     const home = identity ? deps.households().find(h => h.identity === identity) : undefined;
-    if (home) {
-      const sim = deps.sim();
-      store.link(address, home.identity, home.nickname, sim ? initialState(home, sim, deps.consts) : emptyState(home), now);
-      store.addHistory(address, 'in', text, now);
-      log(`[onboard] ${maskAddress(address)} texted first; linked to ${home.nickname} from the /home opt-in`);
-      const reply = `Thanks. You're set for ${home.nickname}: I'll text you when a cold-snap event changes its heat (a simulation; no real thermostat). Ask me anything, or reply STOP any time.`;
-      store.addHistory(address, 'out', reply, now);
-      return { texts: [reply] };
-    }
+    if (!home) return { texts: [NOT_OPTED_IN] };
+    const sim = deps.sim();
+    store.link(address, home.identity, home.nickname, sim ? initialState(home, sim, deps.consts) : emptyState(home), now);
+    store.addHistory(address, 'in', text, now);
+    log(`[link] ${maskAddress(address)} texted ${intent === 'start' ? 'START' : 'first'}; linked to ${home.nickname} from the /home opt-in`);
+    const reply = welcome(home, sim, deps.consts);
+    store.addHistory(address, 'out', reply, now);
+    return { texts: [reply] };
   }
-  if (contact) store.noteInbound(address, text, now);
+  store.noteInbound(address, text, now);
 
-  // Auto-onboarded contacts: we texted first, so only YES (or STOP) moves things forward.
-  if (contact && !contact.consented && intent !== 'stop') {
-    if (/^(yes|y|yeah|yep|sure|ok(ay)?|start|go ahead)[.!]?$/i.test(text.trim())) {
-      store.setConsented(address);
-      log(`[onboard] ${maskAddress(address)} replied YES`);
-      const reply = `Thanks. You're set for ${contact.nickname}: I'll text you when a cold-snap event changes its heat (a simulation; no real thermostat). Ask me anything, or reply STOP any time.`;
-      store.addHistory(address, 'out', reply, now);
-      return { texts: [reply] };
-    }
-    return { texts: ['Reply YES to get heat updates for your home, or STOP and I won\'t text again.'] };
+  // We texted first (opener): only START moves things forward.
+  if (!contact.consented) {
+    if (intent !== 'start') return { texts: ['Reply START to get heat updates for your home, or STOP and I won\'t text again.'] };
+    store.setConsented(address);
+    log(`[link] ${maskAddress(address)} replied START`);
+    const home = deps.households().find(h => h.identity === contact.identity);
+    const reply = home ? welcome(home, deps.sim(), deps.consts) : `Thank you. You're set for ${contact.nickname}. Reply STOP at any time.`;
+    store.addHistory(address, 'out', reply, now);
+    return { texts: [reply] };
   }
 
-  switch (intent) {
-    case 'stop':
-      if (contact && deps.onStop) {
-        try { await deps.onStop(address, contact.identity); }
-        catch (e) { log(`[link] ${maskAddress(address)} STOP: database contact not removed: ${String(e).slice(0, 120)}`); }
-      }
-      store.forget(address);
-      log(`[link] ${maskAddress(address)} stopped; contact and memory deleted`);
-      return { texts: ['You\'re unsubscribed and I\'ve deleted what I stored for this number. I won\'t text again unless you text me first.'] };
-
-    case 'link': {
-      const code = parseLinkCode(text)!;
-      const home = deps.households().find(h => linkCode(h.identity) === code);
-      if (!home) return { texts: [`I couldn't find a home with code ${code}. Check the code on the household page and try again.`] };
-      const sim = deps.sim();
-      const state = sim ? initialState(home, sim, deps.consts) : undefined;
-      store.link(address, home.identity, home.nickname, state ?? emptyState(home), now);
-      store.addHistory(address, 'in', text, now);
-      log(`[link] ${maskAddress(address)} → ${home.nickname}`);
-      const live = sim && sim.status !== 'idle' && sim.simHour < sim.eventEndHour
-        ? ` Right now (simulated): indoor ${degF(home.taF)}, ${statusWords(home, deps.consts)}.` : '';
-      const reply = `Linked to ${home.nickname}. I'll text you when a cold-snap event changes its heat (a simulation; no real thermostat).${live} Reply NO if that isn't your home, or STOP to end updates.`;
-      store.addHistory(address, 'out', reply, now);
-      return { texts: [reply] };
-    }
-
-    case 'unlink':
-      if (!contact || now - contact.linkedAt > 10 * 60 * 1000) break;
-      store.forget(address);
-      log(`[link] ${maskAddress(address)} said NO; unlinked`);
-      return { texts: ['Unlinked. Text Link and your code from the household page to try again.'] };
-
-    case 'ack':
-      // A person answers "thanks" with a tapback, not another text.
-      return { react: 'like', texts: [] };
-
-    default:
-      break;
+  if (intent === 'start') {
+    const reply = `You're already set for ${contact.nickname}. Reply STOP at any time to end updates.`;
+    store.addHistory(address, 'out', reply, now);
+    return { texts: [reply] };
   }
+  // A person answers "thanks" with a tapback, not another text.
+  if (intent === 'ack') return { react: 'like', texts: [] };
 
-  if (!contact) return { texts: [UNLINKED_HELP] };
   const reply = (texts: string[]) => {
     for (const t of texts) store.addHistory(address, 'out', t, now);
     return { texts };

@@ -50,7 +50,7 @@ export class Notifier {
     const sim = this.deps.sim();
     if (!sim) return;
     for (const contact of this.deps.store.contacts()) {
-      if (!contact.consented) continue; // texted first, no YES yet: say nothing
+      if (!contact.consented) continue; // texted first, no START yet: say nothing
       const h = this.deps.household(contact.identity);
       if (!h) continue;
       const { next, transitions } = detect(contact.lastState, h, sim, this.deps.consts);

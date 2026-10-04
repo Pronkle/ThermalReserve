@@ -1,8 +1,8 @@
-# Thermal Reserve: one-pager, draft 2
+# BoreaFlux: one-pager, draft 2
 
 > Draft 2 by DATA (draft 1 is kept in `onepager.md` / `.html` / `.pdf`). Print layout: `onepager-v2.html` → `onepager-v2.pdf` (one Letter page). In the PDF, every sourced number links to its source, and the numbered list at the bottom repeats the links. **UNFINISHED:** team names. H3 owns the final.
 
-## Thermal Reserve
+## BoreaFlux
 
 **Coordinated thermostat setbacks that keep Southcentral Alaska's gas demand under supply on the coldest days of a multi-day cold snap.**
 
@@ -37,7 +37,7 @@ Peak supply: extra gas Enstar's supply contract lets it buy on the coldest winte
 - **75% of a home's gas goes to space heating.** EIA's 2020 household survey puts Alaska at 72–74% [9]. At 72%, every savings figure above would be about 4% lower.
 - **Furnace efficiency 0.85.** Gas furnaces must be at least 80% efficient (federal minimum since 2015; 95% from Dec 2028) [10], and Anchorage homes mix older and newer units. It doesn't change the gas numbers: we calibrate from gas actually burned, so efficiency cancels out.
 
-**What it doesn't do:** close the seasonal shortfall. Over 20 cold days, 25,000 homes save about 28 MMcf, under 1% of 3 Bcf. Thermal Reserve helps on the coldest days, when businesses would otherwise be cut.
+**What it doesn't do:** close the seasonal shortfall. Over 20 cold days, 25,000 homes save about 28 MMcf, under 1% of 3 Bcf. BoreaFlux helps on the coldest days, when businesses would otherwise be cut.
 
 ### Does the model match real pilots?
 

@@ -1,6 +1,6 @@
-# How Thermal Reserve works: modeling, planning, and what the screens show
+# How BoreaFlux works: modeling, planning, and what the screens show
 
-This document explains the science behind Thermal Reserve: why we built it, how the model and the dispatch planner
+This document explains the science behind BoreaFlux: why we built it, how the model and the dispatch planner
 work, what every chart and control on the operator console and the household app means, and what the results are.
 Every number below comes from `data/constants.json`, `data/cohort_spec.json`, the scenario files in `data/scenarios/`,
 or a model function in `packages/model`. Each one is labeled **sourced** (a published figure), **derived** (computed
@@ -40,7 +40,7 @@ setback ends, every house reheats at once. That **snapback** pays back much of t
 Edison measured that about **52%** of the calculated saving was lost to snapback (sourced). A cold snap in Anchorage
 lasts days, not hours, and the limit is on daily delivery.
 
-**Our purpose.** Thermal Reserve is software that plans and dispatches **multi-day, snapback-aware thermostat
+**Our purpose.** BoreaFlux is software that plans and dispatches **multi-day, snapback-aware thermostat
 setbacks** across a simulated fleet of Anchorage homes. It answers the operator's real question: *what is the least
 discomfort, spread across which homes and hours, that keeps total gas demand under the delivery limit, counting the
 reheating that follows?* It shows the honest answer, including when the fleet cannot close the gap.

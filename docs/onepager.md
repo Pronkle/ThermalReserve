@@ -1,8 +1,8 @@
-# Thermal Reserve: one-pager
+# BoreaFlux: one-pager
 
 > Draft v0 by DATA. Print layout: `docs/onepager.html` → `docs/onepager.pdf` (Letter, one page). **UNFINISHED** items are marked; H3 owns the final.
 
-## Thermal Reserve
+## BoreaFlux
 
 **Multi-day, snapback-aware thermostat setbacks that keep Southcentral Alaska's gas demand under the line on the coldest days.**
 

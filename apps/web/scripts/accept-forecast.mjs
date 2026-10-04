@@ -33,7 +33,7 @@ try {
   assert(maxBeatGap < 1000, `Main thread gap ${maxBeatGap} ms`);
   assert((await page.locator('.pressure-status').innerText()).startsWith('Above'));
   assert.equal(await page.getByLabel('Planning mode', { exact: true }).inputValue(), 'REPLAN');
-  assert(await page.locator('.planning-chip').innerText().then(text => text.includes('Forecast issued')));
+  assert(await page.locator('.planning-basis').innerText().then(text => text.toLowerCase().includes('forecast issued')));
 
   assert(await page.getByRole('button', { name: 'Start', exact: true }).isEnabled());
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
@@ -102,8 +102,24 @@ try {
   await phone.locator('.heat-card').waitFor();
   await page.waitForFunction(() => document.querySelector('.log-panel')?.open);
   assert((await page.locator('.log-panel').innerText()).includes('Redesign test home joined'));
-  await phone.locator('.household-map .household-map-dot').first().waitFor({ timeout: 5000 });
+  await phone.locator('.household-map .own-household-map-dot').first().waitFor({ timeout: 5000 });
   assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert.equal(await phone.locator('.household-map .map-legend').innerText(), 'Saving gas now\nWarming back up\nNormal\nYou');
+  const ownDot = phone.locator('.own-household-map-dot').first();
+  assert.equal(await ownDot.getAttribute('fill'), '#6EDBA4');
+  await phone.emulateMedia({ reducedMotion: 'reduce' });
+  await phone.waitForFunction(() => { const dot = document.querySelector('.own-household-map-dot'); return dot && getComputedStyle(dot).animationName === 'none'; });
+  await phone.emulateMedia({ reducedMotion: 'no-preference' });
+  await phone.waitForFunction(() => { const dot = document.querySelector('.own-household-map-dot'); return dot && getComputedStyle(dot).animationName === 'own-home-glow'; });
+  await phone.emulateMedia({ reducedMotion: 'reduce' });
+  for (const [width, height] of [[1280, 800], [1440, 900]]) {
+    await page.setViewportSize({ width, height });
+    assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth), `Open log fits ${width}×${height}`);
+    const log = await page.locator('.log-panel').boundingBox();
+    const run = await page.locator('.primary-actions').boundingBox();
+    if (run) assert(log.y >= run.y + run.height, 'Log overlay leaves Run controls visible');
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.locator('.log-panel summary').click();
   await phone.getByRole('button', { name: 'Override', exact: true }).click();
   await phone.getByRole('button', { name: 'Rejoin event', exact: true }).waitFor();
@@ -111,6 +127,7 @@ try {
   assert((await page.locator('.log-panel').innerText()).includes('Redesign test home overrode'));
   await phone.getByRole('button', { name: 'Rejoin event', exact: true }).click();
   await phone.getByRole('button', { name: 'Override', exact: true }).waitFor();
+  await page.locator('.log-panel summary').click();
   await page.getByLabel('Speed', { exact: true }).fill(process.env.SIM_SPEED || '2');
   await page.getByRole('button', { name: 'Apply inputs', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('.control-note')?.textContent.includes('Sending'));
@@ -138,6 +155,7 @@ try {
   }
   const recorded = [...connection.db.eventLog.iter()].filter(event => event.kind === 'dispatch');
   for (const boundary of boundaries) assert(recorded.some(event => event.simHour >= boundary && event.simHour < boundary + 1), `Database log at ${boundary}`);
+  if (!await page.locator('.log-panel').evaluate(element => element.open)) await page.locator('.log-panel summary').click();
   assert(await page.locator('.log-panel').innerText().then(text => text.includes('Re-plan')));
   await page.screenshot({ path: '/tmp/thermal-reserve-forecast-run.png', fullPage: true });
   await page.getByRole('button', { name: 'Stress', exact: true }).click();
