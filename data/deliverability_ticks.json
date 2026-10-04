@@ -1,0 +1,6 @@
+[
+  {"lostMMcfd": 0, "label": "Feb 2024 as it happened", "label_kind": "derived", "source": "deliverability_2024_mmcfd in data/constants.json: no deliverability lost compared with Feb 2024"},
+  {"lostMMcfd": 11.5, "label": "Near-miss", "label_kind": "derived", "source": "ENGINE coverageTable (packages/model/src/pressure.ts): the largest loss at which 25,000 homes hold the full 10-point reserve on the feb2024 scenario, rounded down to 0.5"},
+  {"lostMMcfd": 20, "label": "Needle-peak contract", "label_kind": "sourced", "source": "needle_peak_mmcfd in data/constants.json: Petroleum News (Alan Bailey), \"New Enstar supplies\", Mar 6, 2016"},
+  {"lostMMcfd": 28.5, "label": "2024 storage-well failure", "label_kind": "sourced", "source": "deliverability_loss_mmcfd in data/constants.json: Enstar, \"2024 Winter Update\" slides to the House Special Committee on Energy, Feb 6, 2024"}
+]

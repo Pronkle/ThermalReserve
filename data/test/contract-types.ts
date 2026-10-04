@@ -53,5 +53,19 @@ export const REQUIRED_CONSTANT_KEYS = [
   'ua_mean_btuh_per_f', 'setpoint_day_f', 'floor_default_f', 'floor_min_f', 'max_depth_default_f',
   'exempt_share', 'tier2_effectiveness', 'override_rate',
   'validation_coned_retention_target', 'validation_coned_band', 'validation_socal_daily_band',
+  // Pressure overhaul (AGENTS.md Section 6, Oct 4)
+  'headroom_2024_mmcfd', 'deliverability_2024_mmcfd', 'linepack_usable_mmcf',
+  'reserve_default_idx', 'reserve_min_idx', 'forecast_buffer_sigma_default', 'forecast_lag_h',
+  'replan_interval_h', 'drift_temp_f', 'drift_hours', 'drift_pressure_idx', 'drift_fade_h',
+  'demand_sensitivity_mmcfd_per_f',
 ] as const;
 export type RequiredConstantKey = (typeof REQUIRED_CONSTANT_KEYS)[number];
+
+/** data/deliverability_ticks.json (AGENTS.md Section 6). */
+export interface DeliverabilityTick { lostMMcfd: number; label: string; label_kind: 'sourced' | 'derived'; source: string; }
+
+/** data/presets.json (AGENTS.md Section 6). */
+export interface Preset {
+  id: 'nearmiss' | 'stress'; name: string; scenarioId: string;
+  lostMMcfd: number; enrolledHomes: number; reserveIdx: number; provisional: boolean;
+}
