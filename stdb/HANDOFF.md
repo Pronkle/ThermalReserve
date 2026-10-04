@@ -1,6 +1,6 @@
 # STDB handoff
 
-Written Sat Oct 3, 16:40 Eastern by the STDB agent (Agent Mail name `CalmGlen`) for whoever
+Written Sat Oct 3, 16:40 Eastern and updated Sun Oct 4, 00:05 by the STDB agent (Agent Mail name `CalmGlen`) for whoever
 takes over the STDB brief (AGENTS.md Section 12). Read AGENTS.md first; this file only adds
 state that is not in it.
 
@@ -11,21 +11,21 @@ state that is not in it.
 | S0 scaffold, publish, bindings, Vercel | Done |
 | S1 simulation clock | Done; live run equals `runPlan(BASELINE)` on all 96 hours |
 | S2 plans, overrides, reassignment, passcode | Done; live NAIVE_4H equals `runPlan` on all 96 hours |
-| S3 households | Code done and CLI-tested. Not `[DONE]`: needs two phones through the web app (WEB's W4) |
+| S3 households | Done; two real phones (one Android, one iPhone) joined, ticked and finished a run on production |
 | S4 integration duty | Ongoing, see "Merging" |
-| S5 hardening | Not started |
-| S6 freeze | Not started |
+| S5 hardening | Done (written by DATA, verified live by STDB); backup database published |
+| S6 freeze | Not started: final publish of both databases, final Vercel deploy, tag `v1.0`, `[CP] code freeze` |
 
 Everything above is on `main` and published to both databases.
 
 ## Live resources
 
-- Maincloud databases: `thermal-reserve` (production) and `thermal-reserve-dev` (test), both owned
-  by H1's Spacetime login. URI `wss://maincloud.spacetimedb.com`.
+- Maincloud databases: `thermal-reserve` (production), `thermal-reserve-backup` (failover, reached
+  with `?db=thermal-reserve-backup`) and `thermal-reserve-dev` (test), all owned by H1's Spacetime login. URI `wss://maincloud.spacetimedb.com`.
 - Vercel: project `thermal-reserve` in H1's team, https://thermal-reserve.vercel.app, with
   `VITE_STDB_URI` and `VITE_STDB_DB` set for all environments. Not connected to GitHub: each
   deploy is manual (below).
-- Operator passcode for `thermal-reserve`: H1 has it. For `thermal-reserve-dev` it is `dev-passcode`.
+- Operator passcode for `thermal-reserve` and `thermal-reserve-backup`: H1 has it. For `thermal-reserve-dev` it is `dev-passcode`.
 
 ## Commands
 
@@ -33,7 +33,7 @@ Everything above is on `main` and published to both databases.
 npm run stdb:generate                       # regenerate packages/stdb-bindings/src, commit the result
 spacetime publish thermal-reserve-dev --module-path stdb --server maincloud --yes
 STDB_PASSCODE=dev-passcode node --import tsx stdb/scripts/accept.ts thermal-reserve-dev <mode> 4
-#   modes: baseline | naive | overrides | household   (each prints PASS or FAIL)
+#   modes: validation | baseline | naive | overrides | household   (each prints PASS or FAIL)
 npm run stdb:publish                        # production; add --delete-data=on-conflict if the schema changed
 npm run sync-physics && npm run check-physics   # after ENGINE changes physics.ts or types.ts
 ```
@@ -53,8 +53,10 @@ message after each merge listing what landed. `scripts/merge-gate.sh <branch>` d
 and the checks on a detached checkout and commits only on a pass; then
 `git push origin HEAD:main`. No force-pushes or branch deletion without H1.
 
-Pending merges: ENGINE's computed test bands, then DATA's revert to `avg_home_mcf_year` = 149
-(Agent Mail message 42). `data/d0` must not be merged before that revert: it fails a model test.
+Current split (since Sat 21:48): STDB merges `engine/*`, `web/*`, `stdb/*`, `chat/*` and anything
+touching root files or the lockfile; DATA merges only its own `data/*` branches under the same rules.
+STDB deploys whenever `apps/web`, `packages/model` or `data/*.json` change on `main`, whoever merged
+it, and publishes all three databases whenever `stdb/` changes.
 
 ## Decisions that differ from AGENTS.md Section 8
 
@@ -65,6 +67,10 @@ Pending merges: ENGINE's computed test bands, then DATA's revert to `avg_home_mc
 - `set_plan` keeps one plan: it deletes every `plan_hour` row before inserting.
 - `event_log` is cleared by `load_scenario` and `reset`.
 - Households are placed near a random sample home (anchors are not in the database).
+- Real households are never held below 62°F, whatever the operator's floor is (`HOUSEHOLD_FLOOR_F`),
+  so the consent text stays true. The simulated fleet follows the operator's floor (60–70°F).
+- With no setback in the dispatched plan there are no simulated overrides, and `share_at_floor`
+  counts only cohorts in `holding` (both match ENGINE's `runPlan`).
 - Capacity is a daily limit (H1-approved, message 32): `aggregate_hour.capacity_mmcf` stays
   capacity ÷ 24, and `tick` logs a `system` event when a gas day closes over capacity.
 - Reducer arguments are JSON strings with the camelCase keys of the Contract B types;
@@ -72,10 +78,8 @@ Pending merges: ENGINE's computed test bands, then DATA's revert to `avg_home_mc
 
 ## Not yet done or verified
 
-- S5: input ranges (max depth ≤ 10, enrolled 1,000–50,000, speed 0.5–4) are not enforced; only
-  finiteness, floor ≥ 60 and nickname cleaning are. No backup database yet; WEB has no `?db=`
-  override yet.
-- Household `online` flag and reload persistence are untested from a real browser.
-- No change-passcode reducer; changing it means a data wipe.
+- S6 freeze steps (above).
+- No change-passcode reducer; changing a passcode means a data wipe of that database.
 - The initial mass temperature formula is duplicated from ENGINE's `runPlan`
   (`initStates` in `index.ts`); if ENGINE changes it, the 1% match breaks.
+- AGENTS.md Section 8 still describes the original contract; the deviations are only listed here.
