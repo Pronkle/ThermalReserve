@@ -9,8 +9,10 @@
 //   NBS: 3-hourly to about 72 h. NBE: 12-hourly to about 10 days.
 //   Runs older than 7 days are kept only for 01, 07, 13 and 19 UTC. IEM is free and needs no key.
 //
-// For each replay scenario this saves the last archived run before hour 0 and every archived run
-// issued during the scenario (AGENTS.md Section 6).
+// For each replay scenario this saves the last five archived runs before hour 0 and every archived
+// run issued during the scenario. AGENTS.md Section 6 asks for the last one before hour 0; a run's
+// first max/min forecast is 17 to 23 h after its run time, so the four earlier runs are what cover
+// the scenario's first hours.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -24,6 +26,7 @@ const MODELS = ['NBS', 'NBE'] as const;
 const ARCHIVED_RUN_HOURS_UTC = [1, 7, 13, 19];
 const SCENARIOS = ['feb2024', 'lastwinter'];
 const HOUR_MS = 3_600_000;
+const RUNS_BEFORE_START = 5;
 
 interface MosRow { station?: string; model?: string; runtime?: string; ftime?: string; tmp?: number | null; tsd?: number | null }
 interface MosResponse { data?: MosRow[] }
@@ -35,13 +38,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function runTimes(startMs: number, hours: number): string[] {
   const endMs = startMs + hours * HOUR_MS;
   const all: number[] = [];
-  const day0 = Date.UTC(new Date(startMs).getUTCFullYear(), new Date(startMs).getUTCMonth(), new Date(startMs).getUTCDate()) - 24 * HOUR_MS;
+  const day0 = Date.UTC(new Date(startMs).getUTCFullYear(), new Date(startMs).getUTCMonth(), new Date(startMs).getUTCDate()) - 48 * HOUR_MS;
   for (let d = day0; d < endMs; d += 24 * HOUR_MS) {
     for (const h of ARCHIVED_RUN_HOURS_UTC) all.push(d + h * HOUR_MS);
   }
   const before = all.filter((t) => t <= startMs);
   const during = all.filter((t) => t > startMs && t < endMs);
-  return [before[before.length - 1], ...during].map((t) => new Date(t).toISOString().replace('.000Z', 'Z'));
+  return [...before.slice(-RUNS_BEFORE_START), ...during].map((t) => new Date(t).toISOString().replace('.000Z', 'Z'));
 }
 
 async function fetchRun(model: string, runtime: string): Promise<MosResponse> {
