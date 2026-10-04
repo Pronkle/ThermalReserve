@@ -28,7 +28,7 @@ const conn = DbConnection.builder().withUri(uri).withDatabaseName(database).with
         const cfg = [...c.db.simConfig.iter()][0];
         log(`subscribed: ${[...c.db.household.iter()].length} households; status=${cfg?.status} simHour=${cfg?.simHour?.toFixed(2)} strategy=${cfg?.strategy}`);
       })
-      .onError((_ctx, err) => log(`subscription error: ${String(err)}`))
+      .onError(ctx => log(`subscription error: ${String((ctx as { event?: unknown }).event ?? "unknown")}`))
       .subscribe(['SELECT * FROM sim_config', 'SELECT * FROM household']);
   })
   .onConnectError((_ctx, err) => { log(`connect error: ${String(err)}`); process.exit(1); })

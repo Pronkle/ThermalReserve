@@ -9,7 +9,12 @@
     "spike:whois": "node --env-file=.env --import tsx spike/whois.ts",
     "spike:stdb": "tsx spike/stdb-watch.ts",
     "spike:listen": "node --env-file=.env --import tsx spike/listen-imessage.ts",
-    "spike:drive": "tsx spike/drive-dev.ts"
+    "spike:drive": "tsx spike/drive-dev.ts",
+    "start": "node --env-file=.env --import tsx src/main.imessage.ts",
+    "dev": "tsx src/main.terminal.ts",
+    "codes": "tsx src/codes.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@thermal-reserve/stdb-bindings": "0.0.0",
