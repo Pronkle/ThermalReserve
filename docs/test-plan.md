@@ -153,6 +153,7 @@ Acceptance comes from CHAT's brief (`docs/agents/CHAT_BRIEF.md` §8–9). Add ex
 | C-11 | Join with first name, last name, a real phone and the opt-in **checked** | `set_contact` succeeds; the companion adds the number to Photon and sends a text-only opener; no phone appears in any public table, URL or info-level log | |
 | C-12 | Enter an invalid phone (letters, too short) with the opt-in checked | A clear error on `/home`; nothing stored | |
 | C-13 | Reset households on `/ops` | The `household_contact` rows are gone, and the companion forgets the number within one minute | |
+| C-14 | Reply STOP from an opted-in phone | No further texts; the companion deletes that number and its memory | |
 
 ## 5. Failure modes
 
