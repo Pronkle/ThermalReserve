@@ -37,6 +37,7 @@ p { line-height: 1.6; margin: 0 0 16px; }
 .ops-heading h1 { margin-bottom: 0; }
 figcaption { font-size: 14px; line-height: 1.6; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.plan-banner { margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 8px; color: var(--text); font-size: 12px; }
 .skip-link { position: absolute; left: 16px; top: -80px; z-index: 10; background: var(--surface); padding: 16px; }
 .skip-link:focus { top: 16px; }
 @media (max-width: 760px) {
