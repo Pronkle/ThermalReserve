@@ -1,0 +1,79 @@
+# Thermal Reserve iMessage companion
+
+A long-lived Node process that texts linked households through **Photon Spectrum** (`spectrum-ts`) when the simulated dispatch changes their heat. It reads the live SpacetimeDB tables (read-only) and keeps its own memory in local SQLite. Owner: CHAT. Brief: `docs/agents/CHAT_BRIEF.md`.
+
+Status: Phase 1 (proactive notifications, linking, STOP). Questions and answers (Insights agent) are Phase 2.
+
+## Run it
+
+```sh
+npm install                                   # from the repo root
+cd apps/imessage
+npm test                                      # offline, no credentials
+npm run dev                                   # terminal provider: chat in this terminal
+npm start                                     # cloud iMessage; needs .env (below)
+npm run codes                                 # list each household's link code (nickname → code)
+```
+
+`apps/imessage/.env` (gitignored; never commit it):
+
+```
+SPECTRUM_PROJECT_ID=...
+SPECTRUM_PROJECT_SECRET=...
+```
+
+Other settings, all optional:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `STDB_DB` | `thermal-reserve-dev` | Database to watch (`thermal-reserve` for production) |
+| `STDB_URI` | `wss://maincloud.spacetimedb.com` | Spacetime host |
+| `CHAT_DEMO` | off | `1`: quiet hours off, and a log line for every held message |
+| `CHAT_THROTTLE_S` | 20 | At most one proactive text per contact per window |
+| `CHAT_DEBOUNCE_S` | 1.5 | Wait after a first change so same-tick changes share a text |
+| `CHAT_TZ` | `America/New_York` | Recipient time zone for quiet hours (22:00–08:00) |
+
+During judging the process runs on a team laptop (H1-approved exception to "no laptop process"). If it stops, the website is unaffected; texts just stop.
+
+## How linking works (design A, inbound-first)
+
+1. A household joins on `/home`. Its link code is the first 6 characters of base32(SHA-256(identity hex, lowercase, as UTF-8 text)).
+2. The person texts `Link my home <CODE>` to the Thermal Reserve line. Their own text is the opt-in and gives us their number; we never store it in SpacetimeDB.
+3. The companion replies `Linked to <nickname>…` and offers `NO` (wrong home) and `STOP`.
+
+Photon's shared-line plan only delivers to numbers added as users of our Photon project, so a phone must be added in the Photon dashboard before it can link.
+
+## What it sends
+
+The watcher compares each linked household with the last state it told them about, and queues:
+
+- setback start (target ≥ 0.5°F below the normal 70°F), a depth change of 1°F or more, recovery, override and rejoin, event end (net `saved_cf`), and one "your heat stays steady" text for exempt homes.
+
+Changes are merged: at most one text per contact per 20 s. Anything that happens inside the window goes into a single catch-up list (oldest first, at most 5 lines plus "plus N smaller changes", ending with the current state and one question). Every text says "Thermal Reserve demo" and "(simulated)", uses the sim clock in Anchorage time like `/home`, and takes its numbers only from the household row and `data/constants.json`.
+
+Replies it understands now: `Link <code>`, `NO`, `STOP` (deletes everything stored for the number), "thanks"/"ok"/👍 (answered with a tapback, no text), "only big changes" (summary only), "text me every change", "text me anytime" (ignores quiet hours), "no texts at night".
+
+## What it stores
+
+`apps/imessage/data/chat-<database>.sqlite` (gitignored): phone number ↔ household identity, preferences, last notified state, the queue of unsent changes, an outbox, and the last 30 turns per conversation. STOP, or the household disappearing (`reset_households`), deletes all of it for that number. Logs mask numbers to the last 4 digits.
+
+## Restart safety
+
+The watcher state and the queue are written in one transaction. Spectrum has no idempotency key, so each proactive text is written to the outbox as `sending` before the network call, and the queue is cleared only once the send resolves. A row still marked `sending` after a crash counts as sent: a restart never repeats a text. In the worst case, one text that was in flight during a crash is lost. Changes that start and finish while the process is down are not reported; only the state it finds on return.
+
+## Honest limitations
+
+- Household identities are public, so anyone who knows the code could link a phone to someone else's home. Acceptable for a demo; `NO` undoes a wrong link.
+- Household rows update once per Spacetime tick (every 2 simulated hours at 2 h/s), so a short setback appears as one update.
+- The terminal provider can't open a conversation first, so in `npm run dev` a restarted process can only text after you type something.
+- No real thermostat is controlled; everything is the simulation.
+
+## Layout
+
+```
+src/main.imessage.ts   cloud iMessage entrypoint      src/main.terminal.ts   terminal entrypoint
+src/app.ts             wiring                          src/config.ts          env + constants
+src/stdb/mirror.ts     read-only Spacetime mirror      src/link.ts            link codes
+src/watcher/           detect, compose, notifier       src/concierge/         inbound rules (Phase 2: Insights)
+src/memory/store.ts    SQLite (node:sqlite)            spike/                 Phase 0 experiments + dev-run driver
+```
