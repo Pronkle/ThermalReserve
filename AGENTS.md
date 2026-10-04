@@ -1,6 +1,6 @@
 # Thermal Reserve — Agent Handoff: Pressure Overhaul (AGENTS.md)
 
-Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5
+Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5 · updated 08:15: control groups, log overlay, no chart captions, `/home` map and link step
 
 ## 1. Start here
 
@@ -99,6 +99,14 @@ At 25,000 homes the fleet cannot always reach a 10-point reserve. The UI shows t
 - Event log collapsed by default ("Event log ▸"); it opens by itself when a household joins or overrides.
 - Removed: the Staggered strategy, the Gas details drawer (`?ui=gas` stays), the header clock and status block, the "Live" eyebrow, and the re-plan ticks on the temperature chart.
 - ENGINE edits `PressureChart.tsx`, `TemperatureChart.tsx`, `DiscomfortChart.tsx` and a new `ChartTooltip.tsx` (H2's authority, H1 approved); WEB owns the rest of `apps/web`.
+
+**Further changes approved by H1 on Oct 4 at 08:15 (H2's requests and H1's msg 344). These also win over the text below:**
+- Operator controls sit in four titled groups: Situation (presets, Reset demo, scenario, supply lost), Run (Solve, Dispatch, Start, Pause, speed), Plan (forecast basis, strategy, planning mode, reserve, cold buffer) and Fleet (homes, max setback, comfort floor), with Apply inputs, Reset and Reset households in a small row at the bottom. Text is larger throughout.
+- The event log opens as an overlay over the lower part of the left column (by click, or by itself on a join or override) and never covers the verdict, the Run buttons or the charts.
+- The three charts have no captions. The verdict strip and status sentence carry the numbers.
+- The `/home` map: small dots; three plain-word states, "Saving gas now" (blue `#5BC0EB`), "Warming back up" (amber `#F2A541`) and "Normal" (dim gray, which includes overridden and exempt homes); the viewer's own home is a larger green dot (`#6EDBA4`) with a soft pulse (off under `prefers-reduced-motion`), labeled "You", and the map centers on it.
+- After an iMessage opt-in, `/home` shows the household's assigned line in large type and a button that opens Messages with "Link my home {code}" filled in (not START).
+- For this work ENGINE may also edit WEB's console files (`PressureOps.tsx`, `pressure.css`, `public.css`, `VerdictStrip.tsx`, `PresetBar.tsx`, `Validation.tsx`); WEB keeps `/home`, the maps, `stdb.tsx` and `replan-ui`.
 
 ```
 +--------------------------------------------------------------------------------+
