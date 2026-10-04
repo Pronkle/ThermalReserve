@@ -6,7 +6,7 @@ import { ScheduleAt } from 'spacetimedb';
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { SUBSTEP_HOURS, gasCf, heatToHold, normalSetpointF, stepState } from './physics';
 import type { CohortParams, HeatingType, ThermalState } from './types';
-import spacetimedb, { householdContact, tickSchedule } from './schema';
+import spacetimedb, { contactLine, householdContact, tickSchedule } from './schema';
 
 export { default } from './schema';
 
@@ -480,6 +480,7 @@ export const reset_households = spacetimedb.reducer(ctx => {
   const all = [...ctx.db.household.iter()];
   for (const hh of all) ctx.db.household.identity.delete(hh.identity);
   for (const c of [...ctx.db.householdContact.iter()]) ctx.db.householdContact.identity.delete(c.identity);
+  for (const l of [...ctx.db.contactLine.iter()]) ctx.db.contactLine.identity.delete(l.identity);
   logEvent(ctx, cfg.sim_hour, 'system', `Households reset (${all.length} removed)`);
 });
 
@@ -505,6 +506,35 @@ export const remove_contact = spacetimedb.reducer(
     const reader = ctx.db.contactReader.id.find(0);
     if (!reader || !reader.identity.equals(ctx.sender)) throw new SenderError('contact reader only: call claim_contact_reader first');
     if (ctx.db.householdContact.identity.find(identity)) ctx.db.householdContact.identity.delete(identity);
+    if (ctx.db.contactLine.identity.find(identity)) ctx.db.contactLine.identity.delete(identity);
+  }
+);
+
+// The contact reader records which line its provider assigned to an opted-in household, so /home
+// can tell that person which number to text first. Only the reader may call it, and only for a
+// household that has opted in. Calling again replaces the line.
+export const set_contact_line = spacetimedb.reducer(
+  { identity: t.identity(), line: t.string() },
+  (ctx, { identity, line }) => {
+    const reader = ctx.db.contactReader.id.find(0);
+    if (!reader || !reader.identity.equals(ctx.sender)) throw new SenderError('contact reader only: call claim_contact_reader first');
+    if (!ctx.db.householdContact.identity.find(identity)) throw new SenderError('no contact for that household');
+    const e164 = line.replace(/[\s().-]/g, '');
+    if (!E164.test(e164)) throw new SenderError('line: expected a number like +16285550100');
+    const row = { identity, line: e164, assigned_at: ctx.timestamp };
+    if (ctx.db.contactLine.identity.find(identity)) ctx.db.contactLine.identity.update(row);
+    else ctx.db.contactLine.insert(row);
+  }
+);
+
+// The caller's own assigned line: one row once the companion has set it, none before or for
+// anyone who has not opted in.
+export const my_contact_line = spacetimedb.view(
+  { name: 'my_contact_line', public: true },
+  t.array(contactLine.rowType),
+  ctx => {
+    const row = ctx.db.contactLine.identity.find(ctx.sender);
+    return row ? [row] : [];
   }
 );
 
@@ -541,6 +571,7 @@ export const set_contact = spacetimedb.reducer(
 // Removes the caller's contact details (opt out). The household itself stays.
 export const clear_contact = spacetimedb.reducer(ctx => {
   if (ctx.db.householdContact.identity.find(ctx.sender)) ctx.db.householdContact.identity.delete(ctx.sender);
+  if (ctx.db.contactLine.identity.find(ctx.sender)) ctx.db.contactLine.identity.delete(ctx.sender);
 });
 
 

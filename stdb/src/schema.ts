@@ -201,10 +201,23 @@ const contactReader = table(
   }
 );
 
+// Private: the iMessage line the companion's provider assigned to an opted-in household. The
+// household reads its own row through the my_contact_line view, so /home can say which number to
+// text first. It is the provider's number, not the household's.
+export const contactLine = table(
+  { name: 'contact_line' },
+  {
+    identity: t.identity().primaryKey(),
+    line: t.string(), // E.164, for example +16285550100
+    assigned_at: t.timestamp(),
+  }
+);
+
 const spacetimedb = schema({
   operatorSecret,
   householdContact,
   contactReader,
+  contactLine,
   simConfig,
   weatherHour,
   cohort,
