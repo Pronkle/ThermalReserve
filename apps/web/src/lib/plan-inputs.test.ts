@@ -1,8 +1,19 @@
 import { expect, it } from 'vitest';
 import type { FleetConfig, Plan } from '@thermal-reserve/model';
-import { identifyPlan, planInputKey, planMatchesInputs, planNeedsNoSetbacks } from './plan-inputs';
+import { cachePlan, identifyPlan, planInputKey, planMatchesInputs, planNeedsNoSetbacks } from './plan-inputs';
 const config: FleetConfig = { enrolledHomes: 50000, exemptShare: 0.08, floorF: 60, maxDepthF: 10, capacityMMcfd: 265, overrideRate: 0.06, seed: 42 };
 const plan: Plan = { id: 'feb2024-OPTIMIZED', strategy: 'OPTIMIZED', targetsF: [[NaN, 62, NaN]] };
+it('retains multiple input/mode solves and bounds the cache without mutating prior state', () => {
+  const original = new Map([['OPTIMIZED:60', plan]]);
+  let cache = cachePlan(original, 'OPTIMIZED:62', { ...plan, id: 'floor62' });
+  expect(cache.get('OPTIMIZED:60')).toBe(plan);
+  expect(original.size).toBe(1);
+  cache = cachePlan(cache, 'MAX_RELIEF:60', { ...plan, strategy: 'MAX_RELIEF' });
+  expect(cache.get('OPTIMIZED:60')?.strategy).toBe('OPTIMIZED');
+  for (let i = 0; i < 10; i++) cache = cachePlan(cache, `input${i}`, plan);
+  expect(cache.size).toBe(10);
+  expect(cache.has('OPTIMIZED:60')).toBe(false);
+});
 it('rejects a dispatched plan when live parameters change, even after sliders return to those live values', () => {
   const original = planInputKey('feb2024', config);
   const dispatched = identifyPlan(plan, original, 'session');
