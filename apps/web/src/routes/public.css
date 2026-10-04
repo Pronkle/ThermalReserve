@@ -82,3 +82,10 @@
 .theme-light .whatif-field input[type='range'] { accent-color: #0B215D; }
 .theme-light .legend-swatch.event { background: #1A3A8F; }
 @media (max-width: 500px) { .brand-logo { height: 34px; padding: 4px 8px; } .theme-light .brand-subtitle { display: none; } }
+/* /home primary actions: one look for <button> and <a> ("Text START" is an sms: link). The theme's link colour must not
+   reach a button-styled link, and the old teal becomes the logo navy (H2). */
+.app-shell.theme-light .home-primary, .app-shell.theme-light a.home-primary { background: #0B215D; border: 1px solid #0B215D; color: #FFFFFF; }
+.app-shell.theme-light .home-primary:hover:not(:disabled), .app-shell.theme-light a.home-primary:hover { background: #17327E; border-color: #17327E; color: #FFFFFF; }
+.app-shell.theme-light a.home-primary:visited { color: #FFFFFF; }
+.app-shell.theme-light .steady-checkbox input, .app-shell.theme-light .home-savings progress { accent-color: #0B215D; }
+.app-shell.theme-light .heat-card.holding .heat-status { border-color: #0B215D; color: #0B215D; }
