@@ -1,0 +1,4 @@
+# Local state: SQLite memory, Spacetime client token, phone numbers. Never commit.
+data/
+.env
+*.token
