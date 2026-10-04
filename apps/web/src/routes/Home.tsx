@@ -90,6 +90,6 @@ export function Home() {
       {!config?.hours && <p className="home-limit">The operator needs to load a scenario before you can join.</p>}
       <button className="home-back" onClick={() => setStep(1)}>Back</button>
     </div>}
-    <details className="why-heat panel"><summary>Why this matters</summary><p>Businesses can be curtailed before homes during a gas shortage. Saving heat demand helps keep gas available for the community, including local businesses.</p><p>Thermal Reserve simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
+    <details className="why-heat panel"><summary>Why this matters</summary><p>If gas runs short, Enstar's plan cuts large commercial and industrial customers first. Small voluntary reductions at home make those cuts smaller and lower the chance of rolling blackouts. Override any time.</p><p>Thermal Reserve simulates emergency relief across many homes. It helps with cold-day demand; it does not solve the seasonal gas shortfall.</p></details>
   </section>;
 }
