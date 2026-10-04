@@ -179,8 +179,9 @@ export function PressureOps() {
   function param(field: keyof FleetConfig, value: number) { setConfig(previous => ({ ...previous, [field]: value })); }
   const noLiveInputs = !connected && live.status !== 'unconfigured';
   return <div className="pressure-grid"><aside className="pressure-side">
+    <div className="ops-heading pressure-heading console-brand-row"><img className="console-logo" src="/borea-flux-logo.webp" alt="BoreaFlux" width={960} height={145} /><JoinQr /></div>
     <MainNavigation />
-    <div className="ops-heading pressure-heading"><h1>Operator console</h1><JoinQr /></div>
+    <h1>Operator console</h1>
     <StatusSentence summary={views.active?.summary} reserve={input.reserveIdx} />
     {live.status === 'disconnected' && <p className="connection-banner" role="status">Disconnected — retrying</p>}
     {selectedPlan?.note && <p className="fallback-banner" role="status">Rule-based fallback in use · Staggered</p>}

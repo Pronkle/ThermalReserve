@@ -162,3 +162,27 @@
 @media (max-width: 500px) { .pressure-console-shell .control-row.two { grid-template-columns: minmax(0, 1fr); } }
 /* Connected status ("Connected · thermal-reserve · Operator") stays on one line so the event-log bar stays in view. */
 .pressure-console-shell .run-status .solve-status, .pressure-console-shell .run-status .control-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* BoreaFlux theme for the operator console (H2): logo navy background, lighter navy panels, gold as a quiet accent
+   (active tab, selected preset, focus, slider thumbs). Chart series colours are unchanged. Scoped to the console. */
+.pressure-console-shell.theme-dark {
+  --background: #0B215D; --surface: #11296B; --border: #24418A; --text: #EEF2FA; --muted: #AAB7D6; --accent: #E9C25A;
+}
+.pressure-console-shell .console-logo { display: block; width: 100%; height: auto; border-radius: 10px; flex-shrink: 0; }
+.pressure-console-shell .console-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 !important; }
+.pressure-console-shell .pressure-side > h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
+.pressure-console-shell .main-navigation a.active { background: transparent; color: var(--accent); outline: none; box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
+.pressure-console-shell .main-navigation a:hover { color: var(--text); }
+.pressure-console-shell button { background: #0E2463; border-color: var(--border); }
+.pressure-console-shell button:hover:not(:disabled) { border-color: #3A5AA8; }
+.pressure-console-shell .preset-row button[aria-pressed="true"], .pressure-console-shell .preset-row button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.pressure-console-shell .primary-actions button:first-child:not(:disabled) { border-color: rgb(233 194 90 / .55); }
+.pressure-console-shell select { background: #0E2463; }
+.pressure-console-shell input[type=range] { accent-color: #C9A84E; }
+.pressure-console-shell .control-group h2 { color: #C9B27A; }
+.pressure-console-shell .join-qr-button { background: #0E2463; }
+.pressure-console-shell .pressure-charts figure { background: #0E2665; }
+.pressure-console-shell .console-brand-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 !important; }
+.pressure-console-shell .console-brand-row .console-logo { width: auto; max-width: calc(100% - 175px); height: 58px; min-width: 0; object-fit: contain; object-position: left center; }
+.pressure-console-shell .pressure-side > .main-navigation { margin-top: -2px; }
+.pressure-console-shell .console-brand-row .join-qr-button { flex-shrink: 0; white-space: nowrap; }
