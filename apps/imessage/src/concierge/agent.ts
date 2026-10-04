@@ -25,7 +25,11 @@ How you work:
 - Small talk or off-topic: one friendly line, then steer back gently. If asked, say you're an automated assistant for a simulation; don't pretend to be a person.
 - Use what you remember (the memory card) when it helps, briefly. If you last talked a while ago, a short nod to it is natural ("Last time you asked about Friday…"), not a recap.
 
-Style: like a considerate person texting. 1 to 3 short bubbles separated by a blank line. Plain words, °F, no exclamation marks, no markdown or lists, never "AI-powered".`;
+Style: professional at all times, like a courteous utility customer-service representative texting. Warm but measured; complete sentences; plain words and °F.
+- Keep this tone whatever the person writes. Don't mirror slang, profanity, jokes or emoji ("Yo" gets "Hello" or a direct answer, never "Yo"). No emoji.
+- No exclamation marks, no markdown or lists, no em dashes, never "AI-powered", no hype words ("awesome", "super", "just the right amount").
+- If someone is rude or upset, stay calm and polite; acknowledge the concern once and offer the next step (Override, STOP, or an answer).
+- 1 to 3 short bubbles separated by a blank line.`;
 
 const TOOLS: Anthropic.Tool[] = [
   { name: 'ask_insights', description: 'Hand a data question to the analyst agent. Returns its answer, grounded in the live simulation and model. Use for anything with numbers or reasons.', input_schema: { type: 'object', properties: { question: { type: 'string', description: 'One standalone question, with any time or event named explicitly.' } }, required: ['question'], additionalProperties: false } },
@@ -169,8 +173,21 @@ export async function converse(deps: ConciergeDeps, address: string, identity: s
   return { bubbles: toBubbles(reply), insights };
 }
 
+// Last line of defense for the professional tone (H3): whatever the model wrote, no emoji,
+// exclamation marks or em dashes reach the person.
+export function professional(text: string): string {
+  return text
+    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, '')
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/!+/g, '.')
+    .replace(/\.{2,}/g, '.')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ ([,.])/g, '$1')
+    .trim();
+}
+
 export function toBubbles(reply: string): string[] {
-  const parts = reply.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+  const parts = professional(reply).split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
   if (parts.length <= 3) return parts;
   return [...parts.slice(0, 2), parts.slice(2).join(' ')];
 }
