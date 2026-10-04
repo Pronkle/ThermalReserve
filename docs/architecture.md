@@ -98,7 +98,7 @@ flowchart LR
 
 ## iMessage companion (CHAT, planned; not built yet)
 
-Owner: CHAT (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. Everything in this section is the brief's design, not shipped code; remove or update it once CHAT's phases land.
+Owner: CHAT, Agent Mail name ScarletDesert (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. Everything in this section is the brief's design, not shipped code; remove or update it once CHAT's phases land.
 
 ```mermaid
 flowchart LR
@@ -124,7 +124,14 @@ flowchart LR
 
 **Phone ↔ household link:** preferred design A is inbound-first: the user texts a code from `/home`, so no phone number is stored in SpacetimeDB. Fallback B adds a private `household_contact` table (H1 approval, STDB implements). Decided in CHAT's Phase 0.
 
-**Open decisions (owners):** where the process runs during judging (H1); new dependencies `spectrum-ts`, `@anthropic-ai/sdk`, a SQLite library (H1); link design A or B (H1 + CHAT); Photon project and API keys (humans; never committed).
+**H1's decisions (Oct 4, msg 167):**
+- Dependencies approved, in `apps/imessage` only: `spectrum-ts`, `@anthropic-ai/sdk`; SQLite via Node's built-in `node:sqlite` (`better-sqlite3` only if that fails).
+- Link design **A** (inbound-first text with a code; no Spacetime schema change). B only if A proves impossible.
+- Hosting during judging: a hosted service (Railway, Fly or Render) preferred; **a human must create the account (asked of H3)**. No laptop exception granted yet.
+- The Sunday 10:00 code freeze applies to CHAT, and the four web routes must never depend on it.
+- `apps/imessage` tests must pass offline with no credentials (merge gate). CHAT reads `thermal-reserve-dev` read-only with its own identity.
+
+**Still open:** the hosting account (H3); Photon project and API keys (humans; never committed).
 
 ## Decisions worth knowing
 
