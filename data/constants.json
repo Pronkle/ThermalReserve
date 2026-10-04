@@ -37,5 +37,18 @@
   "override_rate": {"value": 0.06, "unit": "fraction of homes per event", "label": "assumed", "source": "Set equal to winter_optout_pct from the cooperative pilot; applying it to Anchorage is an assumption"},
   "validation_coned_retention_target": {"value": 0.48, "unit": "fraction", "label": "derived", "source": "1 − coned_snapback_pct ÷ 100 = 1 − 0.52"},
   "validation_coned_band": {"value": [0.38, 0.58], "unit": "fraction", "label": "assumed", "source": "Design choice: target ± 0.10 (master plan §9)"},
-  "validation_socal_daily_band": {"value": [1.5, 3.0], "unit": "%", "label": "assumed", "source": "Design choice: band around the published 2.2% (master plan §9)"}
+  "validation_socal_daily_band": {"value": [1.5, 3.0], "unit": "%", "label": "assumed", "source": "Design choice: band around the published 2.2% (master plan §9)"},
+  "headroom_2024_mmcfd": {"value": 10, "unit": "MMcf/day", "label": "sourced", "source": "ADN, Feb 6, 2024, reporting Enstar president John Sims's testimony: on the record cold day CINGSA storage was at its maximum and Hilcorp could add only about 10 MMcf/day. Approximate. Link not found; wording check pending (DATA task D-A2)"},
+  "deliverability_2024_mmcfd": {"value": 278, "unit": "MMcf/day", "label": "derived", "source": "feb2024 scenario's modeled peak gas day (268.0 MMcf, data/scenarios/feb2024.json) + headroom_2024_mmcfd (10)"},
+  "linepack_usable_mmcf": {"value": 9.54, "unit": "MMcf", "label": "derived", "source": "usableLinepackMMcf(deliverability_2024_mmcfd, demand_shape.json) in packages/model/src/pressure.ts: the smallest linepack that absorbs a normal day's hourly shape at 278 MMcf/day. Fixed; never recomputed from the deliverability slider"},
+  "reserve_default_idx": {"value": 10, "unit": "index points", "label": "assumed", "source": "Team decision (AGENTS.md Section 6)"},
+  "reserve_min_idx": {"value": 5, "unit": "index points", "label": "assumed", "source": "Covers differences between the hourly plan and the 5-minute simulation (AGENTS.md Section 6)"},
+  "forecast_buffer_sigma_default": {"value": 1, "unit": "σ", "label": "assumed", "source": "Team decision (AGENTS.md Section 6)"},
+  "forecast_lag_h": {"value": 1, "unit": "h", "label": "assumed", "source": "A forecast run is usable 1 h after its run time (AGENTS.md Section 6)"},
+  "replan_interval_h": {"value": 6, "unit": "h", "label": "assumed", "source": "Matches the forecast issue cadence (AGENTS.md Section 6)"},
+  "drift_temp_f": {"value": 1.5, "unit": "°F", "label": "assumed", "source": "Drift trigger: observed minus forecast in use, sustained for drift_hours (AGENTS.md Section 6)"},
+  "drift_hours": {"value": 2, "unit": "h", "label": "assumed", "source": "Consecutive hours over drift_temp_f before a drift re-plan (AGENTS.md Section 6)"},
+  "drift_pressure_idx": {"value": 5, "unit": "index points", "label": "assumed", "source": "Drift trigger: pressure index this far below what the plan expected (AGENTS.md Section 6)"},
+  "drift_fade_h": {"value": 12, "unit": "h", "label": "assumed", "source": "A drift correction fades linearly to zero over this many hours (AGENTS.md Section 6)"},
+  "demand_sensitivity_mmcfd_per_f": {"value": 3.44, "unit": "MMcf/day per °F", "label": "derived", "source": "data/system_fit.json b (3.43655 MMcf/day per heating degree day, i.e. per °F of daily mean), rounded"}
 }
