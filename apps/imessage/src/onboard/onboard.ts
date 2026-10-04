@@ -1,15 +1,22 @@
-// Auto-onboarding (H3, Oct 4): a household that opted in on /home with name, email and phone is
+// Auto-onboarding (H3, Oct 4): a household that opted in on /home with name and phone is
 // added to Photon's user list, then gets one text-only opener asking for YES. Nothing else is
 // sent until they reply (Photon's guidance for conversations we start). The contact source is
-// STDB's private table once H1 approves it; until then nothing calls this.
+// STDB's private household_contact table (H1 approved Oct 4; read path pending STDB's post).
 import { maskAddress, type ChatConstants } from '../config';
 import type { Store } from '../memory/store';
 import type { HouseholdView, SimView } from '../types';
 import { initialState } from '../watcher/detect';
+import { linkCode } from '../link';
 import type { PhotonUser, PhotonUsers } from './photon';
 import { validateUser } from './photon';
 
-export interface ContactRequest extends PhotonUser { identity: string; }
+// What /home collects (H1, Oct 4: no email anywhere).
+export interface ContactRequest { identity: string; firstName: string; lastName: string; phone: string; }
+
+// Photon's CLI insists on an email. We never ask for one: this placeholder is built from the
+// public link code, and .invalid is a reserved domain that can never receive mail.
+export const placeholderEmail = (identity: string) => `household-${linkCode(identity).toLowerCase()}@users.invalid`;
+const toPhotonUser = (r: ContactRequest): PhotonUser => ({ firstName: r.firstName, lastName: r.lastName, phone: r.phone, email: placeholderEmail(r.identity) });
 
 export interface OnboardDeps {
   store: Store;
@@ -30,7 +37,8 @@ export type OnboardResult = 'onboarded' | 'already linked' | 'invalid' | 'no hou
 export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<OnboardResult> {
   const log = deps.log ?? console.log;
   const now = (deps.now ?? Date.now)();
-  const problem = validateUser(req);
+  const user = toPhotonUser(req);
+  const problem = validateUser(user);
   if (problem) { log(`[onboard] skipped: ${problem}`); return 'invalid'; }
   if (deps.store.contact(req.phone)) return 'already linked';
   const home = deps.household(req.identity);
@@ -38,7 +46,7 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
   try {
     const known = await deps.photon.phones();
     if (!known.has(req.phone)) {
-      await deps.photon.add(req);
+      await deps.photon.add(user);
       log(`[onboard] added ${maskAddress(req.phone)} to the Photon project`);
     }
     const sim = deps.sim();

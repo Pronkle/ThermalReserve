@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { handleInbound } from '../src/concierge/inbound';
 import { Store } from '../src/memory/store';
-import { onboard, opener, type ContactRequest } from '../src/onboard/onboard';
+import { onboard, opener, placeholderEmail, type ContactRequest } from '../src/onboard/onboard';
 import { photonUsers, validateUser, type PhotonUser } from '../src/onboard/photon';
 import { Notifier } from '../src/watcher/notifier';
 import { config, consts, home, IDENTITY, NOON_ET, PHONE, sim } from './fixtures';
 
-const req: ContactRequest = { identity: IDENTITY, firstName: 'Sam', lastName: 'Lee', email: 'sam@example.com', phone: PHONE };
+const req: ContactRequest = { identity: IDENTITY, firstName: 'Sam', lastName: 'Lee', phone: PHONE };
+const user: PhotonUser = { firstName: 'Sam', lastName: 'Lee', phone: PHONE, email: placeholderEmail(IDENTITY) };
 
 function fakePhoton(existing: string[] = []) {
   const added: PhotonUser[] = [];
@@ -15,18 +16,18 @@ function fakePhoton(existing: string[] = []) {
 
 describe('photon CLI wrapper', () => {
   it('validates before calling Photon', () => {
-    expect(validateUser(req)).toBeUndefined();
-    expect(validateUser({ ...req, phone: '9075551234' })).toMatch(/E\.164/);
-    expect(validateUser({ ...req, email: 'not-an-email' })).toMatch(/email/);
-    expect(validateUser({ ...req, firstName: '<script>' })).toMatch(/names/);
+    expect(validateUser(user)).toBeUndefined();
+    expect(validateUser({ ...user, phone: '9075551234' })).toMatch(/E\.164/);
+    expect(validateUser({ ...user, email: 'not-an-email' })).toMatch(/email/);
+    expect(validateUser({ ...user, firstName: '<script>' })).toMatch(/names/);
   });
   it('builds the non-interactive users add / ls commands and parses the list', async () => {
     const calls: string[][] = [];
     const users = photonUsers(async args => { calls.push(args); return args[2] === 'ls' ? JSON.stringify([{ phoneNumber: PHONE }, { phoneNumber: null }]) : '{}'; });
     expect([...(await users.phones())]).toEqual([PHONE]);
-    await users.add(req);
-    expect(calls[1]).toEqual(['spectrum', 'users', 'add', '--first-name', 'Sam', '--last-name', 'Lee', '--email', 'sam@example.com', '--phone', PHONE]);
-    await expect(users.add({ ...req, phone: 'x' })).rejects.toThrow(/E\.164/);
+    await users.add(user);
+    expect(calls[1]).toEqual(['spectrum', 'users', 'add', '--first-name', 'Sam', '--last-name', 'Lee', '--email', 'household-lowm3v@users.invalid', '--phone', PHONE]);
+    await expect(users.add({ ...user, phone: 'x' })).rejects.toThrow(/E\.164/);
   });
 });
 
@@ -41,7 +42,7 @@ describe('auto-onboarding', () => {
     const p = fakePhoton();
     const sent: string[] = [];
     expect(await onboard(deps(store, p.photon, sent), req)).toBe('onboarded');
-    expect(p.added).toHaveLength(1);
+    expect(p.added).toEqual([user]);       // no real email: a reserved .invalid placeholder
     expect(sent).toEqual([opener('Test iPhone')]);
     expect(sent[0]).not.toMatch(/https?:|!/);
     expect(store.contact(PHONE)?.consented).toBe(false);
