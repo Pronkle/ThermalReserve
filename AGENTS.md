@@ -1,6 +1,6 @@
 # Thermal Reserve — Agent Handoff: Pressure Overhaul (AGENTS.md)
 
-Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ
+Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ · updated 07:30: console redesign, Stress at 15, slider 0–17.5
 
 ## 1. Start here
 
@@ -13,7 +13,7 @@ You are one of the coding agents finishing **Thermal Reserve** at MHacks 2026. T
 3. The `/ops` console is rebuilt around three stacked charts on one clock: pressure, outdoor temperature (forecast vs actual), home discomfort.
 4. The optimizer stops planning against a daily gas limit and plans against the **hourly pressure balance**, keeping pressure above a reserve with the least home discomfort.
 5. Replays **re-plan when a new forecast run arrives (every 6 simulated hours) and whenever observed weather or pressure drifts from the plan**, using the forecasts that existed at the time minus a cold buffer, and are scored against actual weather.
-6. Two presets carry the demo: **Near-miss** (25,000 homes keep pressure above the line) and **Stress** (a 2024-sized well failure; the fleet reduces curtailment but cannot remove it).
+6. Two presets carry the demo: **Near-miss** (25,000 homes keep pressure above the line) and **Stress** (15 MMcf/day less supply than Feb 2024, an assumed case; the fleet reduces curtailment but cannot remove it).
 7. The old console survives at `/ops?ui=gas`. Nothing is deleted.
 
 **What does not change.** House physics, cohorts, fleet sampling, validation, `/whatif`, the household enrollment flow, the map, the Spacetime schema, and `packages/model/src/physics.ts` and `types.ts` (they are copied into the live module; any edit forces a republish). Everything not described here stays as it is on `main` at `20cbc85`; that code is the contract for it.
@@ -93,6 +93,13 @@ At 25,000 homes the fleet cannot always reach a 10-point reserve. The UI shows t
 
 ### 4.1 `/ops` layout (1280×800, no scroll; must also work at 1440×900)
 
+**Redesign approved by H1 on Oct 4 at 07:30 (H2's request, ENGINE msgs 316 and 317). Where it differs from the text below, this list wins:**
+- Two columns: the three charts stacked on the right at full height; everything else on the left, with the nav tabs at top right.
+- The map is removed from `/ops` and added to `/home`, so a joined household sees itself there. Demo step 4: the judge appears in the console's event log, and on the map on their own phone.
+- Event log collapsed by default ("Event log ▸"); it opens by itself when a household joins or overrides.
+- Removed: the Staggered strategy, the Gas details drawer (`?ui=gas` stays), the header clock and status block, the "Live" eyebrow, and the re-plan ticks on the temperature chart.
+- ENGINE edits `PressureChart.tsx`, `TemperatureChart.tsx`, `DiscomfortChart.tsx` and a new `ChartTooltip.tsx` (H2's authority, H1 approved); WEB owns the rest of `apps/web`.
+
 ```
 +--------------------------------------------------------------------------------+
 | Thermal Reserve · Feb 2024 weather · 11.5 MMcf/day less supply · Fri 21:00 [QR]|
@@ -132,7 +139,7 @@ Other banners stay: rule-based fallback, disconnected, command errors.
 | --- | --- | --- | --- |
 | Preset buttons | Near-miss, Stress | Near-miss | Load scenario, settings, solve and pause at hour 0 (Section 4.2) |
 | Scenario | feb2024, lastwinter, design | feb2024 | |
-| Deliverability lost vs Feb 2024 | 0–35 MMcf/day, step 0.5 | Near-miss value | Tick marks and labels from `data/deliverability_ticks.json` |
+| Deliverability lost vs Feb 2024 | 0–17.5 MMcf/day, step 0.5 (H1, Oct 4 07:30; was 0–35) | Near-miss value | Tick marks and labels from `data/deliverability_ticks.json` |
 | Enrolled homes | 5,000–50,000, step 1,000 | 25,000 | Tooltip: participation is an assumption |
 | Reserve | 5–20 index points | 10 | |
 | Forecast buffer (Tier C) | 0–2σ, step 0.25 | 0.75σ | Shows the °F equivalent at the peak hour |
@@ -155,7 +162,7 @@ Buttons: Near-miss, Stress, Solve plan, Dispatch, Start, Pause, **Reset demo** (
 | Preset | Scenario | Lost (MMcf/day) | Homes | Reserve | Story |
 | --- | --- | --- | --- | --- | --- |
 | Near-miss | feb2024 | ENGINE's value: the largest loss at which 25,000 homes hold the full 10-point reserve, rounded down to 0.5 (expected near 11.5) | 25,000 | 10 | Nobody gets cut off |
-| Stress | feb2024 | 28.5 (the 2024 storage-well failure) | 25,000 | 10 | Fewer customers cut |
+| Stress | feb2024 | 15 (assumed; H1, Oct 4 07:30; was 28.5) | 25,000 | 10 | Fewer customers cut |
 
 ### 4.3 Demo flow the product must support (90 seconds)
 
@@ -214,7 +221,7 @@ Also: no CO2 or diesel numbers in the UI; no "first"; no "AI-powered"; no exclam
 | `drift_fade_h` | 12 | h | assumed | Drift correction fades linearly to zero over this many hours |
 | `demand_sensitivity_mmcfd_per_f` | 3.44 | MMcf/day per °F | derived | `system_fit.json` b |
 
-**`data/deliverability_ticks.json`:** `[{ "lostMMcfd": number, "label": string, "label_kind": "sourced"|"derived", "source": string }]` with ticks at 0 (Feb 2024 as it happened), Near-miss value, 20 (needle-peak contract), 28.5 (2024 storage-well failure).
+**`data/deliverability_ticks.json`:** `[{ "lostMMcfd": number, "label": string, "label_kind": "sourced"|"derived", "source": string }]` with ticks at 0 (Feb 2024 as it happened), the Near-miss value and the Stress value (15, assumed). The 20 and 28.5 ticks were dropped with the slider range (H1, Oct 4 07:30).
 
 **`data/presets.json`:** `[{ "id": "nearmiss"|"stress", "name": string, "scenarioId": string, "lostMMcfd": number, "enrolledHomes": 25000, "reserveIdx": 10, "provisional": boolean }]`. Near-miss starts at 11.5 with `"provisional": true` and is replaced when ENGINE posts its value.
 

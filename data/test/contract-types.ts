@@ -62,7 +62,7 @@ export const REQUIRED_CONSTANT_KEYS = [
 export type RequiredConstantKey = (typeof REQUIRED_CONSTANT_KEYS)[number];
 
 /** data/deliverability_ticks.json (AGENTS.md Section 6). */
-export interface DeliverabilityTick { lostMMcfd: number; label: string; label_kind: 'sourced' | 'derived'; source: string; }
+export interface DeliverabilityTick { lostMMcfd: number; label: string; label_kind: 'sourced' | 'derived' | 'assumed'; source: string; }
 
 /** data/presets.json (AGENTS.md Section 6). */
 export interface Preset {

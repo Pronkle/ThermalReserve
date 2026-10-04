@@ -289,17 +289,18 @@ describe('pressure constants, presets and ticks (D-A1)', () => {
       expect(p.enrolledHomes).toBe(25000);
       expect(p.reserveIdx).toBe(v('reserve_default_idx'));
       expect(p.lostMMcfd).toBeGreaterThanOrEqual(0);
-      expect(p.lostMMcfd).toBeLessThanOrEqual(35);
+      expect(p.lostMMcfd).toBeLessThanOrEqual(17.5);
       expect(p.lostMMcfd % 0.5).toBe(0);
       expect(typeof p.provisional).toBe('boolean');
     }
-    expect(presets[1].lostMMcfd).toBe(v('deliverability_loss_mmcfd'));
+    expect(presets[1].lostMMcfd).toBe(15);
+    expect(presets[1].lostMMcfd).toBeGreaterThan(presets[0].lostMMcfd);
   });
 
-  it('deliverability ticks: 0, Near-miss, needle peak, 2024 well failure, each labeled and sourced', () => {
-    expect(ticks.map((t) => t.lostMMcfd)).toEqual([0, presets[0].lostMMcfd, v('needle_peak_mmcfd'), v('deliverability_loss_mmcfd')]);
+  it('deliverability ticks: 0, Near-miss and Stress, each labeled and sourced', () => {
+    expect(ticks.map((t) => t.lostMMcfd)).toEqual([0, presets[0].lostMMcfd, presets[1].lostMMcfd]);
     for (const t of ticks) {
-      expect(['sourced', 'derived']).toContain(t.label_kind);
+      expect(['sourced', 'derived', 'assumed']).toContain(t.label_kind);
       expect(t.label.length).toBeGreaterThan(0);
       expect(t.source.length).toBeGreaterThan(0);
     }
