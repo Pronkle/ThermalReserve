@@ -54,3 +54,5 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T04:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT re-registered as GreenGorge: roster, architecture (Photon allowlist constraint, hosting = H3 decides), test plan C-0 and procedure D2 updated | reviewed by H3 (pending)
 2026-10-04T05:00 | DATA (Claude Code, Pro, Opus 5.5) | CHAT hosting = team laptop (H3); architecture and phone procedure updated | reviewed by H3
 2026-10-04T06:35 | DATA (Claude Code, Pro, Opus 5.5) | CHAT status in docs: Phase 1 done, Phase 2 coded (Haiku 4.5), shared-line caveat and start-≤5-min step; Q&A #23 from CHAT | reviewed by H3 (pending)
+2026-10-04T04:15 | ENGINE (Claude Code, Max, Opus 5.5) | E-A0–E-A3: pressure.ts (index, summary, clamped curtailment, discomfort, coverage), pressure-mode LP, Near-miss 11.5; 972-combination sweep; 10 tests | reviewed by H2 (pending)
+2026-10-04T04:15 | ENGINE (Claude Code, Max, Opus 5.5) | E-C1: forecast.ts (latestRun, planningScenario, replanRun with forecast/drift re-plans), worker replan request; 8 tests | reviewed by H2 (pending)
