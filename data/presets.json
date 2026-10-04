@@ -1,4 +1,4 @@
 [
   {"id": "nearmiss", "name": "Near-miss", "scenarioId": "feb2024", "lostMMcfd": 11.5, "enrolledHomes": 25000, "reserveIdx": 10, "provisional": false},
-  {"id": "stress", "name": "Stress", "scenarioId": "feb2024", "lostMMcfd": 28.5, "enrolledHomes": 25000, "reserveIdx": 10, "provisional": false}
+  {"id": "stress", "name": "Stress", "scenarioId": "feb2024", "lostMMcfd": 15, "enrolledHomes": 25000, "reserveIdx": 10, "provisional": false}
 ]
