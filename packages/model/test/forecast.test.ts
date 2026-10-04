@@ -114,6 +114,19 @@ describe('forecast planning', () => {
     r.segments.forEach((s, i) => i > 0 && expect(s.fromHour).toBeGreaterThan(r.segments[i - 1].fromHour));
   }, 60000);
 
+  it('each re-plan reports the upcoming hour where the share of homes turning down changed most', async () => {
+    const sc = withRuns((h) => (h >= 40 && h < 60 ? 4 : 0));
+    const r = await replanRun(sc, cohorts, cfg, consts, p, { mode: 'REPLAN', bufferSigma: 0, policy: drift, strategy: 'OPTIMIZED' });
+    expect(r.segments[0].turnDown).toBeNull();
+    for (const s of r.segments.slice(1)) {
+      if (!s.turnDown) continue;
+      expect(s.turnDown.hour).toBeGreaterThanOrEqual(s.fromHour);
+      for (const v of [s.turnDown.before, s.turnDown.after]) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1 + 1e-9); }
+      expect(Math.abs(s.turnDown.after - s.turnDown.before)).toBeGreaterThan(0.01);
+    }
+    expect(r.segments.some((s) => s.turnDown !== null)).toBe(true);
+  }, 60000);
+
   it('FIXED re-plans every intervalH; SINGLE and OBSERVED solve once', async () => {
     const sc = withRuns(() => 0);
     const f = await replanRun(sc, cohorts, cfg, consts, p, { mode: 'REPLAN', bufferSigma: 0, policy: { kind: 'FIXED', intervalH: 24 }, strategy: 'OPTIMIZED' });
