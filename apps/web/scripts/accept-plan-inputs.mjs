@@ -7,7 +7,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on('dialog', dialog => dialog.accept(passcode));
-  await page.goto(`${url}/ops?db=thermal-reserve-dev`);
+  await page.goto(`${url}/ops?ui=gas&db=thermal-reserve-dev`);
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor();
@@ -26,7 +26,7 @@ try {
   await page.getByRole('button', { name: 'Dispatch', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('.control-note')?.textContent.includes('Sending'));
   const observer = await browser.newPage();
-  await observer.goto(`${url}/ops?db=thermal-reserve-dev`);
+  await observer.goto(`${url}/ops?ui=gas&db=thermal-reserve-dev`);
   await observer.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await observer.locator('.solve-status').filter({ hasText: 'Optimized · dispatched' }).waitFor();
   await range('Daily capacity', 295);

@@ -16,7 +16,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept(passcode));
-  await page.goto(`${process.env.WEB_URL || 'http://127.0.0.1:5173'}/ops?db=thermal-reserve-dev`);
+  await page.goto(`${process.env.WEB_URL || 'http://127.0.0.1:5173'}/ops?ui=gas&db=thermal-reserve-dev`);
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor();
@@ -68,7 +68,7 @@ try {
   assert(await page.getByRole('button', { name: 'Dispatch', exact: true }).isDisabled(), 'Changed inputs invalidate the solved plan');
   const fallbackPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   await fallbackPage.route('**/*.wasm', route => route.abort());
-  await fallbackPage.goto(`${process.env.WEB_URL || 'http://127.0.0.1:5173'}/ops?db=thermal-reserve-dev`);
+  await fallbackPage.goto(`${process.env.WEB_URL || 'http://127.0.0.1:5173'}/ops?ui=gas&db=thermal-reserve-dev`);
   await fallbackPage.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await fallbackPage.getByLabel('Strategy', { exact: true }).selectOption('MAX_RELIEF');
   await fallbackPage.getByRole('button', { name: 'Solve plan', exact: true }).click();
