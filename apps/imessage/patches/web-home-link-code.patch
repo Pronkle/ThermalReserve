@@ -1,0 +1,89 @@
+diff --git a/apps/web/src/lib/household-link.test.ts b/apps/web/src/lib/household-link.test.ts
+new file mode 100644
+index 0000000..a157222
+--- /dev/null
++++ b/apps/web/src/lib/household-link.test.ts
+@@ -0,0 +1,8 @@
++import { expect, it } from 'vitest';
++import { householdLinkCode } from './household';
++
++// Same vector as apps/imessage/test/watcher.test.ts (the companion's linkCode).
++it('matches the iMessage companion link code', async () => {
++  expect(await householdLinkCode('c200abe32fb6aa00112233445566778899aabbccddeeff00112233445566778899')).toBe('LOWM3V');
++  expect(await householdLinkCode('0xC200ABE32FB6AA00112233445566778899AABBCCDDEEFF00112233445566778899')).toBe('LOWM3V');
++});
+diff --git a/apps/web/src/lib/household.ts b/apps/web/src/lib/household.ts
+index 81ddeb2..c00b203 100644
+--- a/apps/web/src/lib/household.ts
++++ b/apps/web/src/lib/household.ts
+@@ -16,3 +16,21 @@ export function eventCountdown(hour: number, startHour: number, endHour: number)
+   const minutes = Math.ceil(remaining * 60);
+   return `${hour < startHour ? 'Starts in' : 'Ends in'} ${Math.floor(minutes / 60)}h ${minutes % 60}m of simulation time`;
+ }
++
++// iMessage link code (apps/imessage/src/link.ts): first 6 characters of
++// base32(SHA-256(identity hex, lowercase, as UTF-8 text)). The companion computes the same code.
++const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
++export async function householdLinkCode(identityHex: string) {
++  const bytes = new TextEncoder().encode(identityHex.toLowerCase().replace(/^0x/, ''));
++  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
++  let code = '';
++  let buffer = 0;
++  let bits = 0;
++  for (const byte of digest) {
++    buffer = (buffer << 8) | byte;
++    bits += 8;
++    while (bits >= 5 && code.length < 6) { code += BASE32[(buffer >>> (bits - 5)) & 31]; bits -= 5; }
++    if (code.length === 6) break;
++  }
++  return code;
++}
+diff --git a/apps/web/src/routes/Home.tsx b/apps/web/src/routes/Home.tsx
+index eaadb6d..d81efa2 100644
+--- a/apps/web/src/routes/Home.tsx
++++ b/apps/web/src/routes/Home.tsx
+@@ -1,7 +1,7 @@
+ import { useEffect, useRef, useState } from 'react';
+ import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
+ import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
+-import { eventCountdown, heatStatus } from '../lib/household';
++import { eventCountdown, heatStatus, householdLinkCode } from '../lib/household';
+ import './home.css';
+ 
+ const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+@@ -20,6 +20,14 @@ export function Home() {
+   const [error, setError] = useState('');
+   const connected = live.status === 'connected';
+   const previouslyJoined = useRef(false);
++  const [linkCode, setLinkCode] = useState('');
++  const identityHex = home?.identity.toHexString();
++  useEffect(() => {
++    if (!identityHex) { setLinkCode(''); return; }
++    let current = true;
++    void householdLinkCode(identityHex).then(code => { if (current) setLinkCode(code); });
++    return () => { current = false; };
++  }, [identityHex]);
+   useEffect(() => {
+     if (home) previouslyJoined.current = true;
+     else if (connected && previouslyJoined.current) { previouslyJoined.current = false; setStep(0); }
+@@ -67,6 +75,11 @@ export function Home() {
+         {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
+         <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>
+       </section>
++      {linkCode && <section className="panel home-imessage" aria-labelledby="imessage-title">
++        <h2 id="imessage-title">Get updates by iMessage</h2>
++        <p>Text <strong className="link-code">Link my home {linkCode}</strong> to the Thermal Reserve iMessage line. We'll text you when the simulation changes your heat, and you can ask why. Reply STOP any time.</p>
++        <p className="home-limit">Demo: your number stays on the team's companion, never in the shared database.</p>
++      </section>}
+     </> : step === 0 ? <div className="panel enrollment-intro">
+       <h2>Steady heat. A stronger community.</h2>
+       <p>Try an Anchorage home in our cold-snap simulation. You stay in control of your heat.</p>
+diff --git a/apps/web/src/routes/home.css b/apps/web/src/routes/home.css
+index aac3c55..52c74ef 100644
+--- a/apps/web/src/routes/home.css
++++ b/apps/web/src/routes/home.css
+@@ -45,3 +45,4 @@
+   .theme-household .page-content { padding-top: 20px; }
+   .household-page .panel { padding: 20px; }
+ }
++.link-code { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; white-space: nowrap; }
