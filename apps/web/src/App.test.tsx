@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
 import { buildPreview } from './lib/preview';
+import { GasOps } from './routes/GasOps';
 
 describe('W0 route acceptance', () => {
   it.each([
@@ -23,5 +24,14 @@ describe('W0 route acceptance', () => {
     expect(preview.strategy).toBe('BASELINE');
     expect(preview.hours.length).toBeGreaterThan(0);
     expect(preview.hours.every(hour => Number.isFinite(hour.fleetGasMMcfh))).toBe(true);
+  });
+
+  it('keeps gas details collapsed with the existing chart and six metrics', () => {
+    const html = renderToStaticMarkup(<GasOps region="details" />);
+    expect(html).toContain('<summary>Gas details (MMcf)</summary>');
+    expect(html).toContain('Fleet gas demand');
+    expect(html.match(/class="metric"/g)).toHaveLength(6);
+    expect(html).not.toContain('Operator controls');
+    expect(html).not.toContain('<details class="gas-details panel" open');
   });
 });

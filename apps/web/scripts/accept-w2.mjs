@@ -41,8 +41,10 @@ try {
   await page.reload();
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   assert(await page.evaluate(() => sessionStorage.getItem('thermal-reserve.database') === 'thermal-reserve-dev'), 'Database override retained');
+  await operator.setOffline(true);
   await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
   await page.getByText(/Disconnected — retrying/).waitFor();
+  await operator.setOffline(false);
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('idle'));
