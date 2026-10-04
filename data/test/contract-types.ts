@@ -13,7 +13,7 @@ export interface Scenario {
 }
 
 export interface ConstantEntry {
-  value: number | [number, number];
+  value: number | number[];
   unit: string;
   label: Label;
   source: string;

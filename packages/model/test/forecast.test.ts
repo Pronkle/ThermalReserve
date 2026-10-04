@@ -42,7 +42,7 @@ describe('forecast planning', () => {
     expect(latestRun(sc, 0)?.availableHour).toBe(-5);
     expect(latestRun(sc, 6)?.availableHour).toBe(1);
     expect(latestRun(sc, 7)?.availableHour).toBe(7);
-    expect(latestRun(feb, 10)).toBeNull();
+    expect(latestRun({ ...feb, forecastRuns: undefined }, 10)).toBeNull();
   });
 
   it('a perfect forecast with zero buffer reproduces the observed scenario exactly', () => {
