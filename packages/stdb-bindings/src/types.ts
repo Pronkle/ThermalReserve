@@ -63,6 +63,13 @@ export type CohortState = __Infer<typeof CohortState>;
 export const ContactFeed = __t.object("ContactFeed", {});
 export type ContactFeed = __Infer<typeof ContactFeed>;
 
+export const ContactLine = __t.object("ContactLine", {
+  identity: __t.identity(),
+  line: __t.string(),
+  assignedAt: __t.timestamp(),
+});
+export type ContactLine = __Infer<typeof ContactLine>;
+
 export const ContactReader = __t.object("ContactReader", {
   id: __t.u32(),
   identity: __t.identity(),
@@ -108,6 +115,9 @@ export const HouseholdContact = __t.object("HouseholdContact", {
   optedInAt: __t.timestamp(),
 });
 export type HouseholdContact = __Infer<typeof HouseholdContact>;
+
+export const MyContactLine = __t.object("MyContactLine", {});
+export type MyContactLine = __Infer<typeof MyContactLine>;
 
 export const OperatorSecret = __t.object("OperatorSecret", {
   id: __t.u32(),

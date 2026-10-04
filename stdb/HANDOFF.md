@@ -77,7 +77,9 @@ it, and publishes all three databases whenever `stdb/` changes.
   tables `household_contact` and `contact_reader`; reducers `set_contact(first_name, last_name,
   phone)`, `clear_contact()`, `claim_contact_reader(passcode)` (operator passcode), `remove_contact(identity)` (reader only); public view
   `contact_feed`, which returns rows only to the identity that claimed reader. `reset_households`
-  also clears the contacts. Verified on dev with the CLI (14 checks); not yet through an SDK subscription.
+  also clears the contacts. Added later the same day (CHAT msg 327): private `contact_line`,
+  `set_contact_line(identity, line)` (reader only), view `my_contact_line` (the caller's own row);
+  line rows go when the contact goes. Verified on dev with the CLI (14 checks); not yet through an SDK subscription.
 - Reducer arguments are JSON strings with the camelCase keys of the Contract B types;
   `load_scenario`'s config also needs `hhvBtuPerCf`. See the comments in `stdb/src/index.ts`.
 

@@ -47,6 +47,7 @@ import RemoveContactReducer from "./remove_contact_reducer";
 import ResetReducer from "./reset_reducer";
 import ResetHouseholdsReducer from "./reset_households_reducer";
 import SetContactReducer from "./set_contact_reducer";
+import SetContactLineReducer from "./set_contact_line_reducer";
 import SetParamsReducer from "./set_params_reducer";
 import SetPlanReducer from "./set_plan_reducer";
 import StartReducer from "./start_reducer";
@@ -60,6 +61,7 @@ import CohortStateRow from "./cohort_state_table";
 import ContactFeedRow from "./contact_feed_table";
 import EventLogRow from "./event_log_table";
 import HouseholdRow from "./household_table";
+import MyContactLineRow from "./my_contact_line_table";
 import PlanHourRow from "./plan_hour_table";
 import SampleHomeRow from "./sample_home_table";
 import SimConfigRow from "./sim_config_table";
@@ -182,6 +184,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, ContactFeedRow),
+  myContactLine: __table({
+    name: 'my_contact_line',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyContactLineRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
@@ -199,6 +208,7 @@ const reducersSchema = __reducers(
   __reducerSchema("reset", ResetReducer),
   __reducerSchema("reset_households", ResetHouseholdsReducer),
   __reducerSchema("set_contact", SetContactReducer),
+  __reducerSchema("set_contact_line", SetContactLineReducer),
   __reducerSchema("set_params", SetParamsReducer),
   __reducerSchema("set_plan", SetPlanReducer),
   __reducerSchema("start", StartReducer),
@@ -212,6 +222,8 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
   tables: typeof tablesSchema.schemaType.tables & {
     /** @deprecated Use `contactFeed` instead. This alias will be removed in the next major version. */
     readonly "contact_feed": Omit<typeof tablesSchema.schemaType.tables["contactFeed"], "accessorName"> & { readonly accessorName: "contact_feed" };
+    /** @deprecated Use `myContactLine` instead. This alias will be removed in the next major version. */
+    readonly "my_contact_line": Omit<typeof tablesSchema.schemaType.tables["myContactLine"], "accessorName"> & { readonly accessorName: "my_contact_line" };
   };
 };
 
@@ -231,6 +243,7 @@ const REMOTE_MODULE = {
 
 const tableAccessorAliases = {
   "contact_feed": "contactFeed",
+  "my_contact_line": "myContactLine",
 } as const;
 
 function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
@@ -253,12 +266,16 @@ type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
 export type DbView = __DbViewBase & {
   /** @deprecated Use `contactFeed` instead. This alias will be removed in the next major version. */
   readonly "contact_feed": __DbViewBase["contactFeed"];
+  /** @deprecated Use `myContactLine` instead. This alias will be removed in the next major version. */
+  readonly "my_contact_line": __DbViewBase["myContactLine"];
 };
 
 type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
 export type Tables = __TablesBase & {
   /** @deprecated Use `contactFeed` instead. This alias will be removed in the next major version. */
   readonly "contact_feed": __TablesBase["contactFeed"];
+  /** @deprecated Use `myContactLine` instead. This alias will be removed in the next major version. */
+  readonly "my_contact_line": __TablesBase["myContactLine"];
 };
 
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */
