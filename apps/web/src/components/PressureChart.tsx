@@ -9,7 +9,7 @@ export function PressureChart({ rows, scenario, reserve, summary, baseline, capt
   const tickStep = minimum < -100 ? 100 : 25;
   const ticks = Array.from({ length: Math.floor((100 - minimum) / tickStep) + 1 }, (_, i) => 100 - i * tickStep).reverse();
   return <figure className="panel pressure-chart" aria-labelledby="pressure-title">
-    <h2 id="pressure-title">1 · System pressure <span className="metric-label">derived · modeled</span></h2>
+    <h2 id="pressure-title">1 · System pressure</h2>
     <p className="pressure-explainer">{pressureLabel}</p>
     <div className="pressure-legend"><span style={{ color: '#7A869A' }}>┄ No program</span><span style={{ color: '#F2A541' }}>┄ Naive 4-hour</span><span style={{ color: '#5BC0EB' }}>— {selectedName}</span><span>— Live</span></div>
     <div className="pressure-plot"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={rows} syncId="pressure-clock" margin={{ top: 16, right: 20, bottom: 2, left: 8 }} accessibilityLayer>

@@ -4,7 +4,7 @@ import { clockLabel, integer, temperature } from '../lib/ops';
 import { ChartTooltip, tooltipProps } from './ChartTooltip';
 export interface DiscomfortRow { hour: number; active?: number; worst?: number; naive: number; staggered?: number; /* ignored: Staggered is no longer drawn */ }
 export function DiscomfortChart({ rows, scenario, maxDepthF, degreeHours, minIndoorF, holdingHours }: { rows: DiscomfortRow[]; scenario: Scenario; maxDepthF: number; degreeHours?: number; minIndoorF?: number; holdingHours?: number }) {
-  return <figure className="panel discomfort-chart"><h2>3 · Home discomfort <span className="metric-label">derived · modeled</span></h2>
+  return <figure className="panel discomfort-chart"><h2>3 · Home discomfort</h2>
     <div className="pressure-plot"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={rows} syncId="pressure-clock" margin={{ top: 16, right: 20, bottom: 14, left: 8 }} accessibilityLayer>
       <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" /><XAxis dataKey="hour" type="number" domain={[0, scenario.hours]} ticks={[0, 24, 48, 72, scenario.hours]} stroke="var(--muted)" tick={{ fontSize: 11 }} tickFormatter={h => clockLabel(scenario, Number(h)).replace(/, /g, ' ')} label={{ value: 'Anchorage time', position: 'bottom', fill: 'var(--muted)', fontSize: 12 }} /><YAxis domain={[0, maxDepthF + 1]} width={64} tick={{ fontSize: 12 }} stroke="var(--muted)" label={{ value: '°F below preferred', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' }, fill: 'var(--muted)', fontSize: 12 }} />
       <Tooltip {...tooltipProps} content={props => <ChartTooltip {...props} scenario={scenario} line={entry => <>{entry.name}: {temperature.format(Number(entry.value))}°F below no program</>} />} />
