@@ -214,3 +214,7 @@
 .pressure-console-shell .pressure-controls { gap: 10px; } .pressure-console-shell .pressure-side { gap: 6px; }
 .pressure-console-shell .pressure-side { gap: 5px; } .pressure-console-shell .main-navigation a { padding-top: 3px; padding-bottom: 3px; } .pressure-console-shell .verdict-tile { padding-top: 3px; padding-bottom: 3px; } .pressure-console-shell .log-panel { padding-top: 4px; padding-bottom: 4px; }
 .pressure-console-shell .pressure-controls { gap: 9px; }
+/* The page CSS reset zeroes margins, which un-centres modal dialogs; put the join QR dialog back in the middle. */
+.join-qr-dialog { margin: auto; }
+.join-qr-dialog a { color: #1A3A8F; }
+.join-qr-dialog h2 { font-size: 20px; color: #0B215D; margin: 0 0 6px; }

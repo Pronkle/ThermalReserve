@@ -40,7 +40,7 @@
 .validation-chart figcaption { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .legend-swatch { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin: 0 4px 0 8px; }
 .legend-swatch.baseline { background: #7A869A; }
-.legend-swatch.event { background: #126187; height: 4px; }
+.legend-swatch.event { background: #1A3A8F; height: 4px; }
 
 .table-scroll { overflow-x: auto; }
 .param-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -66,3 +66,19 @@
 .public-page small, .public-page .whatif-hint { font-size: 13px; }
 .public-page figcaption { font-size: 13px; }
 .public-page .recharts-legend-item-text, .public-page .recharts-label { font-size: 12px; }
+
+/* BoreaFlux look for the light pages (/home, /whatif, /validation; H2): white background kept, logo navy for text and
+   accents, gold as a thin underline only (bright gold on white fails text contrast). */
+.app-shell.theme-light { --text: #0F1E44; --muted: #4A5878; --border: #D3DAEA; --accent: #0B215D; }
+.theme-light .app-header { background: #FFFFFF; border-bottom: 3px solid #F8C549; }
+.brand { gap: 12px; }
+.brand-logo { display: block; height: 52px; width: auto; border-radius: 10px; padding: 6px 12px; background: #0B215D; box-sizing: content-box; }
+.theme-light .brand-subtitle { margin-top: 0; }
+.theme-light nav a { color: #4A5878; }
+.theme-light nav a.active { background: transparent; outline: none; color: #0B215D; box-shadow: inset 0 -3px 0 #F8C549; border-radius: 0; font-weight: 600; }
+.theme-light .eyebrow { color: #8A6A0E; }
+.theme-light .public-page h1, .theme-light .public-h2 { color: #0B215D; }
+.theme-light a { color: #1A3A8F; }
+.theme-light .whatif-field input[type='range'] { accent-color: #0B215D; }
+.theme-light .legend-swatch.event { background: #1A3A8F; }
+@media (max-width: 500px) { .brand-logo { height: 34px; padding: 4px 8px; } .theme-light .brand-subtitle { display: none; } }
