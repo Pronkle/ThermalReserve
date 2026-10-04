@@ -25,6 +25,7 @@ export interface OnboardDeps {
   household: (identity: string) => HouseholdView | undefined;
   sim: () => SimView | undefined;
   sendText: (address: string, body: string) => Promise<void>;
+  retryDelaysMs?: number[];
   now?: () => number;
   log?: (line: string) => void;
 }
@@ -54,7 +55,15 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
     // Linked but not consented: the watcher queues nothing for them until they reply YES.
     deps.store.link(req.phone, req.identity, home.nickname, state, now, { consented: false });
     const body = opener(home.nickname);
-    await deps.sendText(req.phone, body);
+    // A number Photon has just added can be refused for a short while ("Target not allowed"), so
+    // the opener is retried; if it never goes out, nothing stays stored and a restart tries again.
+    let sent = false;
+    for (const waitMs of deps.retryDelaysMs ?? [0, 20_000, 60_000]) {
+      if (waitMs) await new Promise(r => setTimeout(r, waitMs));
+      try { await deps.sendText(req.phone, body); sent = true; break; }
+      catch (e) { log(`[onboard] opener to ${maskAddress(req.phone)} not delivered yet: ${String(e).slice(0, 120)}`); }
+    }
+    if (!sent) { deps.store.forget(req.phone); log(`[onboard] ${maskAddress(req.phone)}: opener failed after retries; nothing stored`); return 'failed'; }
     deps.store.addHistory(req.phone, 'out', body, now);
     log(`[onboard] opener sent to ${maskAddress(req.phone)} for ${home.nickname}; waiting for YES`);
     return 'onboarded';

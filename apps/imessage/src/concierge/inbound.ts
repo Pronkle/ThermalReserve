@@ -33,6 +33,8 @@ export interface InboundDeps {
   sim: () => SimView | undefined;
   now?: () => number;
   log?: (line: string) => void;
+  // A number that opted in on /home (contact_feed): its first text links it to that household.
+  optedInHousehold?: (address: string) => string | undefined;
   // STOP also deletes the household's private contact row in the database, if it has one.
   onStop?: (address: string, identity: string) => Promise<void>;
   // Everything that isn't a control word goes to the concierge agent. Returns the reply bubbles.
@@ -47,8 +49,23 @@ export async function handleInbound(deps: InboundDeps, address: string, text: st
   const now = (deps.now ?? Date.now)();
   const log = deps.log ?? (line => console.log(line));
   const { store } = deps;
-  const contact = store.contact(address);
+  let contact = store.contact(address);
   const intent = classify(text);
+
+  // Opted in on /home, texting us for the first time: that text is the consent Photon and we need.
+  if (!contact && intent !== 'stop' && intent !== 'link' && deps.optedInHousehold) {
+    const identity = deps.optedInHousehold(address);
+    const home = identity ? deps.households().find(h => h.identity === identity) : undefined;
+    if (home) {
+      const sim = deps.sim();
+      store.link(address, home.identity, home.nickname, sim ? initialState(home, sim, deps.consts) : emptyState(home), now);
+      store.addHistory(address, 'in', text, now);
+      log(`[onboard] ${maskAddress(address)} texted first; linked to ${home.nickname} from the /home opt-in`);
+      const reply = `Thanks. You're set for ${home.nickname}: I'll text you when a cold-snap event changes its heat (a simulation; no real thermostat). Ask me anything, or reply STOP any time.`;
+      store.addHistory(address, 'out', reply, now);
+      return { texts: [reply] };
+    }
+  }
   if (contact) store.noteInbound(address, text, now);
 
   // Auto-onboarded contacts: we texted first, so only YES (or STOP) moves things forward.

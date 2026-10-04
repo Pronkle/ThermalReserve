@@ -164,6 +164,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
       if (!(await mirror.whenReady())) log('[in] live data not ready after 10 s; answering anyway');
       const deps = {
         store, consts, households: () => mirror.households(), sim: () => mirror.sim(), log, converse: converseSafely,
+        optedInHousehold: (address: string) => mirror.contactFeed().find(r => r.phone === address)?.identity,
         onStop: async (address: string, identity: string) => {
           if (await mirror.removeContact(identity)) log(`[onboard] ${maskAddress(address)} STOP: private contact row deleted`);
         },
