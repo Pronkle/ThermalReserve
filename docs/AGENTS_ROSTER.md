@@ -8,6 +8,6 @@ Agent Mail project key: `/home/man/hack/thermal-reserve`. Registration tokens ar
 | WEB | H2 | ChatGPT Pro | Codex, gpt-6.1-sol | TealGrove |
 | STDB | H1 | Claude Pro | Claude Code, claude-opus-5-5 | CalmGlen |
 | DATA | H3 | Claude Pro | Claude Code, claude-opus-5-5 | BlackHeron |
-| CHAT | H3 | Claude Pro (H3's, shared with DATA) | Claude Code, claude-opus-5-5 | (not registered yet) |
+| CHAT | H3 | Claude Pro (H3's, shared with DATA) | Claude Code, claude-opus-5-5 | ScarletDesert |
 
-**CHAT** (added Oct 4) is the iMessage concierge + insights agent; it owns `apps/imessage/**`. It shares H3's Claude Pro usage pool with DATA; per AGENTS.md §15 either session switches to Sonnet 5.5 if Opus runs low. Brief: `docs/agents/CHAT_BRIEF.md`. H1 still has to add CHAT to the "Who's who" table in `AGENTS.md`; until then `AGENTS.md` governs and CHAT edits nothing outside `apps/imessage/**`.
+**CHAT** (added Oct 4) is the iMessage concierge + insights agent; it owns `apps/imessage/**`. It shares H3's Claude Pro usage pool with DATA; per AGENTS.md §15 either session switches to Sonnet 5.5 if Opus runs low. Brief: `docs/agents/CHAT_BRIEF.md`. Registered Oct 4, 02:29Z. In `AGENTS.md` since 56f2d06 (Who's who, layout, dependencies, model routing). Its branches (`chat/*`) are merged by STDB.
