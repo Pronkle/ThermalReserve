@@ -20,7 +20,14 @@ export function forecastChartRows(sc: Scenario, segments: ReplanSegment[]) {
 }
 export function replanMessage(sc: Scenario, segment: ReplanSegment) {
   const reason = segment.reason === 'forecast' ? 'new forecast' : segment.reason === 'fixed' ? 'scheduled update' : segment.reason === 'drift-temp' ? 'temperature drift' : 'pressure drift';
-  return `Re-plan ${clockLabel(sc, segment.fromHour)}, ${reason}${segment.driftF ? `: running ${temperature.format(Math.abs(segment.driftF))}°F ${segment.driftF < 0 ? 'cold' : 'warm'}` : ''}; setback deepened ${temperature.format(segment.deepenedF)}°F (derived).`;
+  const drift = segment.driftF ? `: running ${temperature.format(Math.abs(segment.driftF))}°F ${segment.driftF < 0 ? 'cold' : 'warm'}` : '';
+  // What changed, in homes and hours (H2): the upcoming hour where the share of enrolled homes turning down moved most.
+  const td = segment.turnDown;
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const change = !td ? 'no change to the plan'
+    : td.after > td.before ? `${pct(td.after)} of homes will turn down ${clockLabel(sc, td.hour)} (was ${pct(td.before)})`
+    : `fewer homes need to turn down ${clockLabel(sc, td.hour)} (${pct(td.before)} → ${pct(td.after)})`;
+  return `Re-plan ${clockLabel(sc, segment.fromHour)} · ${reason}${drift} → ${change}`;
 }
 
 /** Keep one server tick from crossing the next precomputed segment boundary. */
