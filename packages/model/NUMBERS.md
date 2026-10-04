@@ -1,7 +1,7 @@
 # Numbers guide: which model output feeds each number on screen
 
-ENGINE owns this file. It maps every number on `/whatif`, `/validation`, and the `/ops` KPIs to the model function or
-constant behind it, with its label and display format. Rule: the UI never computes physics or retypes a constant;
+ENGINE owns this file. It maps every number on `/ops` (pressure console), `/home`, `/whatif`, `/validation`, and the
+gas details drawer (`?ui=gas`) to the model function or constant behind it, with its label and display format. Rule: the UI never computes physics or retypes a constant;
 it calls the function and shows the label next to the value (AGENTS.md Sections 2, 3, 9).
 
 Values in the "Today" column were computed on 2026-10-03 (refreshed 17:45 ET) from `data/constants.json` (UA 398.3, HHV 988, both updated by DATA after H1 approved HHV 988) and the
@@ -18,6 +18,65 @@ const consts = loadConstants(constantsJson);                     // data/constan
 const cohorts = buildCohorts(cohortSpecJson, consts.uaMeanBtuHPerF); // data/cohort_spec.json
 const label = (key: string) => consts.raw[key].label;            // 'sourced' | 'derived' | 'assumed'
 ```
+
+## `/ops` pressure console (Oct 4 overhaul)
+
+Setup: `p = pressureParams(consts, consts.raw, lostMMcfd, reserveIdx)`, so R = `deliverability_2024_mmcfd` (278,
+derived) − lost and W = `linepack_usable_mmcf` (9.54, derived, fixed). Run `cfg` with `capacityMMcfd = p.rMMcfd`. For any
+run: `idx = pressureIndex(run.hours.map(h => h.systemMMcfh), p)` (index[t] = P at the **end** of hour t) and
+`s = pressureSummary(idx, p)`. The selected plan's run is `replanRun(...).run` under forecast planning (default:
+re-plan at hour 0 and on each new forecast run, drift thresholds `Infinity`, buffer `forecast_buffer_sigma_default`
+0.75σ; H1 contract msg 244). Under Observed weather it is `runPlan` of the `solvePlan(..., { pressure: p })` plan.
+Every pressure number is labeled **derived** and "modeled". Never psi, never Enstar telemetry.
+
+| On screen | Source | Format | Note |
+| --- | --- | --- | --- |
+| Verdict: lowest pressure | `s.minIndex` (selected plan, large; No program, small) | index points, 0 dp | green ≥ reserve, amber 0 to reserve, red < 0 |
+| Verdict: hours below the line | `s.hoursBelowZero` | h | |
+| Verdict: discomfort | `run.totals.degreeHoursBelowNormal` | °F·h/home, 0 dp | equals Σ `discomfortSeries(run, baseline, cohorts, cfg).meanF` (within 1%) |
+| Discomfort in words | °F·h ÷ hours where any cohort `mode === 'holding'` | "about X°F cooler across N setback hours", °F 1 dp | do not divide by 24: Stress would read as a 16.8°F setback |
+| Status sentence | `s.hoursBelowZero`, `s.curtailedMMcf` (MMcf 1 dp), `s.reserveHeld` (0 dp) | Section 4.1 sentences | "Above the line; X of the 10-point reserve held" uses `reserveHeld` |
+| Curtailed gas | `s.curtailedMMcf` | MMcf, 1 dp in captions | clamped replay (H1 contract msg 201): curtail just enough each hour to keep linepack ≥ 0; never compute it from the chart minimum |
+| Chart 1 tooltip "X MMcf would have to be curtailed by this hour" | `curtailedSeriesMMcf(idx, p)[t]` | MMcf, 1 dp | cumulative, same accounting |
+| Chart 1 markers | `s.firstBelowHour` (No program), `s.minHour` / `s.minIndex` (selected) | clock label of the end of hour t | |
+| Chart 1 "planned" dotted line | latest segment's `expectedIdx` | index | additive field on each `replanRun` segment |
+| Chart 2 forecast, band, planning line | segment `forecastF`, `sigmaF`, `planningOutdoorF` | °F, 1 dp | re-plan ticks at segment `fromHour`, reason `forecast` |
+| Chart 3 | `discomfortSeries(run, baseline, cohorts, cfg)`: `meanF` (area), `worstF` (coldest home type) | °F below preferred | baseline = `runPlan(planBaseline)` |
+| Minimum indoor | min over hours of `hours[h].minTaF` | °F, 1 dp | includes normal night setpoints (64°F) |
+| Plan chip | segment 0 `runIso` / mode | text | "Plan uses observed weather" when there are no runs or mode is OBSERVED |
+
+Today (2026-10-04 05:55 ET, `main` d79dbda; feb2024, 25,000 homes, floor 62°F, max setback 5°F, 6% overrides, reserve
+10, W 9.54). Columns: min P @ hour | hours below 0 | first below | hours in reserve band | curtailed MMcf | °F·h/home |
+setback hours | min indoor °F.
+
+| Preset | Plan | Values |
+| --- | --- | --- |
+| Near-miss (lost 11.5, R 266.5) | No program | −6.9 @69 · 3 · 68 · 3 · 0.66 · 0 · 0 · 64.0 |
+| | Naive 4-hour | −4.6 @69 · 2 · 68 · 4 · 0.44 · 46 · 12 · 64.0 |
+| | Staggered | 4.1 @69 · 0 · – · 4 · 0 · 311 · 72 · 62.0 |
+| | Optimized, observed weather | 10.4 @69 · 0 · – · 0 · 0 · 75 · 17 · 64.0 |
+| | **Optimized, re-plan default** | **10.2 @69 · 0 · – · 0 · 0 · 105 · 22 · 62.0**; 17 segments (start + 16 new-forecast re-plans) |
+| Stress (lost 28.5, R 249.5) | No program | −420.9 @93 · 71 · 19 · 5 · 40.15 · 0 · 0 · 64.0 |
+| | Naive 4-hour | −414.3 @93 · 71 · 19 · 5 · 39.52 · 46 · 12 · 64.0 |
+| | Staggered | −378.2 @93 · 69 · 19 · 4 · 36.08 · 311 · 72 · 62.0 |
+| | Optimized, observed or re-plan | −360.9 @93 · 67 · 20 · 4 · 34.43 · 402 · 90 (re-plan 91) · 62.0 |
+
+Near-miss = 11.5 is `coverageTable` on feb2024 at 25,000 homes: the largest loss (0.5 steps) where the observed-weather
+plan holds the full reserve. lastwinter allows 26; design holds at no loss. `presets.test.ts` pins these and the
+re-plan default, so the gate fails if a data or model change breaks the demo's claims.
+
+## `/home` pressure line
+
+`pressureIndex(aggregate_hour.system_mmcf in hour order, { rMMcfd: sim_config.capacity_mmcfd, wMMcf: linepack_usable_mmcf,
+reserveIdx })`, then take the last completed hour. WEB sends R through `set_params` after every load, so
+`capacity_mmcfd` holds R. Show it as "System pressure: N, above the curtailment line" (0 dp, derived, modeled). It matches
+the console's live line at the same simulated hour.
+
+## `/validation` forecast error
+
+Read `data/forecast_error.json` (derived): per scenario and pooled, mean error and RMSE (forecast − observed, °F) at
+6, 12, 24, 48, 72 h with counts. Print its `method` and `scope` verbatim. `forecast_rmse_f` (constants) is the pooled RMSE
+the planner uses when a run has no σ.
 
 ## `/whatif`
 
@@ -73,7 +132,7 @@ Parameter table: read `data/cohort_spec.json`. The tuned fields are `heating[].c
 `hamMult` (1.5), `mass[].tauMassH` (40 / 60); allowed ranges Ca 1,500–8,000 BTU/°F, Ham ×1–6, τ 15–60 h. Everything
 in that file is assumed.
 
-## `/ops` KPIs (for W3)
+## Gas details drawer and `?ui=gas` (formerly the `/ops` KPIs, W3)
 
 Per-run totals come from `runPlan` / `compareStrategies`; per-day values from `gasDays(run)`. Capacity is a daily
 limit (msg 32), so headline the tight day, not a multi-day average (msg 62).

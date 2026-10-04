@@ -7,6 +7,12 @@ or a model function in `packages/model`. Each one is labeled **sourced** (a publ
 from sourced figures), or **assumed** (our modeling choice). Figures reflect `main` on 2026-10-03; if DATA updates a
 constant, the app and the tests recompute from it.
 
+**Oct 4 pressure overhaul.** The operator console now leads with a modeled **pipeline pressure index** instead of
+daily gas volumes, and the optimizer plans against the hourly gas balance of the pipes. Sections 2.8–2.10 and 3.0
+describe the new model, optimizer, forecasts and screen; the gas-volume material in Sections 2.3–3.7 still applies to
+the "Gas details" drawer and to `/ops?ui=gas`. Pressure figures are from `main` at `d79dbda` (ENGINE msg 198; H1's
+re-plan decision, msg 244).
+
 Contents:
 1. [Motivation and purpose](#1-motivation-and-purpose)
 2. [Process: how the model works](#2-process-how-the-model-works)
@@ -243,9 +249,123 @@ the SoCalGas gap. Our net-savings numbers therefore lean **conservative**.
 
 ---
 
+### 2.8 Pipeline pressure: why the coldest evening is the risk (Oct 4)
+
+On a cold day Southcentral's gas system fails on **pressure**, not on the season's total. Cold raises demand by about
+**3.44 MMcf/day per °F** of daily mean temperature (derived, `system_fit.json` b). Wells and storage can deliver only
+so fast: on the Feb 2024 record evening CINGSA storage was maxed out and Hilcorp could add only about **10 MMcf** more
+(sourced, approximate; ADN, Feb 6, 2024). When demand outruns delivery, the gas stored in the pipes (linepack) drains
+and pressure falls across one shared system (Alaska Beacon, Jul 28, 2026). Low pressure forces curtailment by tariff
+order, large users and power plants first and homes last (Enstar tariff §1220b), and losing pressure in an area
+means shutting off and relighting every customer (Aquidneck Island, RI, 2019: 7,455 customers, about a week; sources
+in `docs/sources.md`).
+
+**The pressure index** (`packages/model/src/pressure.ts`). Hour by hour, with inflow u, demand D (MMcf/h) and
+linepack L (MMcf):
+
+```
+L[t+1] = L[t] + u[t] − D[t]      0 ≤ u[t] ≤ R/24      L ≤ W      L[0] = W
+P[t]   = 100 × L[t] / W          (index[t] = P at the end of hour t)
+```
+
+- **R**, the maximum delivery rate: `R = 278 − lost` MMcf/day. 278 (`deliverability_2024_mmcfd`, derived) is the
+  modeled Feb 2024 peak gas day, 268.0, plus the ~10 MMcf/day headroom. `lost` is the operator's "deliverability
+  lost compared with Feb 2024" slider.
+- **W**, usable linepack: **9.54 MMcf** (`linepack_usable_mmcf`, derived by `usableLinepackMMcf`): the smallest
+  buffer that absorbs a normal day's hourly demand shape at 278 MMcf/day. Fixed; never recomputed from the slider.
+- Inflow throttles only when the pipes are full: `u = min(R/24, W − L + D)`.
+- **100 = full, 0 = curtailment begins.** The chart does not clamp below zero: a negative P means gas that would have
+  to be curtailed by then. On-screen label: "Pressure index: modeled linepack margin. 100 = full, 0 = curtailment
+  begins. Not psi and not Enstar telemetry."
+- **Curtailed gas uses clamped accounting** (`[CONTRACT]` msg 201): replay the same series, curtailing just enough
+  each hour to keep linepack at 0, and add those amounts (`pressureSummary.curtailedMMcf`,
+  `curtailedSeriesMMcf`). With one episode below zero this equals its deepest deficit; with several it does not count
+  the same gas twice.
+- **The reserve** (`reserve_default_idx`, 10 points, assumed): a margin above the line that covers the difference
+  between the hourly plan and the 5-minute simulation (minimum 5, `reserve_min_idx`).
+
+**Discomfort** (`discomfortSeries`): each hour, degrees below each home's own no-program temperature, averaged over
+enrolled homes, so normal night setbacks never count. Totals are in °F·h per home; for example 72 °F·h is about 1°F
+cooler on average across a three-day cold snap.
+
+### 2.9 The pressure-mode optimizer
+
+`solvePlan(..., { pressure })` keeps the same house dynamics, comfort floor and setback limits as Section 2.5, but
+replaces the daily capacity rows with an **hourly linepack balance**. For every hour t from the plan's start:
+
+```
+lp[t+1] = lp[t] + u[t] − fleet gas[t] − non-enrolled demand[t] − override terms[t] + c[t]
+0 ≤ lp ≤ W      0 ≤ u ≤ R/24      lp[t+1] + r[t] ≥ reserve      c, r ≥ 0
+objective = discomfort (as before) + 1e5 × Σ c  (curtailment)  + 1e4 × Σ r  (dipping into the reserve)
+```
+
+The fleet, override and non-enrolled terms are exactly the gas terms of the daily LP. The weights rank the goals:
+first avoid curtailment, then hold the reserve, then minimize discomfort (`[CONTRACT]` msg 195 raised the reserve
+weight from 1e3 to 1e4 so Near-miss holds the full reserve). Hourly curtailment is returned in
+`Plan.shortfallMMcfh`. On failure or timeout the console falls back to the staggered rule-based plan and says so, as
+before. ENGINE's sweep of 972 combinations (3 scenarios, 5k/25k/50k homes, floors, depths, losses, reserves, both
+modes) had 0 fallbacks and a worst solve of 453 ms in Node.
+
+### 2.10 Forecasts and re-planning
+
+A real operator plans with forecasts, not with the weather that later happened. The two replays carry
+`forecastRuns`: 21 archived National Blend of Models runs each (NBS to ~72 h, NBE beyond), for Anchorage airport
+(PANC), from the Iowa Environmental Mesonet MOS archive (sourced; raw files in `data/raw/iem_mos_*.json`). Each run's
+forecast daily highs and lows go through the same cosine curve as the observed series; its spread (`sigmaF`, 2–7°F)
+comes from the forecast's own standard deviation. `design` gets constructed runs (assumed: 3°F too warm at 72 h,
+shrinking to 0).
+
+- **Planning weather** (`planningScenario`): observed temperatures before the plan's start; after it, the newest
+  run available, minus a cold buffer of `bufferSigma × sigmaF`. Demand is shifted by the temperature difference times
+  3.44 MMcf/day per °F, so a perfect forecast reproduces the observed scenario exactly.
+- **Default policy** (H1, msg 244): re-plan at hour 0 and whenever a new forecast run arrives (every 6 simulated
+  hours, `replan_interval_h`), with the drift triggers off, at a **0.75σ** buffer (`forecast_buffer_sigma_default`,
+  assumed, chosen on the feb2024 replay and not validated on another winter). Each segment starts from the house
+  states and pressure that the plan so far produced against **actual** weather (`replanRun`). The full schedule is
+  precomputed in the browser at Solve time and dispatched to the live clock segment by segment.
+- **Why not one plan up front:** a single plan from the hour-0 forecast goes below zero on the real Feb 2024
+  forecasts, which ran warm (day 3 mean −7.4°F forecast at hour 0 vs −12.0°F observed). So the claim is
+  "re-planned as each new forecast arrived", never "sized before the cold snap".
+- **Forecast error** (`data/forecast_error.json`, `forecast_rmse_f`): pooled RMSE of forecast daily highs and lows
+  against ACIS, 2.72 / 3.98 / 3.73 / 4.67°F at 12 / 24 / 48 / 72 h (derived; small samples; no samples at 6 h, which
+  takes the 12 h value). Shown on `/validation`.
+- **Known limit:** the replays' hour-by-hour temperatures are an assumed cosine curve through each day's observed high
+  and low. Against the airport's hourly observations that curve is off by about 6°F RMSE on feb2024, and with real
+  hourly data re-planning holds about 8 of the 10 reserve points instead of 10 (`docs/qa.md` #26). H1 kept the curve.
+
 ## 3. Solution: what the operator sees and controls
 
 The operator console (`/ops`) is built for a utility operator on a laptop (1280×800 and up).
+
+### 3.0 The pressure console (Oct 4)
+
+`/ops` now stacks three charts on one clock, with the map, presets, controls and event log on the right:
+
+1. **System pressure**: No program (gray, dashed), Naive 4-hour (amber, dashed), Staggered, Optimized (blue) and the
+   Live line, with a red line at 0 ("Curtailment begins") and an amber reserve band from 0 to the reserve. Hovering
+   below zero shows how much gas would have to be curtailed by that hour.
+2. **Outdoor temperature**: actual (white), the forecast in use (blue dashed, ±1σ band, stepping at each re-plan)
+   and the planning line (forecast minus buffer, amber dotted).
+3. **Home discomfort**: °F below each home's own no-program temperature, average and coldest home type, with the
+   max setback as a dashed line.
+
+Above them a **verdict strip** shows lowest pressure, hours below the line and discomfort (°F·h per home) for the
+selected plan, with No program small beside it, plus a chip with the planning basis ("Plan from forecast issued …" /
+"Plan uses observed weather"). A **status sentence** replaces the shortfall banner, for example "Above the
+curtailment line for the whole cold snap" or "Below the curtailment line for 3 hours: about 0.4 MMcf would be
+curtailed, businesses first". The old gas charts and KPIs live in the collapsed **Gas details** drawer, and
+`/ops?ui=gas` renders the previous console unchanged.
+
+**Presets** (`data/presets.json`), both on the feb2024 scenario with 25,000 homes and a 10-point reserve:
+
+| Preset | Lost vs Feb 2024 | No program | Optimized | Story |
+| --- | --- | --- | --- | --- |
+| Near-miss | 11.5 MMcf/day (largest loss at which 25,000 homes hold the full reserve) | min −6.9 at hour 69, 3 h below, 0.66 MMcf curtailed | observed weather: min +10.4, 0 h below, 75 °F·h/home; re-planned on forecasts (default): min 10.2, 105 °F·h/home, 16 re-plans | Nobody gets cut off |
+| Stress | 28.5 MMcf/day (the 2024 storage-well failure) | 40.15 MMcf curtailed | 34.43 MMcf curtailed (Staggered 36.08), 402 °F·h/home | Fewer customers cut, not none |
+
+The deliverability slider's tick marks come from `data/deliverability_ticks.json`: 0 (Feb 2024 as it happened),
+11.5 (Near-miss), 20 (needle-peak contract), 28.5 (2024 storage-well failure). On `/home`, a line under the live card
+shows the live pressure index ("System pressure: 34, above the curtailment line").
 
 ### 3.1 Header and banners
 
@@ -466,6 +586,8 @@ night-schedule homes whose normal night setpoint is 64°F).
 | `packages/model/src/demand.ts` | system demand fit and hourly shape |
 | `packages/model/src/validation.ts` | ConEd, SoCalGas and Anchorage checks |
 | `packages/model/src/whatif.ts` | the steady-state calculator and its formula lines |
+| `packages/model/src/pressure.ts` | pressure index, usable linepack, curtailed gas (clamped), discomfort series, coverage table |
+| `packages/model/src/forecast.ts` | forecast runs, planning weather with buffer, `replanRun` |
 | `packages/model/NUMBERS.md` | every on-screen number mapped to its source, label and format |
 | `stdb/src/index.ts` | the live simulation clock (`tick`), overrides, reassignment, households |
 | `data/` | constants with sources, cohort spec, scenarios, system fit, anchors, water mask |

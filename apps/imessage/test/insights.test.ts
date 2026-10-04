@@ -50,13 +50,13 @@ describe('honesty check', () => {
 });
 
 describe('explain_decision (feb2024)', () => {
-  it('setback on the short day: cites demand vs capacity, the shortfall, depth, floor and the naive counterfactual', () => {
+  it('setback on the tight day: cites demand vs the delivery rate, how far above it, depth, floor and the naive counterfactual', () => {
     const r = explainDecision(ctx(), { hour: 50 });
     expect(r.action).toBe('setback');
-    expect(r.gasDay?.shortfallWithoutProgram.value).toBe(3);
+    expect(r.gasDay?.demandAboveDeliveryRateWithoutProgram.value).toBe(3);
     expect(r.plannedTargetF.value).toBe(65);
     expect(r.setbackDepthF.value).toBe(5);
-    expect(r.reasons.join(' ')).toMatch(/shortfall of 3\.00 MMcf/);
+    expect(r.reasons.join(' ')).toMatch(/demand is 3\.00 MMcf above the delivery rate/);
     expect(r.reasons.join(' ')).toMatch(/4-hour morning setback would leave 2\.80 MMcf uncovered/);
     expect(r.reasons.join(' ')).toContain('never below 62°F');
   });
@@ -74,10 +74,10 @@ describe('explain_decision (feb2024)', () => {
     expect(r.gasDay?.uncoveredWithThisHomesPlan).not.toBeNull();
     expect(r.reasons.join(' ')).toContain('The optimized plan this home is on leaves');
   });
-  it('recovery on a day with spare capacity says so', () => {
+  it('recovery on a day within the delivery rate says so', () => {
     const r = explainDecision(ctx(world({ sim: feb(74), home: { targetF: 70, taF: 66 } })), { hour: 74 });
     expect(r.action).toBe('recovery');
-    expect(r.reasons.join(' ')).toContain('spare capacity');
+    expect(r.reasons.join(' ')).toContain('within the delivery rate');
   });
   it('no plan dispatched: says there is no setback instead of inventing one', () => {
     const r = explainDecision(ctx(world({ sim: feb(50, { strategy: 'BASELINE', planId: '' }) })), {});
@@ -127,7 +127,7 @@ describe('insights agent', () => {
     const r = await ask({ question: 'why now?', ctx: ctx(), call });
     expect(r.honesty.regenerated).toBe(true);
     expect(r.honesty.fellBack).toBe(true);
-    expect(r.answer).toContain('shortfall of 3.00 MMcf');
+    expect(r.answer).toContain('3.00 MMcf above the delivery rate');
     expect(r.answer).toContain('Simulated');
   });
   it('a rewrite that drops the made-up number passes', async () => {

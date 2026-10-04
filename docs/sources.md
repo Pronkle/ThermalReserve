@@ -130,3 +130,17 @@ Notes from re-checking both pages on 2026-10-03 (raw HTML, HTTP 200):
 - **Headroom.** The Feb 6 article says Hilcorp could deliver only "an additional 10 million cubic feet" on the Wednesday evening. It gives no time unit; `headroom_2024_mmcfd` reads it as 10 MMcf/day and is marked approximate.
 - **Forecast archive.** Iowa Environmental Mesonet MOS archive, API documented at <https://mesonet.agron.iastate.edu/api/1/docs> (opened 2026-10-04). A live call for PANC, model NBS, run 2024-01-30 19Z returned 3-hourly `tmp` and `tsd` to 2024-02-02 18Z; model NBE returned 12-hourly rows to 2024-02-10. Fetch script: `data/scripts/fetch-forecast.ts`.
 - **Hourly observations, checked but not used (Oct 4).** Iowa Environmental Mesonet ASOS archive, routine hourly reports for PANC (<https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?help>, opened 2026-10-04). The replays keep the assumed cosine curve through ACIS daily max/min (H1 decision). Against the hourly reports the curve is off by 6.0°F RMSE on feb2024 and 4.8°F on lastwinter, with lows at the wrong time of day. The real-hourly build is on branch `stdb/p-hourly`.
+
+### Pressure story sources (D-B2, checked 2026-10-04 by DATA)
+
+Each link below was opened on 2026-10-04 and the supporting text was found on the page.
+
+| Source | Supports | Supporting text (short) |
+| --- | --- | --- |
+| ADN (Sean Maguire), "Enstar tells lawmakers it was 'extremely close' to being unable to deliver gas during Anchorage cold snap", Feb 6, 2024 (page shows Feb 7). <https://www.adn.com/business-economy/energy/2024/02/06/enstar-tells-lawmakers-gas-storage-was-extremely-close-to-being-depleted-during-recent-anchorage-cold-snap/> | `headroom_2024_mmcfd` (10, approximate); the 250 vs 268 note above | "CINGSA was maxed out and Hilcorp could only deliver an additional 10 million cubic feet" |
+| Alaska Beacon (James Brooks), "As winter approaches, Southcentral Alaska utilities are worried about running short of gas", Jul 28, 2026; republished by ADN Jul 29, 2026. Checked copy: <https://www.adn.com/business-economy/energy/2026/07/29/as-winter-approaches-southcentral-alaska-utilities-are-worried-about-running-short-of-gas/>. The Beacon original (<https://alaskabeacon.com/2026/07/28/as-winter-approaches-southcentral-alaska-utilities-are-worried-about-running-short-of-gas/>) returns 403 to scripted requests; it is listed in search results with the same title | "One pressurized system" (story step 3); curtailment order | Southcentral "relies on a single, pressurized system of pipes"; in a curtailment "churches, schools, hospitals and homes would be last" |
+| Rhode Island Division of Public Utilities and Carriers, "Summary Investigation Into the Aquidneck Island Gas Service Interruption of January 21, 2019", Oct 30, 2019. <https://ripuc.ri.gov/sites/g/files/xkgbur841/files/eventsactions/AI_Report.pdf> | Story step 5: what losing pressure costs | A low-pressure condition led National Grid to shut down service "to 7,455 customers"; "the seven-day outage" led to a state of emergency. Gas could not simply be turned back on because pilot lights had gone out |
+
+Corrections from this check:
+- **Aquidneck count.** AGENTS.md Section 3 says "about 7,100 customers". That was the early press figure (for example WPRO, Jan 22, 2019). The state's investigation gives **7,455**. Say "about 7,500 customers, about a week" or quote 7,455 with the report.
+- **Curtailment order** also matches Enstar tariff §1220b (above): homes and human needs are priority 1.
