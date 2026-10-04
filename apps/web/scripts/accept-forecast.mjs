@@ -108,9 +108,9 @@ try {
   const ownDot = phone.locator('.own-household-map-dot').first();
   assert.equal(await ownDot.getAttribute('fill'), '#6EDBA4');
   await phone.emulateMedia({ reducedMotion: 'reduce' });
-  assert.equal(await ownDot.evaluate(element => getComputedStyle(element).animationName), 'none');
+  await phone.waitForFunction(() => { const dot = document.querySelector('.own-household-map-dot'); return dot && getComputedStyle(dot).animationName === 'none'; });
   await phone.emulateMedia({ reducedMotion: 'no-preference' });
-  assert.equal(await ownDot.evaluate(element => getComputedStyle(element).animationName), 'own-home-glow');
+  await phone.waitForFunction(() => { const dot = document.querySelector('.own-household-map-dot'); return dot && getComputedStyle(dot).animationName === 'own-home-glow'; });
   await phone.emulateMedia({ reducedMotion: 'reduce' });
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
     await page.setViewportSize({ width, height });
