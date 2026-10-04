@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildCohorts, compareStrategies, coverageTable, evaluateLoss, loadConstants, pressureIndex, pressureSummary } from '../src/index';
-import type { CohortSpec, ConstantsJson, Scenario } from '../src/index';
+import { buildCohorts, compareStrategies, coverageTable, evaluateLoss, loadConstants, pressureIndex, pressureParams, pressureSummary, replanRun } from '../src/index';
+import type { CohortSpec, ConstantsJson, Scenario, ScenarioWithForecasts } from '../src/index';
+import shape from '../../../data/demand_shape.json';
 import constantsJson from '../../../data/constants.json';
 import cohortSpecJson from '../../../data/cohort_spec.json';
 import presetsJson from '../../../data/presets.json';
@@ -42,5 +43,28 @@ describe('presets', () => {
     expect(r.planned.curtailedMMcf).toBeCloseTo(34.43, 1);
     const stag = compareStrategies(feb, cohorts, { ...cfgFor(st.enrolledHomes), capacityMMcfd: r.pressure.rMMcfd }, consts).SUSTAIN_STAGGER;
     expect(r.planned.curtailedMMcf).toBeLessThan(pressureSummary(pressureIndex(stag.hours.map((h) => h.systemMMcfh), r.pressure) as number[], r.pressure).curtailedMMcf);
+  }, 60000);
+});
+
+// H1 [CONTRACT] 2026-10-04 09:33Z: the demo re-plans at hour 0 and on each new forecast run (drift triggers off) at
+// forecast_buffer_sigma_default. On DATA's archived NBS runs that held Near-miss at 10.2 with 105 °F·h (E-C2, msg 230).
+describe('default re-plan on archived forecasts', () => {
+  it('Near-miss re-planned on each new forecast holds the reserve', async () => {
+    const nm = preset('nearmiss');
+    const sc = feb as ScenarioWithForecasts;
+    expect(sc.forecastRuns?.length).toBeGreaterThan(0);
+    const p = pressureParams(consts, raw, nm.lostMMcfd, nm.reserveIdx);
+    const v = (k: string) => raw[k].value as number;
+    const r = await replanRun(sc, cohorts, { ...cfgFor(nm.enrolledHomes), capacityMMcfd: p.rMMcfd }, consts, p, {
+      mode: 'REPLAN', bufferSigma: v('forecast_buffer_sigma_default'), strategy: 'OPTIMIZED',
+      policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: Infinity, driftHours: v('drift_hours'), driftPressureIdx: Infinity, driftFadeH: v('drift_fade_h') },
+    }, shape);
+    expect(r.segments.every((s) => !s.plan.note)).toBe(true);
+    expect(r.segments.slice(1).every((s) => s.reason === 'forecast')).toBe(true);
+    expect(r.segments).toHaveLength(17);
+    const s = pressureSummary(pressureIndex(r.run.hours.map((h) => h.systemMMcfh), p) as number[], p);
+    expect(s.hoursBelowZero).toBe(0);
+    expect(s.minIndex).toBeGreaterThanOrEqual(nm.reserveIdx);
+    expect(r.run.totals.degreeHoursBelowNormal).toBeCloseTo(105, -1);
   }, 60000);
 });
