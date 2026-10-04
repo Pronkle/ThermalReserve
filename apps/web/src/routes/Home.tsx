@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAggregates, useConnection, useMyContactLine, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
 import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
-import { eventCountdown, heatStatus, householdDayStart, householdLinkCode } from '../lib/household';
+import { eventCountdown, heatStatus, householdDayStart } from '../lib/household';
 import { livePressureReading } from '../lib/pressure-ui';
 import { HouseholdMap } from '../components/HouseholdMap';
 import './home.css';
@@ -28,15 +28,7 @@ export function Home() {
   const [contactState, setContactState] = useState<'idle' | 'saving' | 'failed' | 'saved'>('idle');
   const [awaitingLine, setAwaitingLine] = useState(false);
   const hadAssignedLine = useRef(false);
-  const [linkCode, setLinkCode] = useState('');
   const identityHex = home?.identity.toHexString();
-  useEffect(() => {
-    setLinkCode('');
-    if (!identityHex) return;
-    let current = true;
-    void householdLinkCode(identityHex).then(code => { if (current) setLinkCode(code); }).catch(() => { /* Optional companion must never block heat controls. */ });
-    return () => { current = false; };
-  }, [identityHex]);
   const connected = live.status === 'connected';
   const pendingLineKey = `thermal-reserve.imessage-pending:${live.database}:${live.identity}`;
   useEffect(() => {
@@ -112,11 +104,9 @@ export function Home() {
       {(contactState !== 'idle' || awaitingLine || contactLine) && <section className="panel home-contact" aria-labelledby="contact-title">
         <h2 id="contact-title">iMessage updates</h2>
         {contactLine ? <>
-          {linkCode ? <>
-            <p>Text <strong className="link-code">Link my home {linkCode}</strong> to <strong className="assigned-line">{contactLine.line}</strong> to turn on iMessage updates.</p>
-            <a className="home-primary text-updates-link" href={`sms:${contactLine.line}&body=${encodeURIComponent(`Link my home ${linkCode}`)}`}>Text to link your home</a>
-          </> : <><p>Your iMessage number: <strong className="assigned-line">{contactLine.line}</strong></p><p className="home-limit">Your link code is unavailable. Reload to try again.</p></>}
-          <p className="home-limit">Send the message to start updates. Reply STOP any time.</p>
+          <p>Text <strong>START</strong> to <strong className="assigned-line">{contactLine.line}</strong> to turn on iMessage updates.</p>
+          <a className="home-primary text-updates-link" href={`sms:${contactLine.line}&body=START`}>Text START</a>
+          <p className="home-limit">Use the phone number you entered when opting in. Text STOP any time to delete your text-update details.</p>
         </> : contactState === 'saved' || awaitingLine ? <p role="status">Setting up your iMessage line…</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
           <p>Your home has joined. Correct your details to finish opting in.</p>
           {contactFields}
@@ -142,11 +132,6 @@ export function Home() {
         {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
         <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>
       </section>
-      {linkCode && contactState === 'idle' && !awaitingLine && !contactLine && <section className="panel home-imessage" aria-labelledby="imessage-title">
-        <h2 id="imessage-title">Get updates by iMessage</h2>
-        <p>Reply <strong className="link-code">Link my home {linkCode}</strong> in your Thermal Reserve iMessage thread to get heat updates by text. Reply STOP any time.</p>
-        <p className="home-limit">Demo: works when the team's iMessage assistant is running.</p>
-      </section>}
     </> : step === 0 ? <div className="panel enrollment-intro">
       <h2>Steady heat. A stronger community.</h2>
       <p>Try an Anchorage home in our cold-snap simulation. You stay in control of your heat.</p>

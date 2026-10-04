@@ -17,7 +17,7 @@ try {
   await ordinary.getByRole('button', { name: 'Join', exact: true }).click();
   await ordinary.locator('.heat-card').waitFor({ timeout: 30000 });
   assert.equal(await ordinary.locator('.home-contact').count(), 0);
-  await ordinary.locator('.link-code').waitFor();
+  assert.equal(await ordinary.locator('.home-imessage, .link-code').count(), 0);
   assert(await ordinary.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   const optedContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const opted = await optedContext.newPage();

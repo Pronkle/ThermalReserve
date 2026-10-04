@@ -40,7 +40,6 @@
 .contact-fields label { display: block; font-size: 14px; margin: 16px 0; }
 .contact-fields input { display: block; width: 100%; min-height: 48px; font-size: 16px; border-radius: 8px; border: 1px solid var(--border); padding: 10px 12px; background: white; color: var(--text); margin-top: 6px; }
 .text-updates { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; margin: 20px 0; }
-.link-code { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
 .household-map .map-frame { height: 240px; margin-top: 16px; background: #111D30; border-radius: 8px; overflow: hidden; }
 .household-map .map-legend { margin-top: 12px; flex-wrap: wrap; font-size: 13px; }
 .text-updates-link { text-align: center; border-radius: 8px; min-height: 48px; text-decoration: none; }
