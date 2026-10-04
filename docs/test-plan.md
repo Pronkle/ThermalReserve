@@ -150,11 +150,11 @@ Acceptance comes from CHAT's brief (`docs/agents/CHAT_BRIEF.md` §8–9). Add ex
 | C-8 | Reset households on `/ops` | Within one minute the companion forgets that phone and its memory | |
 | C-9 | Every number in every answer | Appears in that turn's tool output (honesty check log shows pass) | |
 | C-10 | (H1 msg 278, once live) Join on `/home` with the opt-in **unchecked** and all contact fields empty | Join works in three taps; no `household_contact` row is written | |
-| C-11 | Join with first name, last name, a real phone and the opt-in **checked** | `set_contact` succeeds; the companion adds the number to Photon and sends a text-only opener; no phone appears in any public table, URL or info-level log | |
+| C-11 | Join with first name, last name, a real phone and the opt-in **checked** | `set_contact` succeeds; with `CHAT_ONBOARD=1` the companion adds the number to Photon and sends the opener asking for YES; replying YES gets the "You're set" text; no phone appears in any public table, URL or info-level log | |
 | C-12 | Enter an invalid phone (letters, too short) with the opt-in checked | `/home` shows the server's message ("phone: expected a number like +19075550123"); nothing stored | |
 | C-12b | From a second, non-companion browser, try to read contacts (subscribe to `contact_feed`) | No rows returned; `household_contact` is not visible | |
 | C-13 | Reset households on `/ops` | The `household_contact` rows are gone, and the companion forgets the number within one minute | |
-| C-14 | Reply STOP from an opted-in phone | No further texts; the companion deletes that number and its memory | |
+| C-14 | Reply STOP from an opted-in phone | No further texts; the companion calls `remove_contact`, so the row disappears from `contact_feed`, and it deletes its own memory of the number | |
 
 ## 5. Failure modes
 
