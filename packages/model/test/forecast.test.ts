@@ -88,9 +88,9 @@ describe('forecast planning', () => {
 
   it('replanRun with perfect forecasts: only forecast re-plans, and it matches a single solve within 1 point', async () => {
     const sc = withRuns(() => 0);
-    const t0 = performance.now();
+    const t0 = Date.now();
     const r = await replanRun(sc, cohorts, cfg, consts, p, { mode: 'REPLAN', bufferSigma: 0, policy: drift, strategy: 'OPTIMIZED' });
-    const ms = performance.now() - t0;
+    const ms = Date.now() - t0;
     expect(r.segments[0].reason).toBe('start');
     expect(r.segments.slice(1).every((s) => s.reason === 'forecast')).toBe(true);
     expect(r.segments.length).toBe(17); // hour 0, then hours 1, 7, …, 91
