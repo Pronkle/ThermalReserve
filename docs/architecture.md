@@ -2,7 +2,7 @@
 
 Two hosted pieces make up the product: a **SpacetimeDB module on Maincloud** that holds all shared state and runs the simulation clock, and a **static React app on Vercel** that every screen loads. No laptop process runs during judging; the operator console is a browser tab.
 
-**Planned third piece (CHAT, in progress; see "iMessage companion" below):** a long-lived Node process (`apps/imessage`) that texts enrolled households through Photon's Spectrum framework. It needs somewhere to run during judging, which conflicts with the rule above until H1 decides (team laptop exception, or a host such as Railway, Fly or Render).
+**Planned third piece (CHAT, in progress; see "iMessage companion" below):** a long-lived Node process (`apps/imessage`) that texts enrolled households through Photon's Spectrum framework. It runs on a **team laptop** during judging (H3's decision, allowed by H1 in msg 173): the one exception to the rule above. The four web routes never depend on it.
 
 The browser computes whole-horizon comparisons and the LP (deterministic, needed instantly for charts). The server owns the live run that every phone and the map watch. One physics source file (`packages/model/src/physics.ts`) runs in both places, and a test asserts the two agree on a fixed scenario.
 
@@ -75,7 +75,7 @@ sequenceDiagram
 | Physics, strategies, LP, validation, what-if | Pure TypeScript, `packages/model` | Browser; `physics.ts` and `types.ts` also inside the module | ENGINE |
 | LP solver | `highs` (HiGHS compiled to WebAssembly), CPLEX LP text | Browser Web Worker | ENGINE |
 | Web app | React, Vite, TypeScript, Tailwind, React Router (`apps/web`) | Vercel static build | WEB |
-| iMessage companion (planned) | Node 22, Photon Spectrum (`spectrum-ts`), Claude API, SQLite (`apps/imessage`) | Long-lived process; host to be decided by H1 | CHAT |
+| iMessage companion (planned) | Node 22, Photon Spectrum (`spectrum-ts`), Claude API, SQLite (`apps/imessage`) | Long-lived process on a team laptop during judging | CHAT |
 | Charts, map, QR | Recharts; Leaflet with OpenStreetMap tiles (SVG fallback); qrcode.react | Browser | WEB |
 | Data and scenarios | JSON in `data/`, rebuilt offline by `npm run data` from saved ACIS responses | Repo, bundled into the web build | DATA |
 | Tests | Vitest in each workspace | Developer machines; merge gate | Each owner |
@@ -127,13 +127,13 @@ flowchart LR
 **H1's decisions (Oct 4, msg 167):**
 - Dependencies approved, in `apps/imessage` only: `spectrum-ts`, `@anthropic-ai/sdk`; SQLite via Node's built-in `node:sqlite` (`better-sqlite3` only if that fails).
 - Link design **A** (inbound-first text with a code; no Spacetime schema change). B only if A proves impossible.
-- Hosting during judging: **H3 decides** (H1, msg 173: a hosted service or a team laptop are both allowed). H3 plans a hosted account; CHAT picks the service and lists what to set up.
+- Hosting during judging: **a team laptop** (H3 decided, Oct 4; H1 allowed either option in msg 173). No hosted account. The laptop must stay awake, plugged in and online through judging, with `apps/imessage/.env` present locally (never committed).
 - The Sunday 10:00 code freeze applies to CHAT, and the four web routes must never depend on it.
 - `apps/imessage` tests must pass offline with no credentials (merge gate). CHAT reads `thermal-reserve-dev` read-only with its own identity.
 
 **Found in CHAT's Phase 0 (Oct 4, 04:28Z):** iMessage from Linux through Spectrum's cloud line reached an iPhone, replies come back to Node, and household updates stream from `thermal-reserve-dev`. **Photon only sends to numbers added as project users** ("Target not allowed for this project"), so every demo and judge phone must be added in the Photon dashboard before it can link. CHAT proposes "B-lite": the same inbound code as design A, plus that allowlist step; no schema change.
 
-**Still open:** which hosting service (CHAT recommends, H3 creates); Photon project and API keys (humans; never committed).
+**Still open:** which database the judged demo uses (`thermal-reserve` or `thermal-reserve-dev`; asked of H1, msg 178); Photon project and API keys (humans; never committed).
 
 ## Decisions worth knowing
 
