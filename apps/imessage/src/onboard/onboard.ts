@@ -25,6 +25,8 @@ export interface OnboardDeps {
   household: (identity: string) => HouseholdView | undefined;
   sim: () => SimView | undefined;
   sendText: (address: string, body: string) => Promise<void>;
+  // Hands the person's assigned Photon line to /home (set_contact_line, once STDB ships it).
+  publishLine?: (identity: string, line: string) => Promise<void>;
   retryDelaysMs?: number[];
   now?: () => number;
   log?: (line: string) => void;
@@ -49,6 +51,14 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
     if (!known.has(req.phone)) {
       await deps.photon.add(user);
       log(`[onboard] added ${maskAddress(req.phone)} to the Photon project`);
+    }
+    // /home shows "Text START to {line}": Photon won't let us text first until they do.
+    const line = await deps.photon.assignedLine(req.phone).catch(() => undefined);
+    if (line && deps.publishLine) {
+      try { await deps.publishLine(req.identity, line); log(`[onboard] ${maskAddress(req.phone)}: assigned line ${line} sent to /home`); }
+      catch (e) { log(`[onboard] ${maskAddress(req.phone)}: line not published: ${String(e).slice(0, 120)}`); }
+    } else if (line) {
+      log(`[onboard] ${maskAddress(req.phone)}: assigned line ${line} (tell them to text it once)`);
     }
     const sim = deps.sim();
     const state = sim ? initialState(home, sim, deps.consts) : { runKey: '', lastSimHour: 0, mode: 'normal' as const, overridden: home.overridden, notifiedTargetF: home.targetF, exemptNotified: false, endNotified: false };
