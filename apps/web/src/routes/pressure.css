@@ -160,3 +160,5 @@
   .pressure-console-shell .log-panel[open] { position: static; max-height: none; box-shadow: none; }
 }
 @media (max-width: 500px) { .pressure-console-shell .control-row.two { grid-template-columns: minmax(0, 1fr); } }
+/* Connected status ("Connected · thermal-reserve · Operator") stays on one line so the event-log bar stays in view. */
+.pressure-console-shell .run-status .solve-status, .pressure-console-shell .run-status .control-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
