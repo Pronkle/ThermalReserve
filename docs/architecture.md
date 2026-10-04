@@ -98,7 +98,7 @@ flowchart LR
 
 ## iMessage companion (CHAT, planned; not built yet)
 
-Owner: CHAT, Agent Mail name ScarletDesert (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. Everything in this section is the brief's design, not shipped code; remove or update it once CHAT's phases land.
+Owner: CHAT, Agent Mail name GreenGorge (earlier session ScarletDesert) (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. Everything in this section is the brief's design, not shipped code; remove or update it once CHAT's phases land.
 
 ```mermaid
 flowchart LR
@@ -127,9 +127,11 @@ flowchart LR
 **H1's decisions (Oct 4, msg 167):**
 - Dependencies approved, in `apps/imessage` only: `spectrum-ts`, `@anthropic-ai/sdk`; SQLite via Node's built-in `node:sqlite` (`better-sqlite3` only if that fails).
 - Link design **A** (inbound-first text with a code; no Spacetime schema change). B only if A proves impossible.
-- Hosting during judging: a hosted service (Railway, Fly or Render). **H3 creates the account (confirmed Oct 4)**; CHAT picks the service and lists what to set up. No laptop exception.
+- Hosting during judging: **H3 decides** (H1, msg 173: a hosted service or a team laptop are both allowed). H3 plans a hosted account; CHAT picks the service and lists what to set up.
 - The Sunday 10:00 code freeze applies to CHAT, and the four web routes must never depend on it.
 - `apps/imessage` tests must pass offline with no credentials (merge gate). CHAT reads `thermal-reserve-dev` read-only with its own identity.
+
+**Found in CHAT's Phase 0 (Oct 4, 04:28Z):** iMessage from Linux through Spectrum's cloud line reached an iPhone, replies come back to Node, and household updates stream from `thermal-reserve-dev`. **Photon only sends to numbers added as project users** ("Target not allowed for this project"), so every demo and judge phone must be added in the Photon dashboard before it can link. CHAT proposes "B-lite": the same inbound code as design A, plus that allowlist step; no schema change.
 
 **Still open:** which hosting service (CHAT recommends, H3 creates); Photon project and API keys (humans; never committed).
 
