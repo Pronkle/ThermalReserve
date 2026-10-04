@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BoreaFlux one-pager (draft 3)</title>
+<!-- Draft 3 (Oct 4): pressure version, BoreaFlux colors. Drafts 1 and 2 are kept (onepager*.html). Text mirrored in onepager-v3.md.
+     Export from the repo root:
+     chromium --headless --no-pdf-header-footer --print-to-pdf=docs/onepager-v3.pdf docs/onepager-v3.html
+     Numbers: packages/model/NUMBERS.md "Today" table (feb2024, 25,000 homes, re-plan default) and data/constants.json.
+     Every sourced claim links to its source; the numbered list at the bottom repeats the URLs. -->
+<style>
+  @page { size: Letter; margin: 0.28in 0.4in; }
+  :root {
+    --navy: #0B215D; --navy-ink: #0F1E44; --gold: #F6C649; --muted: #4A5878; --rule: #D3DAEA; --soft: #F2F5FB;
+    --ice: #1C7BA6; --ice-bright: #5BC0EB; --amber: #A35F00; --red: #C4363B; --green: #1E6E48; --gray: #6B7689;
+  }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; color: var(--navy-ink); font: 8.3pt/1.28 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #fff; }
+  a { color: var(--ice); text-decoration: none; }
+  p { margin: 0 0 4px; }
+  ul { margin: 0 0 3px; padding-left: 14px; }
+  li { margin: 0 0 2px; }
+  sup { font-size: 6.6pt; line-height: 0; }
+  sup a { font-weight: 700; }
+  b, strong { font-weight: 700; }
+
+  .band { background: var(--navy); color: #fff; border-radius: 12px; padding: 8px 12px; display: grid; grid-template-columns: 1fr 0.85in; gap: 14px; align-items: center; }
+  .band img.logo { height: 0.42in; display: block; }
+  .band .pitch { font-size: 10.6pt; font-weight: 600; margin-top: 6px; line-height: 1.3; }
+  .band .url { margin-top: 5px; font-size: 8.4pt; color: #C9D3EA; }
+  .band .url a { color: var(--gold); font-weight: 700; }
+  .band .qr { background: #fff; border-radius: 8px; padding: 4px; }
+  .band .qr svg { display: block; width: 100%; height: auto; }
+  .band .qrcap { font-size: 6.6pt; color: #C9D3EA; text-align: center; margin-top: 2px; white-space: nowrap; }
+
+  h2 { font-size: 8.8pt; margin: 6px 0 3px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--navy); padding-bottom: 2px; border-bottom: 2px solid var(--gold); display: inline-block; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .tiles { display: grid; grid-template-columns: 1fr; gap: 5px; margin-top: 3px; }
+  .tile { border: 1px solid var(--rule); border-radius: 10px; padding: 4px 8px; background: #fff; }
+  .tile h3 { margin: 0 0 1px; font-size: 9.2pt; color: var(--navy); }
+  .tile .sub { font-size: 7.6pt; color: var(--muted); margin-bottom: 4px; }
+  .row { display: grid; grid-template-columns: 0.8in 1fr; gap: 6px; align-items: baseline; padding: 2px 0; border-top: 1px solid var(--rule); }
+  .row .who { font-size: 7.8pt; font-weight: 700; }
+  .who.none { color: var(--gray); }
+  .who.bf { color: var(--ice); }
+  .big { font-size: 12pt; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .red { color: var(--red); } .green { color: var(--green); } .amber { color: var(--amber); }
+  .row .det { font-size: 7.8pt; color: var(--muted); }
+  .verdict { font-size: 7.9pt; margin-top: 3px; padding: 3px 6px; border-radius: 6px; }
+  .verdict.ok { background: #E9F6EF; color: var(--green); }
+  .verdict.part { background: #FDF3E4; color: var(--amber); }
+
+  .scale { display: flex; height: 9px; border-radius: 5px; overflow: hidden; margin: 4px 0 2px; }
+  .scale span { display: block; }
+  .scale-lab { display: flex; justify-content: space-between; font-size: 6.9pt; color: var(--muted); }
+
+  .chip { display: inline-block; font-size: 6.5pt; padding: 0 4px; border-radius: 6px; border: 1px solid var(--rule); color: var(--muted); vertical-align: 1px; font-weight: 600; }
+  .chip.s { border-color: #9FC3DA; color: #1C5F80; }
+  .chip.d { border-color: #B7C8A9; color: #3E6328; }
+  .chip.a { border-color: #E5C48F; color: #8A5300; }
+  .note { font-size: 7.8pt; color: var(--muted); }
+  .callout { background: var(--soft); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0; padding: 5px 8px; margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 2px 0 3px; }
+  th, td { text-align: left; padding: 2.4px 5px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 7.6pt; color: var(--muted); font-weight: 600; }
+  td.n { text-align: right; white-space: nowrap; }
+  .pass { color: var(--green); font-weight: 700; }
+
+  .arch { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 4px; align-items: center; font-size: 7.6pt; margin-top: 3px; }
+  .box { border: 1px solid var(--rule); border-top: 3px solid var(--navy); border-radius: 8px; padding: 4px 6px; background: #fff; }
+  .box b { display: block; font-size: 8.1pt; color: var(--navy); }
+  .arrow { color: var(--gold); font-weight: 800; font-size: 11pt; }
+
+  .sources { margin-top: 5px; border-top: 2px solid var(--navy); padding-top: 3px; font-size: 6.2pt; line-height: 1.24; color: var(--muted); columns: 2; column-gap: 14px; }
+  .sources h2 { column-span: all; margin: 0 0 3px; font-size: 7.8pt; border: 0; }
+  .sources ol { margin: 0; padding-left: 14px; }
+  .sources li { break-inside: avoid; margin-bottom: 1.5px; }
+  .sources a { word-break: break-all; }
+  .foot { margin-top: 2px; display: flex; justify-content: space-between; font-size: 7.6pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="band">
+  <div>
+    <img class="logo" src="../apps/web/public/borea-flux-logo.webp" alt="BoreaFlux">
+    <div class="pitch">Thermostat setbacks planned against modeled pipeline pressure, so Southcentral Alaska's gas grid stays above the curtailment line on the coldest evenings.</div>
+    <div class="url">Try it: <a href="https://boreaflux.vercel.app">boreaflux.vercel.app</a> · join as a household at <a href="https://boreaflux.vercel.app/home">/home</a> · MHacks 2026</div>
+  </div>
+  <div>
+    <div class="qr"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" role="img"><title>Join the BoreaFlux household demo</title><path fill="#FFFFFF" d="M0,0 h37v37H0z" shape-rendering="crispEdges"></path><path fill="#000000" d="M4 4h7v1H4zM12 4h4v1H12zM19 4h2v1H19zM22 4h3v1H22zM26,4 h7v1H26zM4 5h1v1H4zM10 5h1v1H10zM12 5h1v1H12zM14 5h1v1H14zM16 5h1v1H16zM18 5h2v1H18zM21 5h2v1H21zM26 5h1v1H26zM32,5 h1v1H32zM4 6h1v1H4zM6 6h3v1H6zM10 6h1v1H10zM14 6h1v1H14zM17 6h3v1H17zM22 6h1v1H22zM26 6h1v1H26zM28 6h3v1H28zM32,6 h1v1H32zM4 7h1v1H4zM6 7h3v1H6zM10 7h1v1H10zM12 7h1v1H12zM16 7h1v1H16zM20 7h2v1H20zM26 7h1v1H26zM28 7h3v1H28zM32,7 h1v1H32zM4 8h1v1H4zM6 8h3v1H6zM10 8h1v1H10zM17 8h1v1H17zM23 8h1v1H23zM26 8h1v1H26zM28 8h3v1H28zM32,8 h1v1H32zM4 9h1v1H4zM10 9h1v1H10zM13 9h1v1H13zM18 9h1v1H18zM22 9h2v1H22zM26 9h1v1H26zM32,9 h1v1H32zM4 10h7v1H4zM12 10h1v1H12zM14 10h1v1H14zM16 10h1v1H16zM18 10h1v1H18zM20 10h1v1H20zM22 10h1v1H22zM24 10h1v1H24zM26,10 h7v1H26zM12 11h1v1H12zM17 11h2v1H17zM21 11h1v1H21zM23 11h2v1H23zM4 12h1v1H4zM6 12h2v1H6zM9 12h3v1H9zM13 12h1v1H13zM17 12h2v1H17zM20 12h2v1H20zM23 12h2v1H23zM26 12h1v1H26zM29 12h1v1H29zM31,12 h2v1H31zM4 13h3v1H4zM9 13h1v1H9zM11 13h1v1H11zM13 13h1v1H13zM15 13h1v1H15zM19 13h10v1H19zM32,13 h1v1H32zM4 14h3v1H4zM8 14h1v1H8zM10 14h1v1H10zM13 14h1v1H13zM16 14h1v1H16zM18 14h2v1H18zM22 14h1v1H22zM30 14h2v1H30zM6 15h1v1H6zM12 15h1v1H12zM14 15h2v1H14zM17 15h3v1H17zM23 15h5v1H23zM32,15 h1v1H32zM4 16h4v1H4zM9 16h3v1H9zM21 16h1v1H21zM29 16h2v1H29zM6 17h1v1H6zM8 17h2v1H8zM12 17h1v1H12zM17 17h1v1H17zM21 17h1v1H21zM23 17h1v1H23zM26 17h1v1H26zM30,17 h3v1H30zM10 18h1v1H10zM12 18h2v1H12zM15 18h1v1H15zM18 18h1v1H18zM23 18h1v1H23zM25 18h2v1H25zM28 18h1v1H28zM30,18 h3v1H30zM4 19h4v1H4zM9 19h1v1H9zM13 19h1v1H13zM15 19h3v1H15zM19 19h2v1H19zM23 19h4v1H23zM28 19h1v1H28zM31 19h1v1H31zM5 20h1v1H5zM7 20h1v1H7zM10 20h7v1H10zM22 20h1v1H22zM25 20h1v1H25zM28 20h2v1H28zM31 20h1v1H31zM7 21h2v1H7zM11 21h1v1H11zM13 21h1v1H13zM16 21h2v1H16zM19 21h1v1H19zM22 21h1v1H22zM24 21h1v1H24zM27 21h1v1H27zM29 21h3v1H29zM4 22h1v1H4zM6 22h1v1H6zM10 22h4v1H10zM16 22h1v1H16zM19 22h2v1H19zM22 22h1v1H22zM26 22h2v1H26zM30 22h1v1H30zM8 23h1v1H8zM11 23h2v1H11zM16 23h1v1H16zM20 23h2v1H20zM23 23h1v1H23zM28 23h1v1H28zM30 23h1v1H30zM5 24h3v1H5zM9 24h3v1H9zM13 24h5v1H13zM19 24h4v1H19zM24 24h7v1H24zM12 25h1v1H12zM14 25h1v1H14zM16 25h3v1H16zM20 25h1v1H20zM24 25h1v1H24zM28,25 h5v1H28zM4 26h7v1H4zM12 26h1v1H12zM16 26h2v1H16zM20 26h2v1H20zM23 26h2v1H23zM26 26h1v1H26zM28 26h2v1H28zM31 26h1v1H31zM4 27h1v1H4zM10 27h1v1H10zM12 27h1v1H12zM14 27h1v1H14zM19 27h1v1H19zM23 27h2v1H23zM28 27h2v1H28zM31,27 h2v1H31zM4 28h1v1H4zM6 28h3v1H6zM10 28h1v1H10zM13 28h1v1H13zM18 28h1v1H18zM21 28h2v1H21zM24 28h5v1H24zM30 28h2v1H30zM4 29h1v1H4zM6 29h3v1H6zM10 29h1v1H10zM12 29h2v1H12zM15 29h1v1H15zM18 29h3v1H18zM24 29h2v1H24zM27 29h3v1H27zM32,29 h1v1H32zM4 30h1v1H4zM6 30h3v1H6zM10 30h1v1H10zM12 30h1v1H12zM14 30h4v1H14zM20 30h6v1H20zM27 30h1v1H27zM30 30h1v1H30zM32,30 h1v1H32zM4 31h1v1H4zM10 31h1v1H10zM13 31h3v1H13zM17 31h3v1H17zM23 31h2v1H23zM29 31h1v1H29zM31 31h1v1H31zM4 32h7v1H4zM12 32h3v1H12zM17 32h1v1H17zM19 32h1v1H19zM22 32h4v1H22zM27 32h1v1H27zM31 32h1v1H31z" shape-rendering="crispEdges"></path></svg>
+</div>
+    <div class="qrcap">Scan to join</div>
+  </div>
+</div>
+
+<div class="cols">
+<div>
+  <h2>The problem</h2>
+  <ul>
+    <li>On the record cold evening of Jan 31, 2024, Enstar told lawmakers it came <b>"extremely close"</b> to being unable to deliver gas: storage was maxed out and Hilcorp could add only about <b>10 million cubic feet</b> more.<sup><a href="https://www.adn.com/business-economy/energy/2024/02/06/enstar-tells-lawmakers-gas-storage-was-extremely-close-to-being-depleted-during-recent-anchorage-cold-snap/">1</a></sup></li>
+    <li>Southcentral runs on <b>one pressurized system of pipes</b>. When demand outruns delivery, the gas stored in the pipes drains, pressure falls, and Enstar must cut customers: large users and power plants first, homes last.<sup><a href="https://www.adn.com/business-economy/energy/2026/07/29/as-winter-approaches-southcentral-alaska-utilities-are-worried-about-running-short-of-gas/">2</a>,<a href="https://enstarnaturalgas.com/wp-content/uploads/2023/10/Binder-1200.pdf">3</a></sup></li>
+    <li>This winter Enstar could start about <b>3 Bcf short</b>.<sup><a href="https://www.adn.com/opinions/editorials/2026/08/08/editorial-the-winter-nobody-wants-to-imagine/">4</a></sup></li>
+    <li>Losing pressure is slow to undo: in Rhode Island in 2019 it left <b>7,455 customers</b> without gas for about a week while every meter was shut off and relit.<sup><a href="https://ripuc.ri.gov/sites/g/files/xkgbur841/files/eventsactions/AI_Report.pdf">5</a></sup></li>
+    <li>Smart-thermostat programs elsewhere cut gas in short events, but homes reheat afterward. In ConEd's pilot that <b>snapback</b> erased about half the saving.<sup><a href="https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B7FA119BD-B04D-4378-95A3-BB26697815AC%7D">6</a></sup></li>
+  </ul>
+
+  <h2>What we built</h2>
+  <p>A <b>simulation</b> of 25,000 Anchorage homes, not control of real thermostats. An operator console shows three charts on one clock: <b>modeled pipeline pressure</b>, outdoor temperature (forecast vs actual) and home discomfort.</p>
+  <ul>
+    <li><b>Planner:</b> a linear program over 24 home types and 96 hours finds the least discomfort that keeps pressure above a 10-point reserve every hour, counting the reheating that follows.</li>
+    <li><b>Real forecasts:</b> it plans with the weather forecasts that existed at the time (archived National Blend of Models runs for Anchorage airport<sup><a href="https://mesonet.agron.iastate.edu/api/1/docs">7</a></sup>) and <b>re-plans as each new forecast arrives</b>, every 6 hours, planning 0.75σ colder than forecast.</li>
+    <li><b>Households:</b> scan the QR code, join in three taps, see your home on a live map and the system pressure, and override with one tap. The server never holds a home below <b>62°F</b>; homes needing steady heat are exempt.</li>
+  </ul>
+
+  <h2>Pressure, in one line</h2>
+  <div class="scale" aria-hidden="true"><span style="width:18%;background:#E5484D"></span><span style="width:9%;background:#F2A541"></span><span style="width:73%;background:#5BC0EB"></span></div>
+  <div class="scale-lab"><span>below 0: gas must be curtailed</span><span>0–10: reserve</span><span>100 = pipes full</span></div>
+  <p class="note" style="margin-top:3px">Each hour the pipes gain what wells and storage can deliver (278 MMcf/day in Feb 2024: the 268 MMcf record day plus ~10 of headroom) and lose what customers burn. Usable pipe storage: 9.54 MMcf. <span class="chip d">derived</span> Modeled linepack margin; not psi and not Enstar telemetry.</p>
+  <h2>How it's built</h2>
+  <div class="arch">
+    <div class="box"><b>Browser</b>React on Vercel; HiGHS LP in a Web Worker</div><span class="arrow">→</span>
+    <div class="box"><b>SpacetimeDB</b>runs the house physics every second</div><span class="arrow">→</span>
+    <div class="box"><b>Every screen</b>console and phones update live; same physics file on both sides</div>
+  </div>
+  
+</div>
+
+<div>
+  <h2>Results: the Feb 2024 cold snap, with less supply</h2>
+  <p class="note">Nobody was cut off in Feb 2024. We replay that weather and gas demand with less supply than it had. 25,000 homes <span class="chip a">assumed participation</span>; numbers <span class="chip d">derived</span> from the model, BoreaFlux re-planned on archived forecasts.</p>
+  <div class="tiles">
+    <div class="tile">
+      <h3>Near-miss</h3>
+      <div class="sub">11.5 MMcf/day less supply: the most 25,000 homes can cover while holding the full reserve</div>
+      <div class="row"><span class="who none">No program</span><span><span class="big red">−7</span> <span class="det">lowest pressure · 3 h below the line · 0.66 MMcf curtailed</span></span></div>
+      <div class="row"><span class="who bf">BoreaFlux</span><span><span class="big green">+10</span> <span class="det">lowest pressure · 0 h below · nothing curtailed</span></span></div>
+      <div class="verdict ok">Above the curtailment line for the whole cold snap. Cost: about 4.8°F cooler across 22 setback hours (105 °F·h per home); no home below 62°F.</div>
+    </div>
+    <div class="tile">
+      <h3>Stress</h3>
+      <div class="sub">15 MMcf/day less supply <span class="chip a">assumed case</span></div>
+      <div class="row"><span class="who none">No program</span><span><span class="big red">−31</span> <span class="det">lowest · 17 h below the line · 2.99 MMcf curtailed</span></span></div>
+      <div class="row"><span class="who bf">BoreaFlux</span><span><span class="big amber">−16</span> <span class="det">lowest · 7 h below · 1.57 MMcf curtailed</span></span></div>
+      <div class="verdict part">Curtailment not removed, but about half the gas cut and 10 fewer hours below the line. Cost: 269 °F·h per home.</div>
+    </div>
+  </div>
+
+  <h2>Why trust the numbers</h2>
+  <table>
+    <tr><th>Check</th><th>Published</th><th>Ours</th><th>Result</th></tr>
+    <tr><td>Saving kept after snapback, ConEd-like conditions</td><td class="n">48%<sup><a href="https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B7FA119BD-B04D-4378-95A3-BB26697815AC%7D">6</a></sup></td><td class="n">46.5%</td><td class="pass">Pass (38–58%)</td></tr>
+    <tr><td>Gas per home on a −20°F day</td><td class="n">~1.0 Mcf<sup><a href="https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/">8</a></sup></td><td class="n">1.04 Mcf</td><td class="pass">Consistent</td></tr>
+    <tr><td>Archived forecast error (RMSE), 12 h / 72 h ahead</td><td class="n">—</td><td class="n">2.7 / 4.7°F</td><td>Why we plan colder</td></tr>
+  </table>
+  <p class="note">Each home's heat loss is calibrated from Enstar's 149 Mcf average home<sup><a href="https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/">8</a></sup>, 30 years of Anchorage airport weather<sup><a href="https://www.rcc-acis.org/docs_webservices.html">9</a></sup> and Alaska's gas energy content<sup><a href="https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm">10</a></sup>. Every number on screen carries a sourced, derived or assumed label.</p>
+
+  <div class="callout note"><b style="color:var(--navy-ink)">What it doesn't do.</b> It doesn't close the seasonal 3 Bcf gap or control real thermostats today, and the 0.75σ forecast buffer was tuned on the Feb 2024 replay. It helps on the evenings when pressure decides who gets cut.</div>
+
+</div>
+</div>
+
+<div class="sources">
+  <h2>Sources (every link opened and checked, Oct 3–4, 2026)</h2>
+  <ol>
+    <li>Anchorage Daily News, Enstar testimony to the House Energy Committee, Feb 6, 2024. <a href="https://www.adn.com/business-economy/energy/2024/02/06/enstar-tells-lawmakers-gas-storage-was-extremely-close-to-being-depleted-during-recent-anchorage-cold-snap/">adn.com/business-economy/energy/2024/02/06/enstar-tells-lawmakers-gas-storage-was-extremely-close-to-being-depleted-during-recent-anchorage-cold-snap/</a></li>
+    <li>Alaska Beacon, Jul 28, 2026 (ADN reprint Jul 29). <a href="https://www.adn.com/business-economy/energy/2026/07/29/as-winter-approaches-southcentral-alaska-utilities-are-worried-about-running-short-of-gas/">adn.com/business-economy/energy/2026/07/29/as-winter-approaches-southcentral-alaska-utilities-are-worried-about-running-short-of-gas/</a></li>
+    <li>ENSTAR tariff §1220, Interruption Program, eff. Sep 27, 2023. <a href="https://enstarnaturalgas.com/wp-content/uploads/2023/10/Binder-1200.pdf">enstarnaturalgas.com/wp-content/uploads/2023/10/Binder-1200.pdf</a></li>
+    <li>ADN editorial board, Aug 8, 2026. <a href="https://www.adn.com/opinions/editorials/2026/08/08/editorial-the-winter-nobody-wants-to-imagine/">adn.com/opinions/editorials/2026/08/08/editorial-the-winter-nobody-wants-to-imagine/</a></li>
+    <li>RI Division of Public Utilities and Carriers, Aquidneck Island investigation, Oct 30, 2019. <a href="https://ripuc.ri.gov/sites/g/files/xkgbur841/files/eventsactions/AI_Report.pdf">ripuc.ri.gov/sites/g/files/xkgbur841/files/eventsactions/AI_Report.pdf</a></li>
+    <li>Con Edison, Gas Demand Response pilot report 2019/2020 (NY PSC 17-G-0606). <a href="https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B7FA119BD-B04D-4378-95A3-BB26697815AC%7D">documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId={7FA119BD-B04D-4378-95A3-BB26697815AC}</a></li>
+    <li>Iowa Environmental Mesonet, MOS archive (NBS/NBE, PANC). <a href="https://mesonet.agron.iastate.edu/api/1/docs">mesonet.agron.iastate.edu/api/1/docs</a></li>
+    <li>ADN, Energy Watch drill results, Nov 6, 2012. <a href="https://www.adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/">adn.com/energy/article/results-are-latest-southcentral-alaska-energy-watch-drill/2012/11/06/</a></li>
+    <li>ACIS, Anchorage airport daily data 1996–2025. <a href="https://www.rcc-acis.org/docs_webservices.html">rcc-acis.org/docs_webservices.html</a></li>
+    <li>U.S. EIA, heat content of delivered gas, Alaska, 2025. <a href="https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm">eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm</a></li>
+  </ol>
+</div>
+<div class="foot"><span>BoreaFlux · MHacks 2026 · a simulation; pressure is modeled</span><span>Numbers labeled <span class="chip s">sourced</span> <span class="chip d">derived</span> <span class="chip a">assumed</span></span></div>
+
+</body>
+</html>

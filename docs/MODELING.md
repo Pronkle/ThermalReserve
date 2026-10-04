@@ -361,7 +361,7 @@ curtailed, businesses first". The old gas charts and KPIs live in the collapsed 
 | Preset | Lost vs Feb 2024 | No program | Optimized | Story |
 | --- | --- | --- | --- | --- |
 | Near-miss | 11.5 MMcf/day (largest loss at which 25,000 homes hold the full reserve) | min −6.9 at hour 69, 3 h below, 0.66 MMcf curtailed | observed weather: min +10.4, 0 h below, 75 °F·h/home; re-planned on forecasts (default): min 10.2, 105 °F·h/home, 16 re-plans | Nobody gets cut off |
-| Stress | 28.5 MMcf/day (the 2024 storage-well failure) | 40.15 MMcf curtailed | 34.43 MMcf curtailed (Staggered 36.08), 402 °F·h/home | Fewer customers cut, not none |
+| Stress | 15 MMcf/day (assumed case; H1, Oct 4 07:30, was 28.5) | min −31.4, 17 h below, 2.99 MMcf curtailed | re-planned on forecasts (default): min −16.4, 7 h below, 1.57 MMcf curtailed, 269 °F·h/home; observed weather: 1.31 MMcf | Fewer customers cut, not none |
 
 The deliverability slider's tick marks come from `data/deliverability_ticks.json`: 0 (Feb 2024 as it happened),
 11.5 (Near-miss), 20 (needle-peak contract), 28.5 (2024 storage-well failure). On `/home`, a line under the live card
