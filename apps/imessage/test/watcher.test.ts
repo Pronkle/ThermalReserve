@@ -79,6 +79,11 @@ describe('detect', () => {
     expect(kinds.filter(k => k === 'setback_start')).toHaveLength(1);
   });
 
+  it('a restart with stale saved state after the event sends nothing (no repeated summary)', () => {
+    const stale = { ...initialState(home(), sim(50), consts), runKey: 'old-format|key|plan' };
+    expect(detect(stale, home({ savedCf: 70 }), sim(96), consts).transitions).toEqual([]);
+  });
+
   it('a reset (sim hour going back) starts a fresh run', () => {
     const first = run([[12, { targetF: 66 }], [86, {}]]);
     const second = run([[1, {}], [12, { targetF: 66 }]], first.state);

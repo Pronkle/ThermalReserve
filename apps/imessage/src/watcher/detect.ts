@@ -50,9 +50,10 @@ export function detect(
   consts: ChatConstants,
 ): { next: NotifiedState; transitions: Transition[] } {
   // A load or reset starts a new run: forget the old run's state (the contact stays linked).
+  // Start from what is true now, silently: a restart, a format change or a late join never
+  // replays changes that already happened (a reset or load lands at hour 0 anyway).
   if (!prev || prev.runKey !== runKey(sim) || sim.simHour < prev.lastSimHour - 0.01) {
-    if (!prev) return { next: initialState(h, sim, consts), transitions: [] };
-    prev = { ...initialState(h, { ...sim, simHour: 0 }, consts), lastSimHour: sim.simHour };
+    return { next: initialState(h, sim, consts), transitions: [] };
   }
   const normalF = consts.setpointDayF;
   const mode = heatMode(h, normalF);
