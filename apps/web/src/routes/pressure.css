@@ -200,3 +200,14 @@
 .pressure-console-shell .console-logo-box .console-logo { display: block; max-width: 100%; height: 46px; width: auto; object-fit: contain; object-position: left center; border-radius: 0; }
 .pressure-console-shell .console-brand-row .join-qr-button { align-self: stretch; }
 .pressure-console-shell .console-logo-box { padding: 4px 12px; } .pressure-console-shell .console-logo-box .console-logo { height: 42px; }
+/* H2 round 3: logo centred and filling the box width (equal margins all round; the box grows taller, not wider), and
+   each control group in its own box. */
+.pressure-console-shell .console-logo-box { display: flex; align-items: center; justify-content: center; padding: 9px 12px; }
+.pressure-console-shell .console-logo-box .console-logo { width: 100%; height: auto; max-width: 100%; object-position: center; }
+.pressure-console-shell .pressure-controls { background: transparent; border: 0; padding: 0; gap: 6px; }
+.pressure-console-shell .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px 8px; gap: 4px; }
+.pressure-console-shell .secondary-actions { padding: 0 2px; }
+.pressure-console-shell .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pressure-console-shell .group-head .secondary-actions { padding: 0; gap: 4px; }
+.pressure-console-shell .group-head .secondary-actions button { min-height: 22px; padding: 1px 7px; font-size: 11.5px; }
+.pressure-console-shell .pressure-side { gap: 4px; } .pressure-console-shell .pressure-controls { gap: 5px; } .pressure-console-shell .control-group { padding: 5px 10px 6px; }
