@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { anchorageSanity, buildCohorts, loadConstants, validateConEdLike, validateSoCalLike, type CohortSpec, type ConstantsJson } from '@thermal-reserve/model';
+import forecastError from '../../../../data/forecast_error.json';
 import raw from '../../../../data/constants.json';
 import specJson from '../../../../data/cohort_spec.json';
 import './public.css';
@@ -90,6 +91,12 @@ export function Validation() {
       <p>Steady-state expectation from the calibrated heat-loss rate: UA × 90°F × 24 h ÷ (efficiency × heat content) = {two.format(sanityExpected)} Mcf/day <span className="metric-label">derived</span>. Heat content {whole.format(constants.hhvBtuPerCf)} BTU/cf <span className="metric-label">{lbl('hhv_btu_per_cf')}</span>. Conditions: outdoor −20°F, thermostat 70°F, no setback.</p>
     </Card>
 
+    <h2 className="public-h2">Archived forecast error</h2>
+    <p className="public-note">{forecastError.scope}</p>
+    <div className="table-scroll"><table className="param-table"><thead><tr><th scope="col">Replay</th><th scope="col">Lead, h</th><th scope="col">Mean error, °F</th><th scope="col">RMSE, °F</th><th scope="col">Samples</th></tr></thead>
+      <tbody>{Object.entries(forecastError.scenarios).flatMap(([id, scenario]) => scenario.byLead.map(row => <tr key={`${id}-${row.leadH}`} title={`${forecastError.label}: ${forecastError.source}`}><th scope="row">{id}</th><td>{row.leadH}</td><td>{row.meanErrorF === null ? 'No samples' : two.format(row.meanErrorF)}</td><td>{row.rmseF === null ? 'No samples' : two.format(row.rmseF)}</td><td>{row.n}</td></tr>))}</tbody></table></div>
+    <p className="public-note">{forecastError.method} <span className="metric-label">{forecastError.label}</span></p>
+    <p className="public-note">{forecastError.source}</p>
     <h2 className="public-h2">Model parameters</h2>
     <p className="public-note">Tuned values were the only ones adjusted to meet the checks above, and only inside the listed ranges. Everything here comes from <code>data/cohort_spec.json</code> and <code>data/constants.json</code>; cohort shares and settings are assumed unless labeled.</p>
     <div className="table-scroll">

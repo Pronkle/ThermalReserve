@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { pressureParams, runPlan, curtailedSeriesMMcf, type FleetConfig, type Plan, type Strategy } from '@thermal-reserve/model';
+import { pressureParams, runPlan, curtailedSeriesMMcf, type FleetConfig, type Plan, type Strategy, type ScenarioWithForecasts, type ReplanResult } from '@thermal-reserve/model';
 import { buildOpsData, clockLabel, cohorts, constants, defaultConfig, integer, scenarios, temperature } from '../lib/ops';
 import { deliveryTicks, livePressure, presets, pressureInputKey, pressurePlanId, pressureView, type PressureInputs, type Preset } from '../lib/pressure-ui';
 import { useAggregates, useConnection, useEventLog, useReducers, useSampleHomes, useSimConfig } from '../lib/stdb';
 import { dispatchPlan, dispatchPreview, loadPressurePreset } from '../lib/operator';
-import { launchSolve } from '../lib/solver';
+import { boundarySpeed, segmentSchedules, forecastChartRows, replanMessage } from '../lib/replan-ui';
+import { launchSolve, launchReplan } from '../lib/solver';
 import { PressureChart } from '../components/PressureChart';
 import { TemperatureChart } from '../components/TemperatureChart';
 import { DiscomfortChart } from '../components/DiscomfortChart';
@@ -27,7 +28,7 @@ export function PressureOps() {
   const events = useEventLog(12);
   const [scenario, setScenario] = useState(firstScenario);
   const [config, setConfig] = useState<FleetConfig>(() => ({ ...defaultConfig(firstScenario), enrolledHomes: firstPreset.enrolledHomes }));
-  const [input, setInput] = useState<PressureInputs>(() => ({ lostMMcfd: firstPreset.lostMMcfd, reserveIdx: firstPreset.reserveIdx, bufferSigma: 0, planningMode: 'OBSERVED', strategy: 'OPTIMIZED' }));
+  const [input, setInput] = useState<PressureInputs>(() => ({ lostMMcfd: firstPreset.lostMMcfd, reserveIdx: firstPreset.reserveIdx, bufferSigma: numberConstant('forecast_buffer_sigma_default'), planningMode: (firstScenario as ScenarioWithForecasts).forecastRuns?.length ? 'REPLAN' : 'OBSERVED', strategy: 'OPTIMIZED' }));
   const [speed, setSpeed] = useState(2);
   const [hour, setHour] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -35,8 +36,14 @@ export function PressureOps() {
   const [error, setError] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [cache, setCache] = useState(() => new Map<string, Plan>());
+  const [replans, setReplans] = useState(() => new Map<string, ReplanResult>());
+  const [dispatchRevision, setDispatchRevision] = useState(0);
+  const [replanLog, setReplanLog] = useState<string[]>([]);
+  const dispatching = useRef(false);
+  const lastDispatch = useRef('');
+  const autoFailure = useRef(false);
   const [gasOpen, setGasOpen] = useState(false);
-  const pending = useRef<ReturnType<typeof launchSolve> | undefined>(undefined);
+  const pending = useRef<ReturnType<typeof launchSolve> | ReturnType<typeof launchReplan> | undefined>(undefined);
   const generation = useRef(0);
   const connected = live.status === 'connected';
   const p = useMemo(() => pressureParams(constants, constants.raw, input.lostMMcfd, input.reserveIdx), [input.lostMMcfd, input.reserveIdx]);
@@ -50,13 +57,22 @@ export function PressureOps() {
     for (const [cohortId, h, target] of JSON.parse(remoteTargets) as number[][]) if (targetsF[cohortId]) targetsF[cohortId][h] = target;
     return { id: sim.planId, strategy: input.strategy, targetsF };
   }, [remoteTargets, sim?.planId, sim?.scenarioId, key, scenario, input.strategy]);
+  const replan = replans.get(key);
+  const schedules = useMemo(() => segmentSchedules(scenario, key, replan?.segments ?? []), [scenario, key, replan]);
+  const forecastRows = useMemo(() => forecastChartRows(scenario, replan?.segments ?? []), [scenario, replan]);
+  const hasForecast = Boolean((scenario as ScenarioWithForecasts).forecastRuns?.length);
   const selectedPlan = cache.get(key) ?? remote;
+  const dispatchablePlan = schedules[0]?.plan ?? selectedPlan;
+  const activeSegment = schedules.filter(item => item.segment.fromHour <= hour).at(-1)?.segment;
+  const peakHour = scenario.systemMMcfh.indexOf(Math.max(...scenario.systemMMcfh));
+  const peakBufferF = activeSegment ? input.bufferSigma * activeSegment.sigmaF[peakHour] : undefined;
+  const planningBasis = input.planningMode === 'OBSERVED' ? 'Plan uses observed weather' : activeSegment?.runIso ? `Forecast issued ${new Date(activeSegment.runIso).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${input.bufferSigma}σ buffer` : 'Forecast plan not solved';
   const needsSolve = (input.strategy === 'OPTIMIZED' || input.strategy === 'MAX_RELIEF') && !selectedPlan;
   const selectedRun = useMemo(() => selectedPlan ? runPlan(scenario, cohorts, cfg, selectedPlan, constants) : needsSolve ? undefined : data.runs[input.strategy as 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER'], [selectedPlan, needsSolve, scenario, cfg, input.strategy, data]);
   const views = useMemo(() => ({ baseline: pressureView(data.runs.BASELINE, data.runs.BASELINE, cfg, p), naive: pressureView(data.runs.NAIVE_4H, data.runs.BASELINE, cfg, p), staggered: pressureView(data.runs.SUSTAIN_STAGGER, data.runs.BASELINE, cfg, p), active: selectedRun ? pressureView(selectedRun, data.runs.BASELINE, cfg, p) : undefined }), [data, cfg, p, selectedRun]);
   const liveIndex = useMemo(() => sim?.scenarioId === scenario.id ? livePressure(new Map(aggregates.map(row => [row.hour, row.systemMmcf])), scenario.hours, { ...p, rMMcfd: sim.capacityMmcfd }) : [], [aggregates, sim?.scenarioId, sim?.capacityMmcfd, scenario, p]);
   const liveCurtailed = curtailedSeriesMMcf(liveIndex, p);
-  const pressureRows = [{ hour: 0, baseline: 100, naive: 100, staggered: 100, active: selectedRun ? 100 : undefined, live: aggregates.length ? 100 : undefined }, ...Array.from({ length: scenario.hours }, (_, h) => ({ hour: h + 1, baseline: views.baseline.index[h], naive: views.naive.index[h], staggered: views.staggered.index[h], active: views.active?.index[h], live: liveIndex[h], curtailed: { baseline: views.baseline.curtailed[h], naive: views.naive.curtailed[h], staggered: views.staggered.curtailed[h], active: views.active?.curtailed[h], live: liveCurtailed[h] } }))];
+  const pressureRows = [{ hour: 0, baseline: 100, naive: 100, staggered: 100, active: selectedRun ? 100 : undefined, live: aggregates.length ? 100 : undefined }, ...Array.from({ length: scenario.hours }, (_, h) => ({ hour: h + 1, baseline: views.baseline.index[h], naive: views.naive.index[h], staggered: views.staggered.index[h], active: views.active?.index[h], live: liveIndex[h], planned: replan ? forecastRows[h]?.expected : undefined, curtailed: { baseline: views.baseline.curtailed[h], naive: views.naive.curtailed[h], staggered: views.staggered.curtailed[h], active: views.active?.curtailed[h], live: liveCurtailed[h] } }))];
   const discomfortRows = Array.from({ length: scenario.hours }, (_, h) => ({ hour: h, active: views.active?.discomfort.meanF[h], worst: views.active?.discomfort.worstF[h], naive: views.naive.discomfort.meanF[h], staggered: views.staggered.discomfort.meanF[h] }));
   const cursor = Math.max(0, Math.min(scenario.hours - 1, Math.floor(hour)));
   const mapRun = selectedRun ?? data.runs.BASELINE;
@@ -65,7 +81,7 @@ export function PressureOps() {
     generation.current++; pending.current?.cancel(); setSolving(false);
     return () => { generation.current++; pending.current?.cancel(); };
   }, [key]);
-  useEffect(() => { if (sim) { setHour(sim.simHour); setSpeed(sim.speedHoursPerSec); } }, [sim?.simHour, sim?.speedHoursPerSec]);
+  useEffect(() => { if (sim) { setHour(sim.simHour); if (!replan) setSpeed(sim.speedHoursPerSec); } }, [sim?.simHour, sim?.speedHoursPerSec, replan]);
   const remoteConfig = sim ? JSON.stringify([sim.scenarioId, sim.enrolledHomes, sim.exemptShare, sim.floorF, sim.maxDepthF, sim.overrideRate, sim.capacityMmcfd]) : '';
   useEffect(() => {
     if (!sim) return;
@@ -87,6 +103,35 @@ export function PressureOps() {
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
     finally { setBusy(false); }
   }
+  useEffect(() => {
+    if (!reducers || !connected || busy || dispatching.current || autoFailure.current || sim?.status !== 'running' || sim.operator?.toHexString() !== live.identity || !schedules.length) return;
+    const current = schedules.findIndex(item => item.plan.id === sim.planId);
+    if (current < 0) return;
+    const next = schedules[current + 1];
+    if (!next) return;
+    const gap = next.segment.fromHour - sim.simHour;
+    if (gap > 0) {
+      // The server advances one batch each second. Shorten that batch to land on
+      // a boundary rather than simulating its first hour with the previous plan.
+      const pacedSpeed = boundarySpeed(speed, sim.simHour, next.segment.fromHour);
+      if (sim.speedHoursPerSec === pacedSpeed) return;
+      dispatching.current = true;
+      void reducers.setParams({ configJson: JSON.stringify({ speedHoursPerSec: pacedSpeed }) }).catch(failure => { autoFailure.current = true; setError(String(failure)); }).finally(() => { dispatching.current = false; setDispatchRevision(value => value + 1); });
+      return;
+    }
+    if (lastDispatch.current === next.plan.id) return;
+    dispatching.current = true;
+    setBusy(true);
+    void (async () => {
+      await reducers.pause({});
+      await dispatchPlan(reducers, next.plan);
+      lastDispatch.current = next.plan.id;
+      setReplanLog(previous => [replanMessage(scenario, next.segment), ...previous].slice(0, 12));
+      const following = schedules[current + 2];
+      await reducers.setParams({ configJson: JSON.stringify({ speedHoursPerSec: following ? boundarySpeed(speed, sim.simHour, following.segment.fromHour) : speed }) });
+      await reducers.start({});
+    })().catch(failure => { autoFailure.current = true; setError(failure instanceof Error ? failure.message : String(failure)); }).finally(() => { dispatching.current = false; setBusy(false); setDispatchRevision(value => value + 1); });
+  }, [sim?.simHour, sim?.planId, sim?.status, sim?.speedHoursPerSec, schedules, reducers, connected, busy, live.identity, scenario, speed, dispatchRevision]);
   async function solveFor(sc = scenario, nextCfg = cfg, nextInput = input) {
     const attempt = ++generation.current;
     pending.current?.cancel(); setSolving(true); setError(''); setElapsed(0);
@@ -96,21 +141,24 @@ export function PressureOps() {
     const actualCfg = { ...nextCfg, capacityMMcfd: nextPressure.rMMcfd };
     const nextKey = pressureInputKey(sc.id, actualCfg, nextInput);
     try {
-      pending.current = launchSolve({ sc, cohorts, cfg: actualCfg, mode: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', consts: constants, opts: { pressure: nextPressure } });
+      const forecastSolve = nextInput.planningMode !== 'OBSERVED';
+      pending.current = forecastSolve ? launchReplan({ sc, cohorts, cfg: actualCfg, consts: constants, p: nextPressure, opts: { mode: nextInput.planningMode, bufferSigma: nextInput.bufferSigma, strategy: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: numberConstant('drift_temp_f'), driftHours: numberConstant('drift_hours'), driftPressureIdx: numberConstant('drift_pressure_idx'), driftFadeH: numberConstant('drift_fade_h') } } }) : launchSolve({ sc, cohorts, cfg: actualCfg, mode: nextInput.strategy === 'MAX_RELIEF' ? 'MAX_RELIEF' : 'OPTIMIZED', consts: constants, opts: { pressure: nextPressure } });
       const solved = await pending.current.result;
       if (attempt !== generation.current) return;
-      const plan = { ...solved, id: pressurePlanId(sc.id, nextInput.strategy, 0, nextKey) };
+      const result = 'segments' in solved ? solved : undefined;
+      if (result) setReplans(previous => { const next = new Map(previous).set(nextKey, result); while (next.size > 10) next.delete(next.keys().next().value!); return next; });
+      const plan = { ...(result ? result.plan : solved as Plan), id: pressurePlanId(sc.id, nextInput.strategy, 0, nextKey) };
       setCache(previous => { const next = new Map(previous); next.set(nextKey, plan); while (next.size > 10) next.delete(next.keys().next().value!); return next; });
       setElapsed(performance.now() - start);
-      return plan;
+      return result ? segmentSchedules(sc, nextKey, result.segments)[0]?.plan ?? plan : plan;
     } catch (failure) { if (attempt === generation.current) setError(failure instanceof Error ? failure.message : String(failure)); }
     finally { clearInterval(timer); if (attempt === generation.current) setSolving(false); }
   }
   async function preset(value: Preset, resetHouseholds = false) {
     const sc = scenarios.find(item => item.id === value.scenarioId)!;
-    const nextInput: PressureInputs = { ...input, lostMMcfd: value.lostMMcfd, reserveIdx: value.reserveIdx, strategy: 'OPTIMIZED', planningMode: 'OBSERVED' };
+    const nextInput: PressureInputs = { ...input, lostMMcfd: value.lostMMcfd, reserveIdx: value.reserveIdx, strategy: 'OPTIMIZED', bufferSigma: numberConstant('forecast_buffer_sigma_default'), planningMode: (sc as ScenarioWithForecasts).forecastRuns?.length ? 'REPLAN' : 'OBSERVED' };
     const nextCfg = { ...defaultConfig(sc), enrolledHomes: value.enrolledHomes, capacityMMcfd: pressureParams(constants, constants.raw, value.lostMMcfd, value.reserveIdx).rMMcfd };
-    setScenario(sc); setConfig(nextCfg); setInput(nextInput); setSpeed(2); setHour(0);
+    autoFailure.current = false; lastDispatch.current = ''; setReplanLog([]); setScenario(sc); setConfig(nextCfg); setInput(nextInput); setSpeed(2); setHour(0);
     // Let React install the new solve key before starting this preset's solve.
     await new Promise<void>(resolve => setTimeout(resolve, 0));
     const plan = await solveFor(sc, nextCfg, nextInput);
@@ -126,16 +174,16 @@ export function PressureOps() {
   function param(field: keyof FleetConfig, value: number) { setConfig(previous => ({ ...previous, [field]: value })); }
   const noLiveInputs = !connected && live.status !== 'unconfigured';
   return <>
-    <div className="ops-heading pressure-heading"><div><p className="eyebrow">{connected ? `Live · ${live.database}` : 'Local model preview'}</p><h1>Operator console</h1></div><div className="clock-status"><strong>{clockLabel(scenario, hour)}</strong><span>{scenario.name} · {input.lostMMcfd.toFixed(1)} MMcf/day less supply <span className="metric-label">assumed</span></span><span>{sim?.status ?? 'Preview paused'} · {names[input.strategy]}</span></div><JoinQr /></div>
+    <div className="ops-heading pressure-heading"><div><p className="eyebrow">{connected ? `Live · ${live.database}` : 'Local model preview'}</p><h1>Operator console</h1></div><div className="clock-status"><strong>{clockLabel(scenario, hour)}</strong><span>{scenario.name} · {input.lostMMcfd.toFixed(1)} MMcf/day less supply <span className="metric-label">· assumed</span></span><span>{sim?.status ?? 'Preview paused'} · {names[input.strategy]}</span></div><JoinQr /></div>
     <StatusSentence summary={views.active?.summary} reserve={input.reserveIdx} />
     {live.status === 'disconnected' && <p className="connection-banner" role="status">Disconnected — retrying</p>}
     {selectedPlan?.note && <p className="fallback-banner" role="status">Rule-based fallback in use · Staggered</p>}
     {error && <p className="connection-banner" role="alert">{error}</p>}
-    <VerdictStrip summary={views.active?.summary} baseline={views.baseline.summary} degreeHours={views.active?.degreeHours} reserve={input.reserveIdx} />
+    <VerdictStrip summary={views.active?.summary} baseline={views.baseline.summary} degreeHours={views.active?.degreeHours} reserve={input.reserveIdx} planningBasis={planningBasis} />
     <div className="pressure-grid"><div className="pressure-charts">
-      <PressureChart rows={pressureRows} scenario={scenario} reserve={input.reserveIdx} summary={views.active?.summary} baseline={views.baseline.summary} caption={views.active ? `${names[input.strategy]}: lowest modeled pressure ${integer.format(views.active.summary.minIndex)} index points; ${views.active.summary.curtailedMMcf.toFixed(1)} MMcf curtailed. Derived from the full cold snap.` : 'Plan results stay blank until solved for these inputs.'} />
-      <TemperatureChart scenario={scenario} />
-      <DiscomfortChart rows={discomfortRows} scenario={scenario} maxDepthF={cfg.maxDepthF} degreeHours={views.active?.degreeHours} minIndoorF={views.active?.minIndoorF} />
+      <PressureChart selectedName={names[input.strategy]} rows={pressureRows} scenario={scenario} reserve={input.reserveIdx} summary={views.active?.summary} baseline={views.baseline.summary} caption={views.active ? `${names[input.strategy]}: lowest modeled pressure ${integer.format(views.active.summary.minIndex)} index points; ${views.active.summary.curtailedMMcf.toFixed(1)} MMcf curtailed. Derived from the full cold snap.` : 'Plan results stay blank until solved for these inputs.'} />
+      <TemperatureChart scenario={scenario} rows={forecastRows} segments={replan?.segments} />
+      <DiscomfortChart rows={discomfortRows} scenario={scenario} maxDepthF={cfg.maxDepthF} degreeHours={views.active?.degreeHours} minIndoorF={views.active?.minIndoorF} holdingHours={views.active?.holdingHours} />
     </div><aside className="pressure-side">
       <section className="panel pressure-map"><div className="panel-heading"><h2>Anchorage fleet</h2><span className="metric-label">assumed participation</span></div><div className="map-frame"><MapPreview homes={mapHomes} run={mapRun} hour={cursor} /></div><div className="map-legend"><span><i className="dot normal" />Normal</span><span><i className="dot holding" />Holding</span><span><i className="dot recovering" />Recovering</span><span><i className="dot overridden" />Override</span><span><i className="dot exempt" />Exempt</span><span><i className="dot household" />Household</span></div><p className="map-caption">Each dot ≈ {integer.format(cfg.enrolledHomes / data.homes.length)} homes · assumed</p></section>
       <section className="panel pressure-controls"><h2>{connected ? 'Operator controls' : 'Preview controls'}</h2><PresetBar busy={busy || solving || noLiveInputs} onPreset={value => void preset(value)} /><div className="controls-grid">
@@ -147,17 +195,19 @@ export function PressureOps() {
         <label title={`${constants.raw.max_depth_default_f.label}: ${constants.raw.max_depth_default_f.source}`}>Max setback<output>{cfg.maxDepthF}°F</output><input aria-label="Max setback" type="range" min={2} max={10} step={1} value={cfg.maxDepthF} onChange={event => param('maxDepthF', Number(event.target.value))} /></label>
         <label title={`${constants.raw.floor_default_f.label}: ${constants.raw.floor_default_f.source}`}>Comfort floor<output>{cfg.floorF}°F</output><input aria-label="Comfort floor" type="range" min={constants.floorMinF} max={66} step={1} value={cfg.floorF} onChange={event => param('floorF', Number(event.target.value))} /></label>
         <label>Speed<output>{speed} h/s</output><input aria-label="Speed" type="range" min={0.5} max={4} step={0.5} value={speed} onChange={event => setSpeed(Number(event.target.value))} /></label>
+        <label className="planning-control">Planning mode<select aria-label="Planning mode" value={input.planningMode} onChange={event => setInput(previous => ({ ...previous, planningMode: event.target.value as PressureInputs['planningMode'] }))}><option value="OBSERVED">Observed weather</option><option value="SINGLE" disabled={!hasForecast}>One forecast</option><option value="REPLAN" disabled={!hasForecast}>Forecast + re-plans</option></select></label>
+        <label title="Assumed: planning temperature = forecast minus buffer times forecast spread.">Cold buffer<output title="Derived: buffer times forecast spread at the peak-demand hour.">{peakBufferF === undefined ? '—' : temperature.format(peakBufferF)}°F at peak</output><select aria-label="Cold buffer" value={input.bufferSigma} disabled={input.planningMode === 'OBSERVED'} onChange={event => setInput(previous => ({ ...previous, bufferSigma: Number(event.target.value) }))}>{Array.from({ length: 9 }, (_, i) => i / 4).map(value => <option key={value} value={value}>{value}σ</option>)}</select></label>
       </div><div className="control-actions">
         <button disabled={busy || solving || Boolean(sim && sim.simHour > 0)} onClick={() => void solveFor()}>{solving ? `Solving · ${(elapsed / 1000).toFixed(1)} s` : 'Solve plan'}</button>
-        <button disabled={!connected || busy || solving || needsSolve} onClick={() => void command(async api => { if (sim?.scenarioId !== scenario.id) await loadPressurePreset(api, scenario, cfg); await api.setParams({ configJson: JSON.stringify({ ...cfg, speedHoursPerSec: speed }) }); await (selectedPlan ? dispatchPlan(api, selectedPlan) : dispatchPreview(api, scenario, cfg, input.strategy as 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER')); })}>Dispatch</button>
-        <button disabled={!connected || busy || solving || needsSolve || (selectedPlan ? sim?.planId !== selectedPlan.id : sim?.strategy !== input.strategy)} onClick={() => void command(api => api.start({}))}>Start</button>
+        <button disabled={!connected || busy || solving || needsSolve} onClick={() => void command(async api => { if (sim?.scenarioId !== scenario.id) await loadPressurePreset(api, scenario, cfg); await api.setParams({ configJson: JSON.stringify({ ...cfg, speedHoursPerSec: speed }) }); await (dispatchablePlan ? dispatchPlan(api, dispatchablePlan) : dispatchPreview(api, scenario, cfg, input.strategy as 'BASELINE' | 'NAIVE_4H' | 'SUSTAIN_STAGGER')); })}>Dispatch</button>
+        <button disabled={!connected || busy || solving || needsSolve || (selectedPlan ? !schedules.some(item => item.plan.id === sim?.planId) && sim?.planId !== selectedPlan.id : sim?.strategy !== input.strategy)} onClick={() => { autoFailure.current = false; void command(api => api.start({})); }}>Start</button>
         <button disabled={!connected || busy} onClick={() => void command(api => api.pause({}))}>Pause</button>
         <button disabled={busy || solving || noLiveInputs} onClick={() => void preset(firstPreset, true)}>Reset demo</button>
         <button disabled={!connected || busy} onClick={() => void command(api => api.reset({}))}>Reset</button>
         <button disabled={!connected || busy} onClick={() => void command(api => api.resetHouseholds({}))}>Reset households</button>
         <button disabled={!connected || busy} onClick={() => void command(api => api.setParams({ configJson: JSON.stringify({ ...cfg, speedHoursPerSec: speed }) }))}>Apply inputs</button>
       </div><p className="solve-status" aria-live="polite">{solving ? `Solving · ${(elapsed / 1000).toFixed(1)} s` : selectedPlan ? `${names[input.strategy]} · ${((selectedPlan.solveMs ?? elapsed) / 1000).toFixed(2)} s` : needsSolve ? 'Not solved for these inputs: press Solve plan' : ''}</p><p className="control-note">{busy ? 'Sending command…' : connected ? `Connected · ${live.database} · ${sim?.operator?.toHexString() === live.identity ? 'Operator' : 'Viewer'}` : 'Local model preview'}</p></section>
-      <section className="panel log-panel"><h2>Event log</h2>{events.length ? <ol className="event-list">{events.map(event => <li key={event.id.toString()}><time>{clockLabel(scenario, event.simHour)}</time><span>{event.message}</span></li>)}</ol> : <p>No events yet. Load a preset to begin.</p>}</section>
+      <section className="panel log-panel"><h2>Event log</h2>{replanLog.length > 0 && <ol className="event-list">{replanLog.map((message, i) => <li key={i}><span>{message}</span></li>)}</ol>}{events.length ? <ol className="event-list">{events.map(event => <li key={event.id.toString()}><time>{clockLabel(scenario, event.simHour)}</time><span>{event.message}</span></li>)}</ol> : <p>No events yet. Load a preset to begin.</p>}</section>
       <details className="gas-drawer-toggle panel" onToggle={event => setGasOpen(event.currentTarget.open)}><summary>Gas details (MMcf)</summary>{gasOpen && <GasOps region="details" preview={{ scenario, config: cfg, strategy: input.strategy, plan: selectedPlan, hour: cursor }} />}</details>
     </aside></div>
   </>;
