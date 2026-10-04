@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { anchorageSanity, buildCohorts, loadConstants, validateConEdLike, validateSoCalLike, whatIf, type CohortSpec, type ConstantsJson } from '@thermal-reserve/model';
+import { anchorageSanity, buildCohorts, loadConstants, validateConEdLike, whatIf, type CohortSpec, type ConstantsJson } from '@thermal-reserve/model';
 import raw from '../../../../data/constants.json';
 import spec from '../../../../data/cohort_spec.json';
 import { WhatIf } from './WhatIf';
@@ -39,13 +39,8 @@ describe('W6 /validation', () => {
     expect(html).toContain(v.pass ? '✓ Pass' : '△ Gap');
   });
 
-  it('shows the SoCal daily result and states the gap when it is outside the band', () => {
-    const v = validateSoCalLike(cohorts, constants);
-    expect(html).toContain(`<strong>${v.dailyPct.toFixed(2)}%</strong>`);
-    if (!v.pass) {
-      expect(html).toContain('△ Gap');
-      expect(html).toContain('Gap, stated plainly.');
-    }
+  it('no longer shows the SoCalGas-like card (H2, Oct 4)', () => {
+    expect(html).not.toContain('SoCalGas');
   });
 
   it('shows the Anchorage figure and the tuned parameters from cohort_spec', () => {
