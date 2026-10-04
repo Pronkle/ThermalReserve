@@ -84,9 +84,18 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
   // an honest deterministic reply instead.
   const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 20_000, maxRetries: 1 }) : undefined;
   if (!anthropic) log('[chat] ANTHROPIC_API_KEY not set: questions get the deterministic fallback reply');
-  const call: ModelCall = params => {
+  // Haiku 4.5 list prices, for the per-call cost line ($ per million tokens).
+  const PRICE = { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 };
+  let spentUsd = 0;
+  const call: ModelCall = async params => {
     if (!anthropic) throw new Error('ANTHROPIC_API_KEY not set');
-    return anthropic.messages.create(params);
+    const response = await anthropic.messages.create(params);
+    const u = response.usage;
+    const usd = (u.input_tokens * PRICE.input + u.output_tokens * PRICE.output
+      + (u.cache_read_input_tokens ?? 0) * PRICE.cacheRead + (u.cache_creation_input_tokens ?? 0) * PRICE.cacheWrite) / 1e6;
+    spentUsd += usd;
+    log(`[usage] ${params.model}: ${u.input_tokens} in, ${u.output_tokens} out, cache read ${u.cache_read_input_tokens ?? 0} → $${usd.toFixed(4)} (session $${spentUsd.toFixed(4)})`);
+    return response;
   };
   const converseSafely = async (address: string, identity: string, text: string) => {
     try {
