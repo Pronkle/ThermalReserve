@@ -40,6 +40,15 @@ Other settings, all optional:
 | `CHAT_OPERATOR_PASSCODE` | unset | The database's operator passcode, used only for `claim_contact_reader` (`.env` only) |
 | `PHOTON_PROJECT_ID` | from `.env` | Photon dashboard project id for the CLI (not a secret) |
 
+### Demo day (judging)
+
+```sh
+cd apps/imessage
+STDB_DB=thermal-reserve CHAT_DEMO=1 CHAT_ONBOARD=1 CHAT_HELLO_TO=<demo phone, E.164> npm start
+```
+
+`thermal-reserve` is the judged database until H1 says otherwise (STDB msg 294); fail over with `STDB_DB=thermal-reserve-backup` after the operator presses Reset demo there. `.env` must hold `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `ANTHROPIC_API_KEY`, `PHOTON_PROJECT_ID` and that database's `CHAT_OPERATOR_PASSCODE` (from H1, never in the repo), and `photon login` must be current (7-day token). Start it within 5 minutes of the iMessage demo step (Photon routing window), keep the laptop awake and online, and open the agent screen at http://127.0.0.1:8787/.
+
 During judging the process runs on a team laptop (H1-approved exception to "no laptop process"). If it stops, the website is unaffected; texts just stop.
 
 ## How linking works (design A, inbound-first)
