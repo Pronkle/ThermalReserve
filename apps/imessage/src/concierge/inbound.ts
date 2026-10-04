@@ -33,8 +33,8 @@ export interface InboundDeps {
   sim: () => SimView | undefined;
   now?: () => number;
   log?: (line: string) => void;
-  // Phase 2 hook: data questions from a linked contact. Returns the reply bubbles.
-  answerQuestion?: (address: string, question: string) => Promise<string[]>;
+  // Everything that isn't a control word goes to the concierge agent. Returns the reply bubbles.
+  converse?: (address: string, identity: string, text: string) => Promise<string[]>;
 }
 
 export interface InboundReply { react?: 'like' | 'love'; texts: string[]; }
@@ -105,7 +105,7 @@ export async function handleInbound(deps: InboundDeps, address: string, text: st
       store.setPreference(address, { notifyLevel: 'all' });
       return reply(['Got it, I\'ll text you each time your heat changes.']);
     default:
-      if (deps.answerQuestion) return reply(await deps.answerQuestion(address, text));
+      if (deps.converse) return reply(await deps.converse(address, contact.identity, text));
       return reply(['Thanks. I can\'t answer questions yet in this demo; I\'ll keep you posted when your heat changes. STOP ends updates.']);
   }
 }

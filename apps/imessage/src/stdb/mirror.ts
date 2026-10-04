@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DbConnection } from '@thermal-reserve/stdb-bindings';
 import type { ChatConfig } from '../config';
-import type { HouseholdView, SimView } from '../types';
+import type { AggregateHourView, HouseholdView, SimView, WeatherHourView, World } from '../types';
 
 type Conn = InstanceType<typeof DbConnection>;
 type HouseholdRow = Conn['db']['household'] extends { iter(): IterableIterator<infer R> } ? R : never;
@@ -19,6 +19,7 @@ export const toHousehold = (r: HouseholdRow): HouseholdView => ({
   overridden: r.overridden,
   exempt: r.exempt,
   savedCf: r.savedCf,
+  cohortId: r.cohortId,
 });
 
 export const toSim = (r: SimRow): SimView => ({
@@ -31,6 +32,12 @@ export const toSim = (r: SimRow): SimView => ({
   eventStartHour: r.eventStartHour,
   eventEndHour: r.eventEndHour,
   startIso: r.startIso,
+  capacityMMcfd: r.capacityMmcfd,
+  maxDepthF: r.maxDepthF,
+  floorF: r.floorF,
+  enrolledHomes: r.enrolledHomes,
+  exemptShare: r.exemptShare,
+  overrideRate: r.overrideRate,
 });
 
 export interface MirrorEvents {
@@ -40,7 +47,7 @@ export interface MirrorEvents {
   log?: (line: string) => void;
 }
 
-export class Mirror {
+export class Mirror implements World {
   private conn: Conn | undefined;
   private ready = false;
   private stopped = false;
@@ -74,6 +81,29 @@ export class Mirror {
     return this.households().find(h => h.identity === identity);
   }
 
+  weather(): WeatherHourView[] {
+    if (!this.conn) return [];
+    return [...this.conn.db.weatherHour.iter()]
+      .map(r => ({ hour: r.hour, outdoorF: r.outdoorF, systemMMcfh: r.systemMmcfh }))
+      .sort((a, b) => a.hour - b.hour);
+  }
+
+  planTargetF(cohortId: number, hour: number): number | undefined {
+    if (!this.conn) return undefined;
+    const planId = this.sim()?.planId;
+    for (const r of this.conn.db.planHour.iter()) {
+      if (r.cohortId === cohortId && r.hour === hour && r.planId === planId) return Number.isFinite(r.targetF) ? r.targetF : undefined;
+    }
+    return undefined;
+  }
+
+  aggregates(): AggregateHourView[] {
+    if (!this.conn) return [];
+    return [...this.conn.db.aggregateHour.iter()]
+      .map(r => ({ hour: r.hour, fleetGasMMcf: r.fleetGasMmcf, baselineGasMMcf: r.baselineGasMmcf, systemMMcf: r.systemMmcf, capacityMMcf: r.capacityMmcf, reliefMMcf: r.reliefMmcf, strategy: r.strategy }))
+      .sort((a, b) => a.hour - b.hour);
+  }
+
   connect() {
     const log = this.events.log ?? (line => console.log(line));
     const tokenFile = join(this.config.dataDir, `${this.config.stdbDb}.token`);
@@ -96,7 +126,7 @@ export class Mirror {
             this.events.onChange();
           })
           .onError(ctx => log(`[stdb] subscription error: ${String((ctx as { event?: unknown }).event ?? "unknown")}`))
-          .subscribe(['SELECT * FROM sim_config', 'SELECT * FROM household']);
+          .subscribe(['SELECT * FROM sim_config', 'SELECT * FROM household', 'SELECT * FROM weather_hour', 'SELECT * FROM plan_hour', 'SELECT * FROM aggregate_hour']);
       })
       .onConnectError((_ctx, err) => { log(`[stdb] connect error: ${String(err)}`); this.retry(); })
       .onDisconnect(() => { this.ready = false; log('[stdb] disconnected'); this.retry(); })

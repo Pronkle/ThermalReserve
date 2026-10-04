@@ -9,6 +9,15 @@ import type { Transition } from '../types';
 
 export type NotifyLevel = 'all' | 'summary';
 
+// Small per-person memory the concierge updates through its remember tool (brief §6.4).
+export interface PersonMemory {
+  preferredName?: string;
+  verbosity?: 'short' | 'normal' | 'detailed';
+  caresAbout?: string[];
+  answered?: string[];          // questions already answered, so it doesn't repeat itself
+  lastExplanation?: string;
+}
+
 export interface Contact {
   address: string;
   identity: string;
@@ -135,6 +144,17 @@ export class Store {
 
   history(address: string): { direction: 'in' | 'out'; body: string; at: number }[] {
     return this.db.prepare('SELECT direction, body, at FROM history WHERE address = ? ORDER BY id').all(address) as never;
+  }
+
+  personMemory(address: string): PersonMemory {
+    const r = this.db.prepare('SELECT json FROM person_memory WHERE address = ?').get(address) as { json: string } | undefined;
+    return r ? JSON.parse(r.json) : {};
+  }
+
+  updatePersonMemory(address: string, fn: (m: PersonMemory) => PersonMemory) {
+    const next = fn(this.personMemory(address));
+    this.db.prepare(`INSERT INTO person_memory (address, json) VALUES (?, ?)
+      ON CONFLICT(address) DO UPDATE SET json = excluded.json`).run(address, JSON.stringify(next));
   }
 
   // ---------- watcher state and queue (one transaction, so a crash can't split them) ----------

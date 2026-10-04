@@ -10,6 +10,7 @@ export interface HouseholdView {
   overridden: boolean;
   exempt: boolean;
   savedCf: number;
+  cohortId: number;   // template cohort (plan targets are per cohort)
 }
 
 export interface SimView {
@@ -22,6 +23,24 @@ export interface SimView {
   eventStartHour: number;
   eventEndHour: number;
   startIso: string;
+  capacityMMcfd: number;
+  maxDepthF: number;
+  floorF: number;
+  enrolledHomes: number;
+  exemptShare: number;
+  overrideRate: number;
+}
+
+export interface WeatherHourView { hour: number; outdoorF: number; systemMMcfh: number; }
+export interface AggregateHourView { hour: number; fleetGasMMcf: number; baselineGasMMcf: number; systemMMcf: number; capacityMMcf: number; reliefMMcf: number; strategy: string; }
+
+// Everything the Insights tools read: the live mirror in production, a fixture in tests.
+export interface World {
+  sim(): SimView | undefined;
+  household(identity: string): HouseholdView | undefined;
+  weather(): WeatherHourView[];
+  planTargetF(cohortId: number, hour: number): number | undefined; // undefined: follow normal setpoint
+  aggregates(): AggregateHourView[];
 }
 
 export type HeatMode = 'normal' | 'holding' | 'recovering' | 'overridden' | 'exempt';

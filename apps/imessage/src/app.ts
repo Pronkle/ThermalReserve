@@ -1,7 +1,10 @@
 // Wires the mirror, watcher, concierge and transport together. Both entrypoints call runCompanion.
 import { join } from 'node:path';
 import { loadChatConstants, loadConfig, maskAddress, type ChatConfig } from './config';
-import { handleInbound } from './concierge/inbound';
+import Anthropic from '@anthropic-ai/sdk';
+import { converse, fallbackReply } from './concierge/agent';
+import { classify, handleInbound } from './concierge/inbound';
+import type { ModelCall } from './insights/agent';
 import { linkCode } from './link';
 import { Store } from './memory/store';
 import { Mirror } from './stdb/mirror';
@@ -77,19 +80,45 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
+  // Both agents run on Claude Haiku 4.5. Without a key (or if the API fails) the concierge sends
+  // an honest deterministic reply instead.
+  const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 20_000, maxRetries: 1 }) : undefined;
+  if (!anthropic) log('[chat] ANTHROPIC_API_KEY not set: questions get the deterministic fallback reply');
+  const call: ModelCall = params => {
+    if (!anthropic) throw new Error('ANTHROPIC_API_KEY not set');
+    return anthropic.messages.create(params);
+  };
+  const converseSafely = async (address: string, identity: string, text: string) => {
+    try {
+      return (await converse({ store, world: mirror, consts, call, dataDir: config.dataDir, log }, address, identity, text)).bubbles;
+    } catch (e) {
+      const kind = e instanceof Anthropic.APIError ? `API ${e.status ?? 'connection'} error` : String(e).slice(0, 120);
+      log(`[concierge] model unavailable (${kind}); deterministic reply`);
+      return [fallbackReply({ world: mirror, consts }, identity, text)];
+    }
+  };
+
   for await (const msg of transport.inbound()) {
     try {
       // A text that arrives during startup waits for the live data (link codes, current state).
       if (!(await mirror.whenReady())) log('[in] live data not ready after 10 s; answering anyway');
-      const reply = await handleInbound({
-        store, consts,
-        households: () => mirror.households(),
-        sim: () => mirror.sim(),
-        log,
-      }, msg.address, msg.text);
-      log(`[in] ${maskAddress(msg.address)}: ${reply.react ? `tapback ${reply.react}` : `${reply.texts.length} bubble(s)`}`);
-      if (reply.react) await msg.react(reply.react);
-      if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await msg.send(t); });
+      const deps = { store, consts, households: () => mirror.households(), sim: () => mirror.sim(), log, converse: converseSafely };
+      const control = classify(msg.text) !== 'other' || !store.contact(msg.address);
+      if (control) {
+        const reply = await handleInbound(deps, msg.address, msg.text);
+        log(`[in] ${maskAddress(msg.address)}: ${reply.react ? `tapback ${reply.react}` : `${reply.texts.length} bubble(s)`}`);
+        if (reply.react) await msg.react(reply.react);
+        if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await msg.send(t); });
+        continue;
+      }
+      // A conversation turn: typing indicator while the agents work, and a short holding bubble
+      // if the answer takes longer than 8 s, so the chat never goes silent.
+      await msg.responding(async () => {
+        const slow = setTimeout(() => { void msg.send('Checking the numbers…'); }, 8_000);
+        const reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
+        log(`[in] ${maskAddress(msg.address)}: ${reply.texts.length} bubble(s)`);
+        for (const t of reply.texts) await msg.send(t);
+      });
     } catch (e) {
       log(`[in] ${maskAddress(msg.address)} handler error: ${String(e)}`);
     }

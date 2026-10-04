@@ -2,7 +2,7 @@
 
 A long-lived Node process that texts linked households through **Photon Spectrum** (`spectrum-ts`) when the simulated dispatch changes their heat. It reads the live SpacetimeDB tables (read-only) and keeps its own memory in local SQLite. Owner: CHAT. Brief: `docs/agents/CHAT_BRIEF.md`.
 
-Status: Phase 1 (proactive notifications, linking, STOP). Questions and answers (Insights agent) are Phase 2.
+Status: Phase 1 (proactive notifications, linking, STOP) verified on a real iPhone. Phase 2 (two cooperating agents answering questions) is built and unit-tested with a scripted model; the live 10-question run waits for a working `ANTHROPIC_API_KEY`.
 
 ## Run it
 
@@ -20,6 +20,7 @@ npm run codes                                 # list each household's link code 
 ```
 SPECTRUM_PROJECT_ID=...
 SPECTRUM_PROJECT_SECRET=...
+ANTHROPIC_API_KEY=...
 ```
 
 Other settings, all optional:
@@ -55,9 +56,24 @@ Changes are merged: at most one text per contact per 20 s. Anything that happens
 
 Replies it understands now: `Link <code>`, `NO`, `STOP` (deletes everything stored for the number), "thanks"/"ok"/👍 (answered with a tapback, no text), "only big changes" (summary only), "text me every change", "text me anytime" (ignores quiet hours), "no texts at night".
 
+## Two agents (Phase 2)
+
+Both run on **Claude Haiku 4.5** (`claude-haiku-4-5`), chosen to keep spend low.
+
+- **Concierge** (`src/concierge/agent.ts`) owns the conversation: tone, 1–3 bubbles, empathy, preferences, and what to remember about the person. It never computes numbers. For anything with numbers or reasons it calls its `ask_insights` tool with one standalone question (it resolves "the second one" from the thread first).
+- **Insights** (`src/insights/agent.ts`) answers that one question with deterministic tools over the live mirror and `packages/model`: `household_now`, `explain_decision` (the "why": which gas day, demand vs capacity, shortfall, depth vs the maximum and the floor, and what a 4-hour morning setback or no program would leave uncovered), `plan_window`, `weather`, `gas_day`, `compare_strategies`, `constant`, `what_if`. Every number in a tool output carries a unit and a label.
+- **Honesty guard** (`src/insights/honesty.ts`): every number in a draft must match, at its written precision, a number in that turn's tool outputs (or the person's own question). On failure Insights rewrites once with the offending numbers named, then falls back to a template built from `explain_decision`'s reasons. The concierge's own reply is checked the same way; if it adds a number, the Insights answer is sent instead.
+- **Handoff log**: each question prints `[handoff] concierge → insights: "…" → N tool call(s) [...] → honesty pass`, and appends a JSON line to `data/handoff.jsonl` (the demo's multi-agent evidence).
+- Control words never reach a model: `Link`, `NO`, `STOP`, "thanks"/👍 (tapback) and the preference phrases are handled by rules. If the API fails or there is no key, the reply is a deterministic, honest message (with the 62°F floor and Override for "too cold").
+- Typing indicator while the agents work; after 8 s a "Checking the numbers…" bubble.
+
+`npm run qa -- <LINKCODE>` pipes the brief's 10 scripted questions through the terminal provider against `thermal-reserve-dev` (needs a working key and a dev run).
+
+Prompt caching: the stable prefix (tools, then the system prompt) is marked for caching, but Haiku 4.5 only caches prefixes of 4,096 tokens or more and ours is shorter, so expect no cache hits at this size.
+
 ## What it stores
 
-`apps/imessage/data/chat-<database>.sqlite` (gitignored): phone number ↔ household identity, preferences, last notified state, the queue of unsent changes, an outbox, and the last 30 turns per conversation. STOP, or the household disappearing (`reset_households`), deletes all of it for that number. Logs mask numbers to the last 4 digits.
+`apps/imessage/data/chat-<database>.sqlite` (gitignored): phone number ↔ household identity, preferences, last notified state, the queue of unsent changes, an outbox, the last 30 turns per conversation, and a small person memory (preferred name, verbosity, what they care about, questions already answered). `data/handoff.jsonl` holds questions and answers, not phone numbers. STOP, or the household disappearing (`reset_households`), deletes all of it for that number. Logs mask numbers to the last 4 digits.
 
 ## Restart safety
 
@@ -82,6 +98,7 @@ What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion text
 src/main.imessage.ts   cloud iMessage entrypoint      src/main.terminal.ts   terminal entrypoint
 src/app.ts             wiring                          src/config.ts          env + constants
 src/stdb/mirror.ts     read-only Spacetime mirror      src/link.ts            link codes
-src/watcher/           detect, compose, notifier       src/concierge/         inbound rules (Phase 2: Insights)
+src/watcher/           detect, compose, notifier       src/concierge/         inbound rules + concierge agent
+src/insights/          Insights agent, tools, honesty   scripts/qa-terminal.sh  10-question acceptance run
 src/memory/store.ts    SQLite (node:sqlite)            spike/                 Phase 0 experiments + dev-run driver
 ```

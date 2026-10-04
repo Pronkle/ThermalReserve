@@ -14,9 +14,12 @@
     "dev": "tsx src/main.terminal.ts",
     "codes": "tsx src/codes.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "qa": "scripts/qa-terminal.sh"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@thermal-reserve/model": "0.1.0",
     "@thermal-reserve/stdb-bindings": "0.0.0",
     "spectrum-ts": "12.10.1"
   }

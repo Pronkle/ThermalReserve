@@ -13,12 +13,13 @@ export const IDENTITY = 'c200abe32fb6aa00112233445566778899aabbccddeeff001122334
 
 export const home = (patch: Partial<HouseholdView> = {}): HouseholdView => ({
   identity: IDENTITY, nickname: 'Test iPhone', taF: 70, targetF: 70, floorF: 62,
-  overridden: false, exempt: false, savedCf: 0, ...patch,
+  overridden: false, exempt: false, savedCf: 0, cohortId: 3, ...patch,
 });
 
 export const sim = (simHour: number, patch: Partial<SimView> = {}): SimView => ({
   scenarioId: 'feb2024', planId: 'feb2024-OPTIMIZED', strategy: 'OPTIMIZED', status: 'running',
-  simHour, hours: 96, eventStartHour: 12, eventEndHour: 84, startIso: '2024-01-31T00:00:00-09:00', ...patch,
+  simHour, hours: 96, eventStartHour: 12, eventEndHour: 84, startIso: '2024-01-31T00:00:00-09:00',
+  capacityMMcfd: 262, maxDepthF: 5, floorF: 62, enrolledHomes: 25000, exemptShare: 0.08, overrideRate: 0, ...patch,
 });
 
 // Noon Eastern on a fixed day: outside quiet hours.
