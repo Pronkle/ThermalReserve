@@ -382,3 +382,22 @@ describe('forecast runs and forecast error (D-A3, D-B1)', () => {
     });
   });
 });
+
+describe('replay temperatures are the airport\'s hourly observations', () => {
+  for (const sc of [feb2024Json, lastwinterJson]) {
+    it(`${sc.id}: outdoorF equals the routine hourly observations in data/raw`, async () => {
+      const { readFileSync } = await import('node:fs');
+      const lines = readFileSync(new URL(`../raw/asos_panc_${sc.id}.csv`, import.meta.url), 'utf8').trim().split('\n');
+      expect(lines[0]).toBe('station,valid,tmpf');
+      const startMs = Date.parse(sc.startIso);
+      const obs = new Map<number, number>();
+      for (const line of lines.slice(1)) {
+        const [station, valid, tmpf] = line.split(',');
+        expect(station).toBe('PANC');
+        obs.set(Math.round((Date.parse(`${valid.replace(' ', 'T')}Z`) - startMs) / 3_600_000), Number(tmpf));
+      }
+      for (let h = 0; h < sc.hours; h++) expect(sc.outdoorF[h], `hour ${h}`).toBeCloseTo(obs.get(h) as number, 1);
+      expect(sc.source).toMatch(/routine hourly observations.*IEM ASOS archive/);
+    });
+  }
+});

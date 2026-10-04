@@ -51,5 +51,5 @@
   "drift_pressure_idx": {"value": 5, "unit": "index points", "label": "assumed", "source": "Drift trigger: pressure index this far below what the plan expected (AGENTS.md Section 6)"},
   "drift_fade_h": {"value": 12, "unit": "h", "label": "assumed", "source": "A drift correction fades linearly to zero over this many hours (AGENTS.md Section 6)"},
   "demand_sensitivity_mmcfd_per_f": {"value": 3.43655, "unit": "MMcf/day per °F", "label": "derived", "source": "data/system_fit.json b: MMcf/day per heating degree day, i.e. per °F of daily mean. Shown as 3.44"},
-  "forecast_rmse_f": {"value": [2.72,2.72,3.98,3.73,4.67], "unit": "°F at leads 6, 12, 24, 48, 72 h", "label": "derived", "source": "data/forecast_error.json pooled RMSE of forecast daily max/min against ACIS, both replay scenarios; small samples; no samples at 6 h, which takes the next longer lead's value"}
+  "forecast_rmse_f": {"value": [3.1,2.98,2.97,3.22,3.9], "unit": "°F at leads 6, 12, 24, 48, 72 h", "label": "derived", "source": "data/forecast_error.json pooled RMSE of NBS 3-hourly temperature forecasts against hourly observations, both replay scenarios; small samples"}
 }

@@ -60,3 +60,22 @@ export function capacityFor(systemMMcfh: number[]): { capacityMMcfd: number; pea
 export const CAPACITY_NOTE =
   "Hypothetical: capacity set 3 MMcf/day below this scenario's peak-day demand. " +
   'Daily limit per gas day; within-day swings are covered by linepack and storage (assumed).';
+
+/**
+ * Routine hourly observations saved by scripts/fetch-asos.ts (CSV: station,valid,tmpf; valid in
+ * UTC at :53). Hour index h of a scenario takes the report issued 7 minutes before it starts.
+ * Returns hour index → °F for every report in the file (indexes may be negative or beyond the scenario).
+ */
+export function readHourlyObs(rel: string, startIso: string): Map<number, number> {
+  const startMs = Date.parse(startIso);
+  const out = new Map<number, number>();
+  const lines = readFileSync(join(dataDir, rel), 'utf8').trim().split('\n');
+  if (lines[0] !== 'station,valid,tmpf') throw new Error(`${rel}: unexpected header`);
+  for (const line of lines.slice(1)) {
+    const [station, valid, tmpf] = line.split(',');
+    if (station !== 'PANC') throw new Error(`${rel}: unexpected station ${station}`);
+    if (tmpf === 'M') continue;
+    out.set(Math.round((Date.parse(`${valid.replace(' ', 'T')}Z`) - startMs) / 3_600_000), Number(tmpf));
+  }
+  return out;
+}

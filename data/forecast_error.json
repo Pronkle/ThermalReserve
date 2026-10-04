@@ -1,9 +1,9 @@
 {
   "label": "derived",
   "unit": "°F, forecast minus observed",
-  "method": "Each archived run's daily max and min forecasts (NBS TXN, NBE beyond its range) minus the ACIS daily max and min for the same local date at PANC. Lead = hours from run time to the max (15:00) or min (07:00); binned to 6, 12, 24, 48, 72 h with upper edges 9, 18, 36, 60, 84 h.",
-  "scope": "Only the runs saved for each replay scenario (the days of the scenario, not the whole winter). Small samples.",
-  "source": "IEM MOS archive (data/raw/iem_mos_*.json) and ACIS StnData (data/raw/acis_panc_*.json)",
+  "method": "Each archived NBS run's 3-hourly temperature forecasts minus the routine hourly observation at PANC for the same hour. Lead = hours from run time to the forecast time; binned to 6, 12, 24, 48, 72 h with upper edges 9, 18, 36, 60, 84 h.",
+  "scope": "Only the runs saved for each replay scenario (the days around the scenario, not the whole winter). Small samples.",
+  "source": "IEM MOS archive (data/raw/iem_mos_nbs_*.json) and IEM ASOS archive (data/raw/asos_panc_*.csv)",
   "scenarios": {
     "feb2024": {
       "runs": 21,
@@ -12,33 +12,33 @@
       "byLead": [
         {
           "leadH": 6,
-          "n": 0,
-          "meanErrorF": null,
-          "rmseF": null
-        },
-        {
-          "leadH": 12,
-          "n": 6,
-          "meanErrorF": 0.33,
-          "rmseF": 2
-        },
-        {
-          "leadH": 24,
-          "n": 31,
-          "meanErrorF": 1.61,
-          "rmseF": 3.32
-        },
-        {
-          "leadH": 48,
           "n": 42,
-          "meanErrorF": 2.1,
+          "meanErrorF": 0.26,
           "rmseF": 2.93
         },
         {
+          "leadH": 12,
+          "n": 63,
+          "meanErrorF": 0.49,
+          "rmseF": 3.04
+        },
+        {
+          "leadH": 24,
+          "n": 122,
+          "meanErrorF": 1.22,
+          "rmseF": 3.29
+        },
+        {
+          "leadH": 48,
+          "n": 136,
+          "meanErrorF": 1.76,
+          "rmseF": 3.01
+        },
+        {
           "leadH": 72,
-          "n": 42,
-          "meanErrorF": 1.98,
-          "rmseF": 3.67
+          "n": 56,
+          "meanErrorF": 2.22,
+          "rmseF": 3.75
         }
       ]
     },
@@ -49,33 +49,33 @@
       "byLead": [
         {
           "leadH": 6,
-          "n": 0,
-          "meanErrorF": null,
-          "rmseF": null
+          "n": 42,
+          "meanErrorF": -0.29,
+          "rmseF": 3.26
         },
         {
           "leadH": 12,
-          "n": 6,
-          "meanErrorF": -2.17,
-          "rmseF": 3.29
+          "n": 63,
+          "meanErrorF": 0.41,
+          "rmseF": 2.92
         },
         {
           "leadH": 24,
-          "n": 31,
-          "meanErrorF": 0.58,
-          "rmseF": 4.55
+          "n": 122,
+          "meanErrorF": 1.07,
+          "rmseF": 2.62
         },
         {
           "leadH": 48,
-          "n": 42,
-          "meanErrorF": 1.67,
-          "rmseF": 4.39
+          "n": 136,
+          "meanErrorF": 2.26,
+          "rmseF": 3.41
         },
         {
           "leadH": 72,
-          "n": 42,
-          "meanErrorF": 2.36,
-          "rmseF": 5.48
+          "n": 56,
+          "meanErrorF": 3.13,
+          "rmseF": 4.04
         }
       ]
     }
@@ -83,33 +83,33 @@
   "pooled": [
     {
       "leadH": 6,
-      "n": 0,
-      "meanErrorF": null,
-      "rmseF": null
+      "n": 84,
+      "meanErrorF": -0.01,
+      "rmseF": 3.1
     },
     {
       "leadH": 12,
-      "n": 12,
-      "meanErrorF": -0.92,
-      "rmseF": 2.72
+      "n": 126,
+      "meanErrorF": 0.45,
+      "rmseF": 2.98
     },
     {
       "leadH": 24,
-      "n": 62,
-      "meanErrorF": 1.1,
-      "rmseF": 3.98
+      "n": 244,
+      "meanErrorF": 1.15,
+      "rmseF": 2.97
     },
     {
       "leadH": 48,
-      "n": 84,
-      "meanErrorF": 1.88,
-      "rmseF": 3.73
+      "n": 272,
+      "meanErrorF": 2.01,
+      "rmseF": 3.22
     },
     {
       "leadH": 72,
-      "n": 84,
-      "meanErrorF": 2.17,
-      "rmseF": 4.67
+      "n": 112,
+      "meanErrorF": 2.67,
+      "rmseF": 3.9
     }
   ]
 }
