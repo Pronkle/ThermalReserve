@@ -27,6 +27,6 @@ it('uses simulation time for the start and end countdown', () => {
   expect(eventCountdown(84, 12, 84)).toBe('Event ended');
 });
 it('keeps a QR joiner on the operator’s failover database', () => {
-  expect(householdUrl('https://thermal-reserve.vercel.app', 'thermal-reserve', 'thermal-reserve')).toBe('https://thermal-reserve.vercel.app/home');
-  expect(householdUrl('https://thermal-reserve.vercel.app', 'thermal-reserve-backup', 'thermal-reserve')).toBe('https://thermal-reserve.vercel.app/home?db=thermal-reserve-backup');
+  expect(householdUrl('https://boreaflux.vercel.app', 'thermal-reserve', 'thermal-reserve')).toBe('https://boreaflux.vercel.app/home');
+  expect(householdUrl('https://boreaflux.vercel.app', 'thermal-reserve-backup', 'thermal-reserve')).toBe('https://boreaflux.vercel.app/home?db=thermal-reserve-backup');
 });

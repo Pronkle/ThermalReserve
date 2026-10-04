@@ -5,19 +5,19 @@
 .household-page h3 { font-size: 18px; margin: 20px 0 8px; }
 .household-page p { font-size: 16px; }
 .household-page button, .enrollment-form input, .enrollment-form select { min-height: 48px; font-size: 16px; border-radius: 8px; }
-.home-primary { display: block; width: 100%; background: #126187; border-color: #126187; color: white; padding: 12px 16px; font-weight: 600; }
-.home-primary:hover:not(:disabled) { background: #0d4966; color: white; }
+.home-primary { display: block; width: 100%; background: #0B215D; border-color: #0B215D; color: white; padding: 12px 16px; font-weight: 600; }
+.home-primary:hover:not(:disabled) { background: #081943; color: white; }
 .household-page .home-limit { font-size: 14px; line-height: 1.5; color: var(--muted); margin: 12px 0 0; }
 .home-step { color: var(--muted); font-size: 14px !important; }
 .home-back { width: 100%; margin-top: 8px; border: none; color: var(--accent); background: transparent; }
 .enrollment-form label { display: block; font-size: 14px; margin: 16px 0; }
 .enrollment-form input:not([type=checkbox]), .enrollment-form select { display: block; width: 100%; border: 1px solid var(--border); padding: 10px 12px; background: white; color: var(--text); margin-top: 6px; }
 .enrollment-form .steady-checkbox { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
-.steady-checkbox input { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; accent-color: #126187; }
+.steady-checkbox input { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; accent-color: #0B215D; }
 .home-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .home-card-heading h2 { margin: 0; max-width: 100%; overflow-wrap: anywhere; }
 .heat-status { border: 1px solid var(--border); border-radius: 20px; padding: 6px 10px; font-size: 14px; }
-.heat-card.holding .heat-status { border-color: #126187; color: #126187; }
+.heat-card.holding .heat-status { border-color: #0B215D; color: #0B215D; }
 .heat-card.recovering .heat-status { border-color: #8b5000; color: #8b5000; }
 .household-page .indoor-temperature { font-size: 80px; font-weight: 650; line-height: 1; letter-spacing: -.05em; font-variant-numeric: tabular-nums; margin: 24px 0 8px; }
 .indoor-temperature span { font-size: 32px; vertical-align: top; margin-left: 8px; letter-spacing: 0; }
@@ -32,7 +32,7 @@
 .home-savings-grid > div { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
 .home-savings-grid strong { font-size: 24px; color: var(--text); font-variant-numeric: tabular-nums; }
 .home-savings-grid strong span { font-size: 14px; }
-.home-savings progress { display: block; width: 100%; height: 14px; accent-color: #126187; }
+.home-savings progress { display: block; width: 100%; height: 14px; accent-color: #0B215D; }
 .why-heat summary { cursor: pointer; font-weight: 600; }
 .why-heat p { margin: 16px 0 0; }
 .home-error, .home-connection { border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px !important; }
