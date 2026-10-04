@@ -14,6 +14,7 @@ try {
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor();
+  await page.waitForFunction(() => !document.querySelector('.control-note')?.textContent.includes('Sending'));
   async function range(name, value) {
     await page.getByLabel(name, { exact: true }).fill(String(value));
     await page.waitForTimeout(150);

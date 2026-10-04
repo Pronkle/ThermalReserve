@@ -17,3 +17,8 @@ export async function dispatchPreview(reducers: DbConnection['reducers'], scenar
 export async function dispatchPlan(reducers: Pick<DbConnection['reducers'], 'setPlan'>, plan: Plan) {
   await reducers.setPlan({ planId: plan.id, strategy: plan.strategy, targetsJson: JSON.stringify(plan.strategy === 'BASELINE' ? [] : plan.targetsF) });
 }
+
+export async function loadPressurePreset(reducers: Pick<DbConnection['reducers'], 'loadScenario' | 'loadHomes' | 'setParams'>, scenario: Scenario & { forecastRuns?: unknown }, config: FleetConfig) {
+  const { forecastRuns: _forecasts, ...actual } = scenario;
+  await loadPreset(reducers, actual, config);
+}

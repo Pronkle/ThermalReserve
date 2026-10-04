@@ -15,7 +15,7 @@ const strategyNames: Record<Strategy, string> = { BASELINE: 'No program', NAIVE_
 const initialScenario = scenarios.find(sc => sc.id === 'design') ?? scenarios[0];
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
-export function GasOps({ region = 'console' }: { region?: 'console' | 'details' }) {
+export function GasOps({ region = 'console', preview }: { region?: 'console' | 'details'; preview?: { scenario: Scenario; config: FleetConfig; strategy: Strategy; plan?: Plan; hour: number } }) {
   const live = useConnection();
   const sim = useSimConfig();
   const aggregates = useAggregates();
@@ -41,6 +41,12 @@ export function GasOps({ region = 'console' }: { region?: 'console' | 'details' 
   const solveGeneration = useRef(0);
   const solveKey = planInputKey(scenario.id, config);
   useEffect(() => {
+    if (!preview) return;
+    setScenario(preview.scenario); setConfig(preview.config); setStrategy(preview.strategy); setHour(preview.hour);
+    if (preview.plan) setSolvedPlans(new Map([[`${preview.strategy}:${planInputKey(preview.scenario.id, preview.config)}`, preview.plan]]));
+    else setSolvedPlans(new Map());
+  }, [preview?.scenario, preview?.config, preview?.strategy, preview?.plan, preview?.hour]);
+  useEffect(() => {
     solveGeneration.current++;
     pendingSolve.current?.cancel();
     setSolving(false);
@@ -56,7 +62,7 @@ export function GasOps({ region = 'console' }: { region?: 'console' | 'details' 
   const serializedConfig = sim ? JSON.stringify({ enrolledHomes: sim.enrolledHomes, exemptShare: sim.exemptShare, floorF: sim.floorF, maxDepthF: sim.maxDepthF, capacityMMcfd: sim.capacityMmcfd, overrideRate: sim.overrideRate, seed: 42 }) : '';
   const selectedPlan = solvedPlans.get(`${strategy}:${solveKey}`) ?? (remotePlan?.strategy === strategy && sim?.scenarioId === scenario.id && JSON.stringify(config) === serializedConfig && planMatchesInputs(remotePlan.id, solveKey) ? remotePlan : undefined);
   const staleDispatch = !selectedPlan && remotePlan?.strategy === strategy;
-  const solvedRun = useMemo(() => selectedPlan ? runPlan(scenario, cohorts, deferredConfig, selectedPlan, constants) : undefined, [scenario, deferredConfig, selectedPlan]);
+  const solvedRun = useMemo(() => selectedPlan ? runPlan(scenario, cohorts, config, selectedPlan, constants) : undefined, [scenario, config, selectedPlan]);
   const requiresSolve = (strategy === 'OPTIMIZED' || strategy === 'MAX_RELIEF') && !selectedPlan;
   const run = solvedRun ?? data.runs[strategy === 'OPTIMIZED' || strategy === 'MAX_RELIEF' ? 'BASELINE' : strategy];
   const activeName = requiresSolve ? `${strategyNames[strategy]} · not solved` : strategyNames[run.strategy];
@@ -166,7 +172,7 @@ export function GasOps({ region = 'console' }: { region?: 'console' | 'details' 
           <Metric name="Overrides" value={requiresSolve ? '—' : integer.format(current.overrides)} unit="homes" formula={`Model-estimated overrides at the selected hour. ${constants.raw.override_rate.label}: ${constants.raw.override_rate.source}`} />
           <Metric name="Gas value" value={requiresSolve ? '—' : money.format(Math.round(tightDay.reliefMMcf * 1000 * constants.marginalPriceUsdPerMcf / 100) * 100)} unit="/day" formula={`Tightest-day net relief (MMcf/day) × 1,000 Mcf/MMcf × $${constants.marginalPriceUsdPerMcf}/Mcf; rounded to $100. ${constants.raw.marginal_price_usd_mcf.label}: ${constants.raw.marginal_price_usd_mcf.source}`} />
         </section>;
-  if (region === 'details') return <GasDetails chart={gasChart} metrics={gasMetrics} />;
+  if (region === 'details') return <GasDetails chart={gasChart} metrics={gasMetrics} open={Boolean(preview)} />;
   return <>
     <div className="ops-heading">
       <div><p className="eyebrow">{connected ? `Live · ${live.database}` : live.status === 'unconfigured' ? 'Local model preview' : `Connecting · ${live.database}`}</p><h1>Operator console</h1></div>

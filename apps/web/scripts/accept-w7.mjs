@@ -40,7 +40,7 @@ try {
   await context.setOffline(true);
   // Chromium's offline emulation keeps established WebSockets open. Close the
   // transport too, then ensure retries fail offline and recover when restored.
-  await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
+  await page.evaluate(() => window.testSockets.filter(socket => new URL(socket.url).host !== location.host).forEach(socket => socket.close(1000, 'Offline acceptance check')));
   await page.getByText('Disconnected — retrying', { exact: false }).first().waitFor({ timeout: 15000 });
   await context.setOffline(false);
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 45000 });

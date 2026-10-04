@@ -42,7 +42,7 @@ try {
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
   assert(await page.evaluate(() => sessionStorage.getItem('thermal-reserve.database') === 'thermal-reserve-dev'), 'Database override retained');
   await operator.setOffline(true);
-  await page.evaluate(() => window.testSockets.forEach(socket => socket.close()));
+  await page.evaluate(() => window.testSockets.filter(socket => new URL(socket.url).host !== location.host).forEach(socket => socket.close()));
   await page.getByText(/Disconnected — retrying/).waitFor();
   await operator.setOffline(false);
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor({ timeout: 30000 });
