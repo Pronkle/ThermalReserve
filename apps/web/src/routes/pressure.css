@@ -211,3 +211,6 @@
 .pressure-console-shell .group-head .secondary-actions { padding: 0; gap: 4px; }
 .pressure-console-shell .group-head .secondary-actions button { min-height: 22px; padding: 1px 7px; font-size: 11.5px; }
 .pressure-console-shell .pressure-side { gap: 4px; } .pressure-console-shell .pressure-controls { gap: 5px; } .pressure-console-shell .control-group { padding: 5px 10px 6px; }
+.pressure-console-shell .pressure-controls { gap: 10px; } .pressure-console-shell .pressure-side { gap: 6px; }
+.pressure-console-shell .pressure-side { gap: 5px; } .pressure-console-shell .main-navigation a { padding-top: 3px; padding-bottom: 3px; } .pressure-console-shell .verdict-tile { padding-top: 3px; padding-bottom: 3px; } .pressure-console-shell .log-panel { padding-top: 4px; padding-bottom: 4px; }
+.pressure-console-shell .pressure-controls { gap: 9px; }
