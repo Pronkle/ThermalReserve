@@ -113,7 +113,7 @@ Production bundle `index-CMwD9--i.js` = main a60e3e3.
 | Household floor 62°F on both (P12 server side) | PASS (`floor_f` = 62 each) |
 | Live household saving vs model | PASS: `saved_cf` ≈ 63 cf vs NUMBERS.md ~64 cf (steady-average-light template) |
 | Event log: dispatch, 2 joins, override and reassign entries (E5, E6) | PASS (server side); which override entries came from the phones is not distinguishable |
-| Devices (one iOS, one Android?) | **Unknown: H1 to confirm.** Run 1 at 02:00 covers both explicitly |
+| Devices | PASS: "Manning" on an Android phone, "Gus" on an iPhone (H1, msg 150). Browsers and timings not recorded |
 | Join time, map-dot timing, reload persistence, consent text (P1–P11) | Not recorded; covered in Run 1 |
 
 ### WEB's automated W7 verification, Sun ~00:15 (reported by WEB msg 142; Maincloud **dev**, production untouched)
