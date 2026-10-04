@@ -2,10 +2,17 @@ import assert from 'node:assert/strict';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH);
 const browser = await chromium.launch({ headless: true });
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  // W1 verifies the local model preview independently of a configured database.
+  await context.route('**/src/lib/stdb.tsx', async route => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace('import.meta.env.VITE_STDB_URI', 'undefined');
+    await route.fulfill({ response, body });
+  });
+  const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('http://127.0.0.1:5173/ops');
+  await page.goto('http://127.0.0.1:5173/ops?ui=gas');
   await page.waitForSelector('.recharts-line-curve');
   await page.waitForSelector('.leaflet-container canvas');
   const map = await page.locator('.map-panel').boundingBox();
@@ -18,7 +25,9 @@ try {
   console.log(JSON.stringify({ map, chart, dimensions }));
   assert(dimensions.height <= 800, `No vertical scrolling: ${dimensions.height}`);
   assert(dimensions.width <= 1280, 'No horizontal scrolling');
-  assert.equal(await page.locator('.recharts-line-curve').count(), 3);
+  for (const stroke of ['#7A869A', '#F2A541', '#5BC0EB']) {
+    assert.equal(await page.locator(`.recharts-line-curve[stroke="${stroke}"]`).count(), 1);
+  }
   assert.equal(await page.locator('.metric').count(), 6);
   await page.locator('.metric').first().focus();
   assert(await page.locator('.metric-tooltip').first().isVisible(), 'formula tooltip keyboard accessible');
@@ -33,9 +42,9 @@ try {
   await page.waitForFunction(() => document.querySelector('.clock-status')?.textContent.includes('Playing preview'));
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   // Check tiles-blocked fallback still displays every sampled home.
-  const fallback = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const fallback = await context.newPage();
   await fallback.route('https://tile.openstreetmap.org/**', route => route.abort());
-  await fallback.goto('http://127.0.0.1:5173/ops');
+  await fallback.goto('http://127.0.0.1:5173/ops?ui=gas');
   await fallback.waitForSelector('.map-fallback', { timeout: 10000 });
   assert.equal(await fallback.locator('.map-fallback circle').count(), 1000);
   await page.setViewportSize({ width: 390, height: 844 });

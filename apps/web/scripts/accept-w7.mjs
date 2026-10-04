@@ -18,7 +18,7 @@ try {
   await page.route('https://tile.openstreetmap.org/**', route => route.abort());
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
     await page.setViewportSize({ width, height });
-    await page.goto(`${url}/ops?db=thermal-reserve-dev`);
+    await page.goto(`${url}/ops?ui=gas&db=thermal-reserve-dev`);
     await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
     await page.locator('.map-fallback').waitFor();
     assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight));

@@ -13,7 +13,7 @@ try {
   for (const tab of [page, other]) {
     tab.on('pageerror', error => errors.push(error.message));
     await tab.route('https://tile.openstreetmap.org/**', route => route.abort());
-    await tab.goto('http://127.0.0.1:5173/ops?db=thermal-reserve-dev');
+    await tab.goto('http://127.0.0.1:5173/ops?ui=gas&db=thermal-reserve-dev');
     await tab.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   }
   page.on('dialog', dialog => dialog.accept(passcode));

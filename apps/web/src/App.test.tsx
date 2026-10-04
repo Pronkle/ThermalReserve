@@ -7,6 +7,7 @@ import { buildPreview } from './lib/preview';
 describe('W0 route acceptance', () => {
   it.each([
     ['/ops', 'Operator console', 'theme-dark'],
+    ['/ops?ui=gas', 'Operator console', 'theme-dark'],
     ['/home', 'Your home', 'theme-light'],
     ['/whatif', 'What-if calculator', 'theme-light'],
     ['/validation', 'Validation', 'theme-light'],

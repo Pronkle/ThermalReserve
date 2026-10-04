@@ -10,7 +10,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept(passcode));
   await page.route('https://tile.openstreetmap.org/**', route => route.abort());
-  await page.goto(`${url}/ops?db=thermal-reserve-dev`);
+  await page.goto(`${url}/ops?ui=gas&db=thermal-reserve-dev`);
   await page.getByText(/Connected · thermal-reserve-dev/).waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Demo preset', exact: true }).click();
   await page.getByText(/Connected · thermal-reserve-dev · Operator/).waitFor();
