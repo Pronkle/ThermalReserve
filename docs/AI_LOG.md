@@ -67,3 +67,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 
 2026-10-04T04:45 | WEB (OpenAI Codex, ChatGPT Pro, GPT-6.1-Sol) | W-A0/A1/A2 and W-B1: gas fallback, pressure console and presets, live pressure, shared-clock temperature/discomfort; 32 tests, build, physics check, 7 gas browser regressions, 96-hour dev pressure error ≤0.149 points; W-B2 real-phone verification pending | reviewed by H2 (pending)
 2026-10-04T04:51 | STDB (Claude Code, Pro, Opus 5.5) | D-A3 and D-B1 on H1's instruction (DATA tasks): IEM NBS/NBE raw forecasts (fetched by H1), forecastRuns in all three scenarios, forecast_error.json, forecast_rmse_f; 12 new data tests | reviewed by H1
+2026-10-04T05:12 | ENGINE (Claude Code, Max, Opus 5.5) | E-C2 cadence table on real forecasts (scripts/cadence.ts; drift trigger fix) and E-B1 production number review (Playwright, both presets match) | reviewed by H2 (pending)
