@@ -14,6 +14,8 @@ describe('link codes', () => {
     const code = linkCode(IDENTITY);
     expect(code).toMatch(/^[A-Z2-7]{6}$/);
     expect(linkCode(`0x${IDENTITY.toUpperCase()}`)).toBe(code);
+    // Shared vector with apps/web (householdLinkCode in patches/web-home-link-code.patch).
+    expect(code).toBe('LOWM3V');
   });
   it('parses the prefilled text and casual variants', () => {
     expect(parseLinkCode('Link my home K7Q2MX')).toBe('K7Q2MX');
