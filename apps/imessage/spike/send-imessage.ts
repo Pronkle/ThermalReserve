@@ -22,7 +22,9 @@ console.log(`[spike] sent in ${Date.now() - t0} ms`);
 
 const stop = setTimeout(async () => { console.log("[spike] listen window over"); await app.stop(); process.exit(0); }, listenSeconds * 1000);
 for await (const [space, message] of app.messages) {
-  const body = message.content.type === "text" ? message.content.text : `(${message.content.type})`;
+  // Read receipts, tapbacks and other non-text events are not replies; log and keep listening.
+  if (message.content.type !== "text") { console.log(`[spike] event after ${((Date.now() - t0) / 1000).toFixed(1)} s: (${message.content.type})`); continue; }
+  const body = message.content.text;
   console.log(`[spike] inbound after ${((Date.now() - t0) / 1000).toFixed(1)} s: ${body}`);
   await space.responding(async () => { await space.send(text("Got it. Replies work. Thanks.")); });
   clearTimeout(stop);
