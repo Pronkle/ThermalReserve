@@ -19,3 +19,10 @@ export function planMatchesInputs(planId: string, key: string): boolean {
 export function planNeedsNoSetbacks(plan: Plan | undefined): boolean {
   return plan?.strategy === 'OPTIMIZED' && !plan.note && !plan.targetsF.some(targets => targets.some(Number.isFinite));
 }
+export function cachePlan(cache: Map<string, Plan>, key: string, plan: Plan): Map<string, Plan> {
+  const next = new Map(cache);
+  next.delete(key);
+  next.set(key, plan);
+  while (next.size > 10) next.delete(next.keys().next().value!);
+  return next;
+}

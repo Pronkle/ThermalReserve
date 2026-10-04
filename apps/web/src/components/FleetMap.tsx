@@ -37,7 +37,7 @@ export default function FleetMap(props: FleetMapProps) {
   const config = useSimConfig();
   const households = useHouseholds();
   const modes = new Map<number, Mode>();
-  if (config) for (const home of props.homes) {
+  if (config?.status === 'running') for (const home of props.homes) {
     const cohortMode = states.find(state => state.cohortId === home.cohortId)?.mode;
     modes.set(home.id, home.exempt ? 'exempt' : config.strategy !== 'BASELINE' && home.overrideHour !== null && home.overrideHour <= props.hour ? 'overridden' : cohortMode === 'holding' || cohortMode === 'recovering' ? cohortMode : 'normal');
   }

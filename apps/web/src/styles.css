@@ -37,7 +37,8 @@ p { line-height: 1.6; margin: 0 0 16px; }
 .ops-heading h1 { margin-bottom: 0; }
 figcaption { font-size: 14px; line-height: 1.6; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
-.plan-banner { margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 8px; color: var(--text); font-size: 12px; }
+.plan-banner { flex-shrink: 0; margin: 0 0 8px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; color: var(--text); font-size: 12px; }
+.capacity-note { grid-column: 1 / -1; font-size: 10px; color: var(--accent); }
 .skip-link { position: absolute; left: 16px; top: -80px; z-index: 10; background: var(--surface); padding: 16px; }
 .skip-link:focus { top: 16px; }
 @media (max-width: 760px) {
@@ -147,7 +148,7 @@ input[type=range] { accent-color: #5BC0EB; width: 100%; height: 12px; cursor: po
   .theme-dark.app-shell { height: 100dvh; display: flex; flex-direction: column; }
   .theme-dark .app-header, .theme-dark .app-footer { flex-shrink: 0; }
   .theme-dark .page-content { flex: 1; height: auto; min-height: 0; width: 100%; }
-  .ops-side { overflow: hidden; }
+  .ops-side { overflow: hidden; gap: 10px; }
   .kpi-grid, .controls-panel { flex-shrink: 0; }
   .log-panel { min-height: 48px; }
 }
@@ -158,6 +159,7 @@ input[type=range] { accent-color: #5BC0EB; width: 100%; height: 12px; cursor: po
   .ops-side .metric-value { line-height: 1; }
   .controls-panel { padding: 10px !important; }
   .controls-panel .panel-heading h2 { line-height: 1.2; }
+  .controls-panel .solve-status, .controls-panel .control-note { margin-top: 2px; line-height: 1.2; }
   .controls-grid { gap: 4px 12px; }
   .controls-grid label { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 4px; }
   .controls-grid output { margin: 0; font-size: 10px; }
