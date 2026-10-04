@@ -116,6 +116,23 @@ Production bundle `index-CMwD9--i.js` = main a60e3e3.
 | Devices (one iOS, one Android?) | **Unknown: H1 to confirm.** Run 1 at 02:00 covers both explicitly |
 | Join time, map-dot timing, reload persistence, consent text (P1–P11) | Not recorded; covered in Run 1 |
 
+### WEB's automated W7 verification, Sun ~00:15 (reported by WEB msg 142; Maincloud **dev**, production untouched)
+
+`web/w7` 0c4cfe9, Chromium automation (`apps/web/scripts/accept-w7.mjs`). Reported, not re-run by DATA.
+
+| Check | Reported result | Covers |
+| --- | --- | --- |
+| `/ops` at 1280 and 1440: layout, chart axis label and bounds | PASS | B1, B2, B5 |
+| Map tile fallback | PASS | F1 |
+| QR enlarge, Escape and focus; keyboard | PASS | B3, B7 |
+| Reduced motion | PASS | B8 |
+| Transport loss and reconnect | PASS | F2 |
+| Phones at 360, 390, 430 px | PASS | P10 |
+| `/whatif` URL sharing and reload; public pages offline after loading | PASS | E8 |
+| W4 regression: joins 315/297 ms, map and log under 2 s, Override/Rejoin/reload/exempt, footer clear | PASS | P4–P7, P11, E5, E6 (emulated) |
+| Lighthouse 13.5.0 accessibility: `/home` 100, `/whatif` 100 | PASS (target ≥ 90) | W7 acceptance |
+| **Real Safari, real phones** | **Not covered by automation**: Run 1 at 02:00 (procedure D6, Parts B–D) | B1–B8 Safari column, P1–P12 |
+
 ## 5. Failure modes
 
 | # | How to cause it | Expected | Result |
