@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { handleInbound } from '../src/concierge/inbound';
-import { linkCode } from '../src/link';
 import { Store } from '../src/memory/store';
 import { inQuietHours, Notifier } from '../src/watcher/notifier';
 import type { HouseholdView, SimView } from '../src/types';
@@ -28,7 +27,7 @@ function harness(opts: { store?: Store; failSends?: boolean; cfg?: Partial<typeo
     now: () => clock,
     log: () => undefined,
   });
-  const linkNow = () => handleInbound({ store, consts, households: () => [h], sim: () => s, now: () => clock, log: () => undefined }, PHONE, `Link my home ${linkCode(IDENTITY)}`);
+  const linkNow = () => handleInbound({ store, consts, households: () => [h], sim: () => s, now: () => clock, log: () => undefined, optedInHousehold: (a: string) => (a === PHONE ? IDENTITY : undefined) }, PHONE, 'START');
   // One real second per tick at `speed` sim hours per second, flushing every 0.5 s like the app.
   async function play(fromHour: number, toHour: number, speed: number, shape: (hour: number) => Partial<HouseholdView>) {
     for (let hour = fromHour; hour <= toHour; hour += speed) {
@@ -53,7 +52,7 @@ const naive = (hour: number): Partial<HouseholdView> => {
 describe('notifier', () => {
   it('a whole run at 2 h/s: 3–6 messages, ≥ 20 s apart, every transition in exactly one message', async () => {
     const x = harness();
-    expect((await x.linkNow()).texts[0]).toContain('Linked to Test iPhone');
+    expect((await x.linkNow()).texts[0]).toContain("You're set for Test iPhone");
     await x.play(0, 96, 2, naive);
     for (let k = 0; k < 60; k++) { x.advance(500); await x.notifier.flush(); } // drain after the run
     expect(x.sent.length).toBeGreaterThanOrEqual(3);
@@ -151,56 +150,50 @@ describe('notifier', () => {
 });
 
 describe('inbound', () => {
-  const deps = (store: Store, households = [home()]) => ({ store, consts, households: () => households, sim: () => sim(0, { status: 'idle' }), now: () => NOON_ET, log: () => undefined });
+  const deps = (store: Store, households = [home()]) => ({ store, consts, households: () => households, sim: () => sim(0, { status: 'idle' }), now: () => NOON_ET, log: () => undefined, optedInHousehold: (a: string) => (a === PHONE ? IDENTITY : undefined) });
 
-  it('links by code, confirms with the nickname, and offers NO and STOP', async () => {
+  it('START from the number that opted in on /home links it, confirms with the nickname, and offers STOP', async () => {
     const store = new Store(':memory:');
-    const r = await handleInbound(deps(store), PHONE, `Link my home ${linkCode(IDENTITY)}`);
-    expect(r.texts[0]).toMatch(/^Linked to Test iPhone\..*Reply NO.*STOP/);
+    const r = await handleInbound(deps(store), PHONE, 'START');
+    expect(r.texts[0]).toMatch(/^Thank you. You're set for Test iPhone.*STOP/);
     expect(store.contact(PHONE)?.identity).toBe(IDENTITY);
+    expect((await handleInbound(deps(store), PHONE, 'start')).texts[0]).toMatch(/^You're already set/);
   });
 
-  it('unknown code is explained, nothing stored', async () => {
+  it('a number that did not opt in on /home is told how to join; nothing stored', async () => {
     const store = new Store(':memory:');
-    const r = await handleInbound(deps(store), PHONE, 'Link AAAAAA');
-    expect(r.texts[0]).toContain("couldn't find a home with code AAAAAA");
-    expect(store.contact(PHONE)).toBeUndefined();
+    const r = await handleInbound(deps(store), '+15555550999', 'START');
+    expect(r.texts[0]).toMatch(/household page.*START/);
+    expect(store.contact('+15555550999')).toBeUndefined();
   });
 
   it('STOP deletes everything for the number and confirms once', async () => {
     const store = new Store(':memory:');
-    await handleInbound(deps(store), PHONE, `link ${linkCode(IDENTITY)}`);
+    await handleInbound(deps(store), PHONE, 'START');
     const r = await handleInbound(deps(store), PHONE, 'STOP');
     expect(r.texts).toHaveLength(1);
     expect(store.contact(PHONE)).toBeUndefined();
     expect(store.history(PHONE)).toEqual([]);
   });
 
-  it('NO right after linking unlinks', async () => {
-    const store = new Store(':memory:');
-    await handleInbound(deps(store), PHONE, `link ${linkCode(IDENTITY)}`);
-    await handleInbound(deps(store), PHONE, 'no');
-    expect(store.contact(PHONE)).toBeUndefined();
-  });
-
   it('thanks gets a tapback and no text', async () => {
     const store = new Store(':memory:');
-    await handleInbound(deps(store), PHONE, `link ${linkCode(IDENTITY)}`);
+    await handleInbound(deps(store), PHONE, 'START');
     expect(await handleInbound(deps(store), PHONE, 'thanks')).toEqual({ react: 'like', texts: [] });
     expect(await handleInbound(deps(store), PHONE, '👍')).toEqual({ react: 'like', texts: [] });
   });
 
   it('preferences are saved and confirmed in one line', async () => {
     const store = new Store(':memory:');
-    await handleInbound(deps(store), PHONE, `link ${linkCode(IDENTITY)}`);
+    await handleInbound(deps(store), PHONE, 'START');
     expect((await handleInbound(deps(store), PHONE, 'only big changes please')).texts).toHaveLength(1);
     expect(store.contact(PHONE)?.notifyLevel).toBe('summary');
     await handleInbound(deps(store), PHONE, 'text me anytime');
     expect(store.contact(PHONE)?.anytime).toBe(true);
   });
 
-  it('an unlinked stranger gets one honest line on how to link', async () => {
-    const r = await handleInbound(deps(new Store(':memory:')), PHONE, 'hello?');
+  it('an unknown number gets one honest line on how to join', async () => {
+    const r = await handleInbound(deps(new Store(':memory:')), '+15555550999', 'hello?');
     expect(r.texts[0]).toContain('automated');
   });
 });

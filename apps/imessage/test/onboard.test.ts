@@ -68,7 +68,7 @@ describe('auto-onboarding', () => {
     expect(await onboard(deps(store, p.photon), req)).toBe('already linked');
   });
 
-  it('nothing proactive goes out before YES; YES turns updates on; STOP works before YES', async () => {
+  it('nothing proactive goes out before START; START turns updates on; STOP works before START', async () => {
     const store = new Store(':memory:');
     await onboard(deps(store), req);
     const sent: string[] = [];
@@ -81,8 +81,8 @@ describe('auto-onboarding', () => {
     expect(store.pending(PHONE)).toEqual([]);
 
     const inbound = (t: string) => handleInbound({ store, consts, households: () => [h], sim: () => s, now: () => NOON_ET, log: () => undefined }, PHONE, t);
-    expect((await inbound('what is this')).texts[0]).toMatch(/^Reply YES/);
-    expect((await inbound('yes')).texts[0]).toMatch(/^Thanks. You're set for Test iPhone/);
+    expect((await inbound('what is this')).texts[0]).toMatch(/^Reply START/);
+    expect((await inbound('START')).texts[0]).toMatch(/^Thank you. You're set for Test iPhone/);
     expect(store.contact(PHONE)?.consented).toBe(true);
 
     const store2 = new Store(':memory:');
@@ -97,7 +97,7 @@ describe('auto-onboarding', () => {
     const store = new Store(':memory:');
     const r = await handleInbound({ store, consts, households: () => [home()], sim: () => sim(0, { status: 'idle' }), now: () => NOON_ET, log: () => undefined,
       optedInHousehold: a => (a === PHONE ? IDENTITY : undefined) }, PHONE, 'hi');
-    expect(r.texts[0]).toMatch(/^Thanks. You're set for Test iPhone/);
+    expect(r.texts[0]).toMatch(/^Thank you. You're set for Test iPhone/);
     expect(store.contact(PHONE)?.consented).toBe(true);
     const stranger = await handleInbound({ store, consts, households: () => [home()], sim: () => sim(0), now: () => NOON_ET, log: () => undefined,
       optedInHousehold: () => undefined }, '+15555550999', 'hi');

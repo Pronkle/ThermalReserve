@@ -12,7 +12,6 @@ cd apps/imessage
 npm test                                      # offline, no credentials
 npm run dev                                   # terminal provider: chat in this terminal
 npm start                                     # cloud iMessage; needs .env (below)
-npm run codes                                 # list each household's link code (nickname → code)
 ```
 
 `apps/imessage/.env` (gitignored; never commit it):
@@ -51,13 +50,12 @@ STDB_DB=thermal-reserve CHAT_DEMO=1 CHAT_ONBOARD=1 CHAT_HELLO_TO=<demo phone, E.
 
 During judging the process runs on a team laptop (H1-approved exception to "no laptop process"). If it stops, the website is unaffected; texts just stop.
 
-## How linking works (design A, inbound-first)
+## How linking works (START / STOP, no codes)
 
-1. A household joins on `/home`. Its link code is the first 6 characters of base32(SHA-256(identity hex, lowercase, as UTF-8 text)).
-2. The person texts `Link my home <CODE>` to the Thermal Reserve line. Their own text is the opt-in and gives us their number; we never store it in SpacetimeDB.
-3. The companion replies `Linked to <nickname>…` and offers `NO` (wrong home) and `STOP`.
-
-Photon's shared-line plan only delivers to numbers added as users of our Photon project, so a phone must be added in the Photon dashboard before it can link.
+1. A household joins on `/home`, ticks "Text me updates by iMessage" and enters a first name, last name and phone. `/home` calls `set_contact`; the row is private (only the companion's identity reads it, via `contact_feed`).
+2. The companion adds the number to our Photon project and publishes the person's assigned Photon line (`set_contact_line`); `/home` shows "Text START to {line}".
+3. The person texts **START** (any first text works). That is their consent, and it opts them in with Photon, which only lets us text people who have texted their line once. The companion links the number to that household and replies "Thank you. You're set for …".
+4. **STOP** at any time deletes everything for the number, here and in the database (`remove_contact`). A number that never opted in on `/home` gets one line explaining how to join.
 
 ## Auto-onboarding from /home (H1-approved Oct 4)
 
@@ -77,7 +75,7 @@ The watcher compares each linked household with the last state it told them abou
 
 Changes are merged: at most one text per contact per 20 s. Anything that happens inside the window goes into a single catch-up list (oldest first, at most 5 lines plus "plus N smaller changes", ending with the current state and one question). Every text says "Thermal Reserve demo" and "(simulated)", uses the sim clock in Anchorage time like `/home`, and takes its numbers only from the household row and `data/constants.json`.
 
-Replies it understands now: `Link <code>`, `NO`, `STOP` (deletes everything stored for the number), "thanks"/"ok"/👍 (answered with a tapback, no text), "only big changes" (summary only), "text me every change", "text me anytime" (ignores quiet hours), "no texts at night".
+Replies it understands now: `START`, `STOP` (deletes everything stored for the number), "thanks"/"ok"/👍 (answered with a tapback, no text), "only big changes" (summary only), "text me every change", "text me anytime" (ignores quiet hours), "no texts at night".
 
 ## Two agents (Phase 2)
 
@@ -116,11 +114,11 @@ The watcher state and the queue are written in one transaction. Spectrum has no 
 
 On our shared-line plan, Photon routed a person's texts to our project only for a while after we had texted them. After about 35 minutes of silence, texts from the demo iPhone showed Delivered but never reached the companion or a bare listener. After one outbound text, replies arrived, including at a bare listener started 2 minutes later. The window's length isn't documented; it's somewhere between 2 and 35 minutes.
 
-What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion texts it once at startup ("…assistant is on…", with the link code when there is one household). During an event, our own updates keep the window open. Before the judged demo, restart the companion (or send any text to the phone) a few minutes ahead.
+What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion texts it once at startup ("…assistant is on… text START"). During an event, our own updates keep the window open. Before the judged demo, restart the companion (or send any text to the phone) a few minutes ahead.
 
 ## Honest limitations
 
-- Household identities are public, so anyone who knows the code could link a phone to someone else's home. Acceptable for a demo; `NO` undoes a wrong link.
+- Photon's shared line can't be texted first, so a person must text START before any update reaches them.
 - Household rows update once per Spacetime tick (every 2 simulated hours at 2 h/s), so a short setback appears as one update.
 - The terminal provider can't open a conversation first, so in `npm run dev` a restarted process can only text after you type something.
 - No real thermostat is controlled; everything is the simulation.
@@ -130,7 +128,7 @@ What we do about it: set `CHAT_HELLO_TO` to the demo phone so the companion text
 ```
 src/main.imessage.ts   cloud iMessage entrypoint      src/main.terminal.ts   terminal entrypoint
 src/app.ts             wiring                          src/config.ts          env + constants
-src/stdb/mirror.ts     read-only Spacetime mirror      src/link.ts            link codes
+src/stdb/mirror.ts     read-only Spacetime mirror      src/link.ts            household short codes (Photon placeholder email)
 src/watcher/           detect, compose, notifier       src/concierge/         inbound rules + concierge agent
 src/insights/          Insights agent, tools, honesty   scripts/qa-terminal.sh  10-question acceptance run
 src/memory/store.ts    SQLite (node:sqlite)            spike/                 Phase 0 experiments + dev-run driver

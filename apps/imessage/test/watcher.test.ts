@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { base32, linkCode, parseLinkCode } from '../src/link';
+import { base32, linkCode } from '../src/link';
 import { detect, initialState, type NotifiedState } from '../src/watcher/detect';
 import { clockLabel, composeMessage, pickForList } from '../src/watcher/compose';
 import type { Transition } from '../src/types';
@@ -16,12 +16,6 @@ describe('link codes', () => {
     expect(linkCode(`0x${IDENTITY.toUpperCase()}`)).toBe(code);
     // Shared vector with apps/web (householdLinkCode in patches/web-home-link-code.patch).
     expect(code).toBe('LOWM3V');
-  });
-  it('parses the prefilled text and casual variants', () => {
-    expect(parseLinkCode('Link my home K7Q2MX')).toBe('K7Q2MX');
-    expect(parseLinkCode('link k7q2mx')).toBe('K7Q2MX');
-    expect(parseLinkCode('LINK: K7Q2MX please')).toBe('K7Q2MX');
-    expect(parseLinkCode('what is a link')).toBeUndefined();
   });
 });
 
@@ -71,6 +65,23 @@ describe('detect', () => {
   it('linking after the event ended stays silent', () => {
     const start = initialState(home({ savedCf: 50 }), sim(90), consts);
     expect(run([[91, { savedCf: 50 }]], start).all).toEqual([]);
+  });
+
+  it('a live re-plan (new plan id mid-run) is not a new run: the summary goes out once', () => {
+    let state = initialState(home(), sim(0, { status: 'idle' }), consts);
+    const kinds: string[] = [];
+    for (const [hour, planId] of [[30, 'p-rp0'], [50, 'p-rp48'], [84, 'p-rp78'], [89, 'p-rp84'], [96, 'p-rp90']] as const) {
+      const r = detect(state, home(hour === 30 ? { targetF: 66 } : {}), sim(hour, { planId }), consts);
+      state = r.next;
+      kinds.push(...r.transitions.map(t => t.kind));
+    }
+    expect(kinds.filter(k => k === 'event_end')).toHaveLength(1);
+    expect(kinds.filter(k => k === 'setback_start')).toHaveLength(1);
+  });
+
+  it('a restart with stale saved state after the event sends nothing (no repeated summary)', () => {
+    const stale = { ...initialState(home(), sim(50), consts), runKey: 'old-format|key|plan' };
+    expect(detect(stale, home({ savedCf: 70 }), sim(96), consts).transitions).toEqual([]);
   });
 
   it('a reset (sim hour going back) starts a fresh run', () => {

@@ -7,7 +7,6 @@ import { converse, memoryCard } from '../src/concierge/agent';
 import { handleInbound } from '../src/concierge/inbound';
 import type { ModelCall } from '../src/insights/agent';
 import { runTool } from '../src/insights/tools';
-import { linkCode } from '../src/link';
 import { addNote, cleanNote, MAX_NOTES_PER_CATEGORY, Store } from '../src/memory/store';
 import type { HouseholdView, SimView, World } from '../src/types';
 import { Feed, startViewer } from '../src/viewer';
@@ -39,7 +38,7 @@ function session(store: Store, startClock = NOON_ET) {
   });
   const notifier = new Notifier({ store, consts, config, household: id => world.household(id), sim: () => s, sendText: async (_a, b) => { sent.push(b); }, now: () => clock, log: () => undefined });
   const text = (body: string, answer = 'Okay.') => handleInbound({
-    store, consts, households: () => [h], sim: () => s, now: () => clock, log: () => undefined,
+    store, consts, households: () => [h], sim: () => s, now: () => clock, log: () => undefined, optedInHousehold: (a: string) => (a === PHONE ? IDENTITY : undefined),
     converse: async (a, id, t) => (await converse({ store, world, consts, call: reply(answer), log: () => undefined }, a, id, t)).bubbles,
   }, PHONE, body);
   async function play(from: number, to: number, speed: number) {
@@ -76,7 +75,7 @@ describe('memory is limited to what matters for heating', () => {
 describe('unanswered back-off', () => {
   it('after 2 unanswered texts: says so once, then only the summary, with nothing lost', async () => {
     const x = session(new Store(':memory:'));
-    await x.text(`Link my home ${linkCode(IDENTITY)}`);
+    await x.text('START');
     await x.play(0, 96, 2);
     expect(x.sent).toHaveLength(3);
     expect(x.sent[1]).toContain(BACKOFF_NOTICE);
@@ -89,7 +88,7 @@ describe('unanswered back-off', () => {
   it('a reply resets it: updates flow again', async () => {
     const store = new Store(':memory:');
     const x = session(store);
-    await x.text(`Link my home ${linkCode(IDENTITY)}`);
+    await x.text('START');
     await x.play(0, 40, 2);                         // 2 texts sent, now backing off
     await x.text('ok so what is happening');         // they text again
     expect(store.contact(PHONE)?.unanswered).toBe(0);
@@ -106,7 +105,7 @@ describe('three-session acceptance (brief Phase 3)', () => {
 
     // Session 1: link and ask why.
     const s1 = session(new Store(path));
-    await s1.text(`Link my home ${linkCode(IDENTITY)}`);
+    await s1.text('START');
     await s1.text('why does my heat get lowered at all? my baby sleeps in the back room');
 
     // Session 2: a preference.

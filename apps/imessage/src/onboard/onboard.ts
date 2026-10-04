@@ -1,5 +1,5 @@
 // Auto-onboarding (H3, Oct 4): a household that opted in on /home with name and phone is
-// added to Photon's user list, then gets one text-only opener asking for YES. Nothing else is
+// added to Photon's user list, then gets one text-only opener asking for START. Nothing else is
 // sent until they reply (Photon's guidance for conversations we start). The contact source is
 // STDB's private household_contact table (H1 approved Oct 4; read path pending STDB's post).
 import { maskAddress, type ChatConstants } from '../config';
@@ -33,7 +33,7 @@ export interface OnboardDeps {
 }
 
 export const opener = (nickname: string) =>
-  `Thermal Reserve demo here for ${nickname}. You asked on the household page for heat updates by text during a simulated cold snap. Reply YES to start, or STOP and I won't text again.`;
+  `Thermal Reserve demo here for ${nickname}. You asked on the household page for heat updates by text during a simulated cold snap. Reply START to begin, or STOP and I won't text again.`;
 
 export type OnboardResult = 'onboarded' | 'already linked' | 'invalid' | 'no household' | 'failed';
 
@@ -62,7 +62,7 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
     }
     const sim = deps.sim();
     const state = sim ? initialState(home, sim, deps.consts) : { runKey: '', lastSimHour: 0, mode: 'normal' as const, overridden: home.overridden, notifiedTargetF: home.targetF, exemptNotified: false, endNotified: false };
-    // Linked but not consented: the watcher queues nothing for them until they reply YES.
+    // Linked but not consented: the watcher queues nothing for them until they reply START.
     deps.store.link(req.phone, req.identity, home.nickname, state, now, { consented: false });
     const body = opener(home.nickname);
     // A number Photon has just added can be refused for a short while ("Target not allowed"), so
@@ -75,7 +75,7 @@ export async function onboard(deps: OnboardDeps, req: ContactRequest): Promise<O
     }
     if (!sent) { deps.store.forget(req.phone); log(`[onboard] ${maskAddress(req.phone)}: opener failed after retries; nothing stored`); return 'failed'; }
     deps.store.addHistory(req.phone, 'out', body, now);
-    log(`[onboard] opener sent to ${maskAddress(req.phone)} for ${home.nickname}; waiting for YES`);
+    log(`[onboard] opener sent to ${maskAddress(req.phone)} for ${home.nickname}; waiting for START`);
     return 'onboarded';
   } catch (e) {
     log(`[onboard] ${maskAddress(req.phone)} failed: ${String(e).slice(0, 200)}`);
