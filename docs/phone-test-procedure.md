@@ -71,6 +71,10 @@ Do Phone A first, then Phone B. The recorder times each join from scan to live c
 | D5 | Phone: open `/whatif` and `/validation`; then turn on airplane mode and reload | Both pages render (what-if default 1.43 MMcf/day; ConEd 0.465 Pass; SoCalGas 1.14% Gap). If they don't render offline, note it (E8) | E8, N1–N9 |
 | D6 | Mac in Safari: open `/ops` | Map and chart fit at the window size; QR enlarges on click | B1–B3 |
 
+## Part D2: iMessage companion (only if CHAT ships, ~10 min)
+
+Run `docs/test-plan.md` §4b (C-1 to C-9) with Phone A (iPhone, Messages). Use **1 h/s** instead of 2 h/s so the texts have room. The companion process must be running (where it runs during judging is H1's decision). Skip this part entirely if CHAT hasn't reached its Phase 1.
+
 ## Part E: clean up (2 min)
 
 1. Mac: press **Reset households**, then **Reset**. Confirm the map shows no large household dots and the event log is cleared.

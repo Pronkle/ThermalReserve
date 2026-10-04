@@ -1,5 +1,7 @@
 # TODO: text notifications for households
 
+**Superseded (Oct 4):** notifications are now the CHAT agent's job, by iMessage through Photon Spectrum; see `docs/agents/CHAT_BRIEF.md`. This list remains as background (consent, privacy, rate limits); its channel and sending sections no longer apply.
+
 Status: **not planned for the hackathon build.** This is the work list if the team decides to add notifications (for example "A cold-snap event starts in 30 minutes" or "Your home is back to normal heat"). Items marked **verify** are assumptions that must be checked against current docs before anyone builds on them (AGENTS.md rule 7). Nothing here is implemented.
 
 Today, households already see live status in the open `/home` tab through Spacetime subscriptions. Notifications would reach them when the tab is closed or the phone is locked.

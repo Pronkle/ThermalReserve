@@ -41,6 +41,10 @@ Thermal Reserve simulates a fleet of Anchorage homes and dispatches thermostat s
 - **Web app.** React, Vite, TypeScript, Tailwind, Recharts, Leaflet with OpenStreetMap tiles, deployed on Vercel.
 - **Data.** Scenarios replay real Anchorage weather (the Jan 31–Feb 3, 2024 cold snap and last winter's coldest stretch, Jan 2–5, 2026) plus a synthetic −20°F design snap. Everything rebuilds offline from saved ACIS responses with `npm run data`.
 
+### iMessage companion (Photon Spectrum) ⏳ UNFINISHED: only if CHAT ships
+
+[CHAT supplies this text (brief §10): the two-agent design (a Concierge that owns the conversation and an Insights agent that answers "why" questions from tool results only), persistent memory, social behaviors (tapbacks, quiet hours, backing off when nobody replies), and the honesty guard that rejects any number no tool produced. Spectrum is the iMessage transport, which the Photon prize track requires. Cut this subsection if CHAT doesn't reach a demoable phase by the 10:00 freeze.]
+
 ## 4. Validation
 
 Results from ENGINE's validation tests (E4, after tuning only Ca, Ham and the mass time constant within their allowed ranges), recomputed by DATA on `main` with the final constants.
@@ -82,7 +86,7 @@ On the Feb 2024 replay with 25,000 homes, only Feb 2 exceeds the (hypothetical) 
 
 ## 8. AI use disclosure
 
-Coding agents wrote much of the code under human direction: three Claude Code sessions (Claude Opus 5.5, one Claude Max and two Claude Pro accounts) and one OpenAI Codex session (GPT-6.1 Sol). Humans chose the problem, designed the model and validation, set every contract, reviewed code, and verified the numbers. The agents coordinated through MCP Agent Mail and git branches with a test-gated merge. A line-by-line log is in `docs/AI_LOG.md`. [H3: summarize the final log here.]
+Coding agents wrote much of the code under human direction: three Claude Code sessions (Claude Opus 5.5, one Claude Max and two Claude Pro accounts) and one OpenAI Codex session (GPT-6.1 Sol). [⏳ If CHAT ships: add the fifth agent (CHAT, iMessage companion; tool, account, model TBD), and say that the companion itself uses the Claude API at runtime, without the phrase "AI-powered".] Humans chose the problem, designed the model and validation, set every contract, reviewed code, and verified the numbers. The agents coordinated through MCP Agent Mail and git branches with a test-gated merge. A line-by-line log is in `docs/AI_LOG.md`. [H3: summarize the final log here.]
 
 ## 9. Notability
 
@@ -104,12 +108,13 @@ Full list with links, dates, and the supporting text for each number: `docs/sour
 
 ---
 
-**Built with:** SpacetimeDB, TypeScript, React, Vite, Tailwind CSS, HiGHS, Leaflet, OpenStreetMap, Recharts, Vercel, Vitest, Claude Code, OpenAI Codex, MCP Agent Mail, Notability
+**Built with:** SpacetimeDB, TypeScript, React, Vite, Tailwind CSS, HiGHS, Leaflet, OpenStreetMap, Recharts, Vercel, Vitest, Claude Code, OpenAI Codex, MCP Agent Mail, Notability [⏳ if CHAT ships: Photon Spectrum, iMessage, Claude API, SQLite]
 
 ## Submission checklist
 
 - [ ] All three teammates added on Devpost
 - [ ] Theme: Sustainability; opt into the Spacetime and Notability sponsor prizes; LLM judging if allowed
+- [ ] ⏳ If CHAT ships: opt into the Photon iMessage prize track (Spectrum must be the iMessage transport)
 - [ ] Table number entered
 - [ ] Public repo link, live app link, backup video link
 - [ ] Screenshots: ops console mid-event, fleet chart naive vs optimized, validation page, phone app, Notability (2)
