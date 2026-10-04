@@ -277,8 +277,8 @@ describe('pressure constants, presets and ticks (D-A1)', () => {
     expect(Math.abs(v('linepack_usable_mmcf') - usableLinepackMMcf(v('deliverability_2024_mmcfd'), demandShape))).toBeLessThan(0.01);
   });
 
-  it('demand_sensitivity_mmcfd_per_f is system_fit.json b, rounded', () => {
-    expect(Math.abs(v('demand_sensitivity_mmcfd_per_f') - systemFitJson.b)).toBeLessThan(0.005);
+  it('demand_sensitivity_mmcfd_per_f is system_fit.json b', () => {
+    expect(v('demand_sensitivity_mmcfd_per_f')).toBe(systemFitJson.b);
   });
 
   it('presets: Near-miss and Stress on known scenarios, 25,000 homes, default reserve', () => {
