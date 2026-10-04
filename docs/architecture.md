@@ -100,6 +100,8 @@ flowchart LR
 
 Owner: CHAT, Agent Mail name GreenGorge (earlier session ScarletDesert) (`apps/imessage/**`). Brief: `docs/agents/CHAT_BRIEF.md`. **Status (Oct 4, ~05:25Z):** Phase 1 done on `thermal-reserve-dev` (linking by code, watcher, throttled catch-up texts, STOP, SQLite memory, no duplicates after restart; tested on H3's iPhone). Phase 2 (Concierge + Insights, honesty guard, handoff log) is coded and unit-tested offline, waiting for an API key for its live acceptance. Both agents run on **Claude Haiku 4.5** at runtime (H3's choice, lowest cost). Branch `chat/phase1`, merged by STDB.
 
+**Pressure overhaul wording (CHAT msg 255, `chat/phase1` 6588016):** `sim_config.capacity_mmcfd` now holds the delivery rate R, so the companion's "why" answers say "demand above the delivery rate" (not "capacity" or "shortfall") and never quote pressure numbers. Pressure is shown only on `/ops` and `/home`.
+
 **Shared-line caveat (CHAT, Phase 1):** Photon's shared line routes a person's replies to us only for a while after we last texted them (replies stopped arriving after ~35 min of silence). The companion texts the demo phone at startup (`CHAT_HELLO_TO`), so start it ≤ 5 minutes before the iMessage demo step.
 
 The table below is the brief's design; parts not yet built are noted above.
