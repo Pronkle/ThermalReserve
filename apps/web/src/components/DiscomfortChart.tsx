@@ -10,5 +10,5 @@ export function DiscomfortChart({ rows, scenario, maxDepthF, degreeHours, minInd
       <Tooltip {...tooltipProps} content={props => <ChartTooltip {...props} scenario={scenario} line={entry => <>{entry.name}: {temperature.format(Number(entry.value))}°F below no program</>} />} />
       <ReferenceArea x1={scenario.eventStartHour} x2={scenario.eventEndHour} fill="#5BC0EB" fillOpacity={0.05} /><ReferenceLine y={maxDepthF} stroke="#7A869A" strokeDasharray="3 3" />
       <Area name="Selected plan mean" dataKey="active" fill="#5BC0EB" fillOpacity={0.2} stroke="#5BC0EB" isAnimationActive={false} /><Line name="Coldest home type gap" dataKey="worst" stroke="#E6EDF7" strokeWidth={1} dot={false} isAnimationActive={false} /><Line name="Naive 4-hour" dataKey="naive" stroke="#F2A541" strokeDasharray="5 3" dot={false} isAnimationActive={false} />
-    </ComposedChart></ResponsiveContainer></div><figcaption>{degreeHours === undefined ? 'Solve to see the selected plan’s discomfort.' : holdingHours ? `${integer.format(degreeHours)} °F·h/home: about ${temperature.format(degreeHours / holdingHours)}°F cooler across ${holdingHours} setback hours.` : `${integer.format(degreeHours)} °F·h/home.`} {minIndoorF !== undefined && `No home below ${temperature.format(minIndoorF)}°F.`}</figcaption></figure>;
+    </ComposedChart></ResponsiveContainer></div></figure>;
 }

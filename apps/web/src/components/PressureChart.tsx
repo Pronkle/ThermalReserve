@@ -30,6 +30,6 @@ export function PressureChart({ rows, scenario, reserve, summary, baseline, capt
       <Line name="Live" dataKey="live" stroke="#E6EDF7" strokeWidth={3} dot={false} connectNulls={false} isAnimationActive={false} />
       {baseline.firstBelowHour !== null && <ReferenceDot x={baseline.firstBelowHour + 1} y={rows[baseline.firstBelowHour + 1]?.baseline} r={3} fill="#E5484D" stroke="#E5484D" label={{ value: `No program: ${clockLabel(scenario, baseline.firstBelowHour + 1)}`, position: 'bottom', fill: 'var(--muted)', fontSize: 11 }} />}
       {summary && <ReferenceDot x={summary.minHour + 1} y={summary.minIndex} r={4} fill="#5BC0EB" stroke="#5BC0EB" label={{ value: `Minimum ${integer.format(summary.minIndex)}`, position: 'top', fill: '#5BC0EB', fontSize: 12 }} />}
-    </ComposedChart></ResponsiveContainer></div><figcaption>{caption}</figcaption>
+    </ComposedChart></ResponsiveContainer></div>
   </figure>;
 }
