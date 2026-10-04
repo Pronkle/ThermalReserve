@@ -17,7 +17,9 @@ export interface NotifiedState {
   endNotified: boolean;
 }
 
-export const runKey = (sim: SimView) => `${sim.scenarioId}|${sim.startIso}|${sim.planId}`;
+// A new run is a new scenario (or a reset, detected by the sim hour going back). The plan id is
+// not part of it: live re-plans dispatch new plan ids mid-run.
+export const runKey = (sim: SimView) => `${sim.scenarioId}|${sim.startIso}`;
 
 export function heatMode(h: HouseholdView, normalF: number): HeatMode {
   if (h.exempt) return 'exempt';

@@ -1,5 +1,5 @@
-// Link codes (CHAT brief §5.1 design A): first 6 characters of base32(SHA-256(identity hex)).
-// /home and the concierge compute the same code from the public household identity.
+// Short household codes: first 6 characters of base32(SHA-256(identity hex)). No longer used
+// for linking (H3, Oct 4: START/STOP only); still names the placeholder email Photon requires.
 import { createHash } from 'node:crypto';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -23,10 +23,4 @@ export function base32(bytes: Uint8Array): string {
 export function linkCode(identityHex: string): string {
   const hex = identityHex.toLowerCase().replace(/^0x/, '');
   return base32(createHash('sha256').update(hex, 'utf8').digest()).slice(0, 6);
-}
-
-// "Link my home K7Q2MX", "link k7q2mx", "LINK K7Q2MX please" → "K7Q2MX".
-export function parseLinkCode(text: string): string | undefined {
-  const match = /\blink\b(?:\s+my\s+home)?\s*:?\s*([a-z2-7]{6})\b/i.exec(text);
-  return match ? match[1].toUpperCase() : undefined;
 }

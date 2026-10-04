@@ -12,7 +12,6 @@
     "spike:drive": "tsx spike/drive-dev.ts",
     "start": "node --env-file=.env --import tsx src/main.imessage.ts",
     "dev": "tsx src/main.terminal.ts",
-    "codes": "tsx src/codes.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "qa": "scripts/qa-terminal.sh"
