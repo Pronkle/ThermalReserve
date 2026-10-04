@@ -76,9 +76,12 @@ try {
   const p = pressureParams(consts, raw, 11.5, 10);
   assert.equal(config.capacityMmcfd, p.rMMcfd);
   const cfg = { enrolledHomes: config.enrolledHomes, exemptShare: config.exemptShare, floorF: config.floorF, maxDepthF: config.maxDepthF, capacityMMcfd: config.capacityMmcfd, overrideRate: config.overrideRate, seed: 42 };
-  const expected = await replanRun(sc, cohorts, cfg, consts, p, { mode: 'REPLAN', bufferSigma: raw.forecast_buffer_sigma_default.value, strategy: 'OPTIMIZED', policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: raw.drift_temp_f.value, driftHours: raw.drift_hours.value, driftPressureIdx: raw.drift_pressure_idx.value, driftFadeH: raw.drift_fade_h.value } });
+  const expected = await replanRun(sc, cohorts, cfg, consts, p, { mode: 'REPLAN', bufferSigma: raw.forecast_buffer_sigma_default.value, strategy: 'OPTIMIZED', policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: Infinity, driftHours: raw.drift_hours.value, driftPressureIdx: Infinity, driftFadeH: raw.drift_fade_h.value } });
   const expectedIndex = pressureIndex(expected.run.hours.map(row => row.systemMMcfh), p);
   assert(expected.segments.length > 1, 'Multiple forecast segments');
+  assert(expected.segments.slice(1).every(segment => segment.reason === 'forecast'), 'Every re-plan uses a new forecast');
+  const summary = pressureSummary(expectedIndex, p);
+  assert(summary.minIndex >= p.reserveIdx, 'Near-miss holds the full reserve');
   assert(await page.locator('.temperature-chart .recharts-reference-line').count() > 0);
   const dispatches = [];
   connection.db.simConfig.onUpdate((_ctx, previous, next) => {
@@ -120,5 +123,5 @@ try {
   assert(await page.locator('.log-panel').innerText().then(text => text.includes('Re-plan')));
   await page.screenshot({ path: '/tmp/thermal-reserve-forecast-run.png', fullPage: true });
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ acceptance: 'Forecast W-C1 automated PASS', solveMs, maxBeatGap, segments: expected.segments.map(segment => ({ hour: segment.fromHour, reason: segment.reason })), dispatches, hoursCompared: aggregates.length, maxPressureError: error, phonePressureMatches: true, layouts: ['1280×800', '1440×900'], inputInvalidation: true, pageErrors: errors }));
+  console.log(JSON.stringify({ acceptance: 'Forecast W-C1 automated PASS', solveMs, maxBeatGap, plannedMinimumIndex: summary.minIndex, segments: expected.segments.map(segment => ({ hour: segment.fromHour, reason: segment.reason })), dispatches, hoursCompared: aggregates.length, maxPressureError: error, phonePressureMatches: true, layouts: ['1280×800', '1440×900'], inputInvalidation: true, pageErrors: errors }));
 } finally { connection?.disconnect(); await browser.close(); }

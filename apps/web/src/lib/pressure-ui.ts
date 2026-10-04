@@ -11,7 +11,7 @@ export function pressureReady(raw: ConstantsJson = constants.raw) {
   return ['deliverability_2024_mmcfd', 'linepack_usable_mmcf', 'reserve_default_idx'].every(key => typeof raw[key]?.value === 'number') && presets.length > 0;
 }
 export function pressureInputKey(scenarioId: string, config: FleetConfig, input: PressureInputs) {
-  return JSON.stringify([scenarioId, config.enrolledHomes, config.exemptShare, config.floorF, config.maxDepthF, config.overrideRate, config.seed, input.lostMMcfd, input.reserveIdx, input.bufferSigma, input.planningMode, input.strategy]);
+  return JSON.stringify(['forecast-only-v1', scenarioId, config.enrolledHomes, config.exemptShare, config.floorF, config.maxDepthF, config.overrideRate, config.seed, input.lostMMcfd, input.reserveIdx, input.bufferSigma, input.planningMode, input.strategy]);
 }
 export function pressurePlanId(scenarioId: string, strategy: Strategy, hour: number, key: string) {
   let hash = 0xcbf29ce484222325n;
