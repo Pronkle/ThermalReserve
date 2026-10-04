@@ -45,14 +45,17 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
   const onboardOn = process.env.CHAT_ONBOARD === '1' && !!process.env.CHAT_OPERATOR_PASSCODE;
   const photon = photonUsers(cliRunner());
   let onboarding = Promise.resolve();
+  const onboardQueued = new Set<string>(); // the startup pass and the feed's insert event can both fire
   const enqueueOnboard = (row: ContactFeedRow) => {
+    if (onboardQueued.has(row.phone)) return;
+    onboardQueued.add(row.phone);
     onboarding = onboarding.then(async () => {
       const result = await onboard({
         store, consts, photon, household: id => mirror.household(id), sim: () => mirror.sim(),
         sendText: (address, body) => transport.sendText(address, body), log,
       }, row);
       if (result !== 'already linked') log(`[onboard] ${maskAddress(row.phone)}: ${result}`);
-    }).catch(e => log(`[onboard] error: ${String(e).slice(0, 160)}`));
+    }).catch(e => log(`[onboard] error: ${String(e).slice(0, 160)}`)).finally(() => onboardQueued.delete(row.phone));
   };
 
   const mirror: Mirror = new Mirror(config, {
