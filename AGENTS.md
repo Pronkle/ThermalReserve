@@ -1,6 +1,6 @@
 # Thermal Reserve — Agent Handoff: Pressure Overhaul (AGENTS.md)
 
-Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas)
+Oct 4, 2026 · replaces the Oct 3 AGENTS.md in full · team decisions taken 03:30 Sunday · updated 04:25 with H1's three `[CONTRACT]` decisions (reserve weight 1e4, anchors at W = 9.1, clamped curtailed gas) · updated 05:35: re-plan default is forecast-only at 0.75σ
 
 ## 1. Start here
 
@@ -135,8 +135,8 @@ Other banners stay: rule-based fallback, disconnected, command errors.
 | Deliverability lost vs Feb 2024 | 0–35 MMcf/day, step 0.5 | Near-miss value | Tick marks and labels from `data/deliverability_ticks.json` |
 | Enrolled homes | 5,000–50,000, step 1,000 | 25,000 | Tooltip: participation is an assumption |
 | Reserve | 5–20 index points | 10 | |
-| Forecast buffer (Tier C) | 0–2σ, step 0.25 | 1σ | Shows the °F equivalent at the peak hour |
-| Planning (Tier C) | Re-plan on forecast / Single forecast plan / Observed weather | Re-plan when the scenario has forecasts, else Observed | Drives the plan chip |
+| Forecast buffer (Tier C) | 0–2σ, step 0.25 | 0.75σ | Shows the °F equivalent at the peak hour |
+| Planning (Tier C) | Re-plan on forecast / Single forecast plan / Observed weather | Re-plan when the scenario has forecasts, else Observed. Re-plan means on each new forecast run, with the drift triggers off (H1, Oct 4 05:35) | Drives the plan chip |
 | Strategy | No program, Naive 4-hour, Staggered, Optimized, Max relief | Optimized | Max relief kept as is; not demoed |
 | Max setback, comfort floor, speed | As today | 5°F, 62°F, 2 h/s | |
 
@@ -185,7 +185,7 @@ The screen, the pitch and the Devpost say the same things. A claim is allowed on
 | "In Feb 2024 nobody was cut off" | Always | Never "our program would have saved Feb 2024" |
 | "With less supply than Feb 2024, nobody gets cut off" | Near-miss stays above zero | Quote hours below and curtailed gas |
 | "When it's larger, fewer people do" | Stress shows less curtailed gas than No program | Drop the claim |
-| "Sized before the cold snap" | The hour-0 plan used a real archived forecast | "Sized from observed weather in this replay" |
+| "Sized before the cold snap" | Not allowed on this build: a single plan from the hour-0 forecast goes below zero on the real Feb 2024 forecasts (ENGINE, E-C2) | "Re-planned as each new forecast arrived" (Re-plan mode) or "Sized from observed weather in this replay" |
 | "On call within minutes" | A spoken property of thermostats | Never a measured response time |
 | "Tracked live" | Always, about the simulation | Never "measured" |
 | "Lands the rebound where there's room" | The pressure chart shows no post-event dip below the reserve | Never "never lands on a peak" or "solves snapback" |
@@ -205,7 +205,7 @@ Also: no CO2 or diesel numbers in the UI; no "first"; no "AI-powered"; no exclam
 | `linepack_usable_mmcf` | 9.54 | MMcf | derived | `usableLinepackMMcf(278, demand_shape)` |
 | `reserve_default_idx` | 10 | index points | assumed | Team decision |
 | `reserve_min_idx` | 5 | index points | assumed | Covers hourly-plan vs 5-minute-simulation differences |
-| `forecast_buffer_sigma_default` | 1 | σ | assumed | Team decision |
+| `forecast_buffer_sigma_default` | 0.75 | σ | assumed | Team decision after ENGINE's cadence comparison; chosen on the feb2024 replay |
 | `forecast_lag_h` | 1 | h | assumed | A run is usable 1 h after its run time |
 | `replan_interval_h` | 6 | h | assumed | Matches forecast issue cadence |
 | `drift_temp_f` | 1.5 | °F | assumed | Drift trigger: observed minus forecast in use, sustained |
@@ -294,7 +294,7 @@ With `opts.pressure`:
 
 **Planning weather rules (`planningScenario`).** Hours before `fromHour` use observed temperatures. Later hours use `latestRun(sc, fromHour)`, plus the drift correction if given (`errorF` = observed minus forecast at the last observed hour, fading linearly to 0 over `fadeH` hours), minus `bufferSigma × sigmaF` (if sigma is null, use the RMSE for that lead from `forecast_error.json`, passed in through constants by the web app). Hours the run does not cover fall back to the newest earlier run that does, else to the last covered value. Demand is shifted, not recomputed: `planningSystemMMcfh = sc.systemMMcfh + b × (observedDailyMeanF − planningDailyMeanF) × shape[hour]`, so a perfect forecast reproduces the observed scenario exactly. `SINGLE` = one plan at hour 0 with the run available then; `OBSERVED` = today's behavior.
 
-**`replanRun` rules.** Under `SCHEDULED_PLUS_DRIFT` (the default; constants from Section 6), the runner checks every simulated hour and re-plans at hour 0, when a new forecast run's `availableHour` is reached (reason `forecast`), when observed temperature has differed from the forecast in use by more than `driftTempF` for `driftHours` consecutive hours (`drift-temp`), or when the actual pressure index is more than `driftPressureIdx` below what the current plan expected (`drift-pressure`). Drift re-plans pass the drift correction to `planningScenario`; at most one re-plan per hour, and after a drift re-plan the temperature trigger resets. `FIXED` re-plans every `intervalH` hours (for the cadence comparison). Each segment's initial house states and `initialIdx` come from simulating the plan so far against **actual** weather with `runPlan`. The stitched plan uses each segment's targets for its own hours. The returned `run` is the stitched plan run against actual weather; that is what charts and verdicts show.
+**`replanRun` rules.** The shipped default is `SCHEDULED_PLUS_DRIFT` with both drift triggers off (`driftTempF` and `driftPressureIdx` passed as `Infinity`), so it re-plans at hour 0 and at each new forecast run only (H1, Oct 4 05:35). Under `SCHEDULED_PLUS_DRIFT` with the Section 6 drift constants, the runner checks every simulated hour and re-plans at hour 0, when a new forecast run's `availableHour` is reached (reason `forecast`), when observed temperature has differed from the forecast in use by more than `driftTempF` for `driftHours` consecutive hours (`drift-temp`), or when the actual pressure index is more than `driftPressureIdx` below what the current plan expected (`drift-pressure`). Drift re-plans pass the drift correction to `planningScenario`; at most one re-plan per hour, and after a drift re-plan the temperature trigger resets. `FIXED` re-plans every `intervalH` hours (for the cadence comparison). Each segment's initial house states and `initialIdx` come from simulating the plan so far against **actual** weather with `runPlan`. The stitched plan uses each segment's targets for its own hours. The returned `run` is the stitched plan run against actual weather; that is what charts and verdicts show.
 
 ## 8. Contract C: live database (STDB owns; no schema change)
 
@@ -411,7 +411,7 @@ You keep `main` green and the live database healthy.
 | 04:00 | G0 | This file committed; `[CONTRACT] pressure overhaul` posted; all agents registered and on fresh branches | H1 decides open points in 10 minutes |
 | 06:30 | GA | Near-miss above zero on the pressure chart with the live line; Stress shows less curtailed gas than No program; end-to-end test below passes; `?ui=gas` works | Pressure LP late: ship the screen on the daily LP and switch the claim (Section 5). Screen late: demo on `?ui=gas` |
 | 08:00 | GB | Three charts and map fit 1280×800; ENGINE's number review clean; `/home` pressure line matches | Hide the failing chart; pressure chart takes its space |
-| 09:30 | GC | Re-planned Near-miss on archived forecasts stays above zero without sitting at max setback for most of the event; live re-plans (scheduled and drift) dispatch on time; E-C2 table posted; precompute under 15 s | Single forecast plan, labeled; else Observed weather, labeled |
+| 09:30 | GC | Re-planned Near-miss on archived forecasts stays above zero without sitting at max setback for most of the event; live re-plans (scheduled and drift) dispatch on time; E-C2 table posted; precompute under 15 s | Observed weather, labeled (not Single forecast plan: it goes below zero on the real forecasts) |
 | 10:00 | Freeze | Final deploys, `v2.0` tag | Roll back to the last tag that passed its gate |
 
 If GA has not passed by 07:00, Tier C is cancelled and its time goes to Tier B and rehearsal.
