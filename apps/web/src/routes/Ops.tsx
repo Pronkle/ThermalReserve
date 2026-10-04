@@ -3,6 +3,7 @@ import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceLine,
 import { runPlan, gasDays, type Plan, type Strategy, type FleetConfig, type Scenario } from '@thermal-reserve/model';
 import { useConnection, useSimConfig, useAggregates, useSampleHomes, useEventLog, useReducers } from '../lib/stdb';
 import { launchSolve } from '../lib/solver';
+import { identifyPlan, planInputKey, planMatchesInputs, planNeedsNoSetbacks } from '../lib/plan-inputs';
 import { loadPreset, dispatchPreview, dispatchPlan } from '../lib/operator';
 import { JoinQr } from '../components/JoinQr';
 import { MapPreview } from '../components/MapPreview';
@@ -37,7 +38,7 @@ export function Ops() {
   const [solved, setSolved] = useState<{ key: string; plan: Plan }>();
   const pendingSolve = useRef<ReturnType<typeof launchSolve> | undefined>(undefined);
   const solveGeneration = useRef(0);
-  const solveKey = JSON.stringify([scenario.id, config]);
+  const solveKey = planInputKey(scenario.id, config);
   useEffect(() => {
     solveGeneration.current++;
     pendingSolve.current?.cancel();
@@ -52,7 +53,8 @@ export function Ops() {
     return { id: sim.planId, strategy: sim.strategy, targetsF };
   }, [remoteTargets, sim?.planId, sim?.strategy, scenario.hours]);
   const serializedConfig = sim ? JSON.stringify({ enrolledHomes: sim.enrolledHomes, exemptShare: sim.exemptShare, floorF: sim.floorF, maxDepthF: sim.maxDepthF, capacityMMcfd: sim.capacityMmcfd, overrideRate: sim.overrideRate, seed: 42 }) : '';
-  const selectedPlan = solved?.key === solveKey && (solved.plan.strategy === strategy || (solved.plan.note === 'Rule-based fallback' && (strategy === 'OPTIMIZED' || strategy === 'MAX_RELIEF'))) ? solved.plan : remotePlan?.strategy === strategy && JSON.stringify(config) === serializedConfig ? remotePlan : undefined;
+  const selectedPlan = solved?.key === solveKey && (solved.plan.strategy === strategy || (solved.plan.note === 'Rule-based fallback' && (strategy === 'OPTIMIZED' || strategy === 'MAX_RELIEF'))) ? solved.plan : remotePlan?.strategy === strategy && sim?.scenarioId === scenario.id && JSON.stringify(config) === serializedConfig && planMatchesInputs(remotePlan.id, solveKey) ? remotePlan : undefined;
+  const staleDispatch = !selectedPlan && remotePlan?.strategy === strategy;
   const solvedRun = useMemo(() => selectedPlan ? runPlan(scenario, cohorts, deferredConfig, selectedPlan, constants) : undefined, [scenario, deferredConfig, selectedPlan]);
   const run = solvedRun ?? data.runs[strategy === 'OPTIMIZED' || strategy === 'MAX_RELIEF' ? 'SUSTAIN_STAGGER' : strategy];
   const activeName = (strategy === 'OPTIMIZED' || strategy === 'MAX_RELIEF') && !selectedPlan ? 'Staggered · unsolved preview' : strategyNames[run.strategy];
@@ -71,7 +73,7 @@ export function Ops() {
       pendingSolve.current = launchSolve({ sc: scenario, cohorts, cfg: config, mode, consts: constants });
       const plan = await pendingSolve.current.result;
       if (solveGeneration.current !== generation) return;
-      setSolved({ key: solveKey, plan: { ...plan, id: `${plan.id.slice(0, 48)}-${Date.now().toString(36)}` } }); setStrategy(mode); setElapsedMs(performance.now() - start);
+      setSolved({ key: solveKey, plan: identifyPlan(plan, solveKey, Date.now().toString(36)) }); setStrategy(mode); setElapsedMs(performance.now() - start);
     } catch (error) { if (solveGeneration.current === generation) setCommandError(error instanceof Error ? error.message : String(error)); }
     finally { clearInterval(timer); if (solveGeneration.current === generation) setSolving(false); }
   }
@@ -142,6 +144,8 @@ export function Ops() {
     {live.status === 'disconnected' && <p className="connection-banner" role="status">Disconnected — retrying{live.error ? ` · ${live.error}` : ''}</p>}
     {shortfall > 0 && <p className="shortfall-banner" role="status" title="Derived: largest daily sum of model system gas minus daily capacity.">Uncovered shortfall: {decimal.format(shortfall)} MMcf/day <span className="metric-label">derived · worst gas day</span></p>}
     {fallback && <p className="fallback-banner" role="status">Rule-based fallback in use · Staggered</p>}
+    {planNeedsNoSetbacks(selectedPlan) && <p className="plan-banner" role="status">No shortfall at this capacity, so everyone stays at normal heat. Lower the daily capacity or try Max relief.</p>}
+    {staleDispatch && <p className="plan-banner" role="status">Dispatched plan hidden: its solve inputs differ or are unknown. Solve again for these inputs.</p>}
     {commandError && <p className="connection-banner" role="alert">{commandError}</p>}
     <div className="ops-grid">
       <div className="ops-visuals">
