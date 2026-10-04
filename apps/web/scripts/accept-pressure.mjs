@@ -38,7 +38,7 @@ try {
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
     await page.setViewportSize({ width, height });
     assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth), `No scroll at ${width}×${height}`);
-    for (const selector of ['.pressure-chart', '.temperature-chart', '.discomfort-chart', '.pressure-map']) {
+    for (const selector of ['.pressure-chart', '.temperature-chart', '.discomfort-chart']) {
       const bounds = await page.locator(selector).boundingBox();
       assert(bounds && bounds.y + bounds.height <= height, `${selector} fits`);
     }
@@ -94,7 +94,7 @@ try {
   await page.getByRole('button', { name: 'Stress', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('.pressure-status')?.textContent.startsWith('Below the curtailment line'), { timeout: 15000 });
   await page.waitForFunction(() => !document.querySelector('.control-note')?.textContent.includes('Sending'));
-  assert((await page.locator('.pressure-status').innerText()).includes('34.4 MMcf'));
+  assert((await page.locator('.pressure-status').innerText()).includes('MMcf would be curtailed'));
   await page.screenshot({ path: '/tmp/thermal-reserve-pressure-stress.png', fullPage: true });
   await page.goto(`${url}/ops?ui=gas&db=thermal-reserve-dev`);
   await page.getByRole('button', { name: 'Demo preset', exact: true }).waitFor();

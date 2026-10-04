@@ -35,3 +35,38 @@
   .pressure-controls .planning-control { grid-row: 1; grid-column: 3; }
   .pressure-side .log-panel { min-height: 65px; }
 }
+/* H1-approved two-column judging layout: controls left, charts right. */
+.pressure-console-shell .pressure-grid { grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.65fr); height: 100%; }
+.pressure-console-shell .pressure-side { overflow: auto; gap: 10px; }
+.pressure-console-shell .pressure-side .main-navigation { gap: 4px; }
+.pressure-console-shell .main-navigation a { padding: 6px 8px; font-size: 11px; }
+.pressure-console-shell .pressure-heading { align-items: center; margin: 0 !important; gap: 10px; }
+.pressure-console-shell .pressure-heading h1 { font-size: 24px; margin: 0; }
+.pressure-console-shell .pressure-status { font-size: 13px; margin-bottom: 0; }
+.pressure-console-shell .verdict-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 0; }
+.pressure-console-shell .planning-chip { grid-column: 1 / -1; }
+.pressure-console-shell .verdict-tile strong { font-size: 24px; }
+.pressure-console-shell .verdict-tile small { display: block; font-size: 10px; margin-top: 3px; }
+.pressure-console-shell .pressure-charts { grid-template-rows: minmax(0, 45fr) minmax(0, 25fr) minmax(0, 30fr); height: 100%; }
+.pressure-chart-slot { min-height: 0; display: flex; }
+.pressure-chart-slot > figure { flex: 1; height: 100%; width: 100%; min-width: 0; }
+.pressure-console-shell .pressure-controls .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.pressure-console-shell .pressure-controls .planning-control { grid-column: auto; grid-row: auto; }
+.pressure-console-shell .pressure-controls label { font-size: 11px; }
+.pressure-console-shell .pressure-controls select { font-size: 11px; min-height: 28px; }
+.pressure-console-shell .pressure-side button { font-size: 11px; min-height: 30px; }
+.pressure-console-shell .pressure-side .log-panel { flex: 0 0 auto; min-height: 0; max-height: 180px; }
+.pressure-console-shell .log-panel summary { font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+.pressure-console-shell .log-panel[open] summary { margin-bottom: 8px; }
+@media (max-width: 1000px) {
+  .pressure-console-shell .pressure-grid { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .pressure-console-shell .pressure-side { min-height: 0; overflow: visible; }
+  .pressure-console-shell .pressure-charts { height: 780px; }
+}
+@media (min-width: 1001px) {
+  .pressure-console-shell .pressure-controls .controls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 8px; }
+  .pressure-console-shell .pressure-controls .planning-control { grid-row: 1; grid-column: 3; }
+  .pressure-console-shell .pressure-controls label { font-size: 10px; }
+  .pressure-console-shell .pressure-controls select { font-size: 10px; min-height: 25px; }
+  .pressure-console-shell .pressure-side .log-panel { max-height: 110px; }
+}

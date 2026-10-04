@@ -39,7 +39,7 @@ try {
   for (const [width, height] of [[1280, 800], [1440, 900]]) {
     await page.setViewportSize({ width, height });
     assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth), `No scroll at ${width}×${height}`);
-    for (const selector of ['.pressure-chart', '.temperature-chart', '.discomfort-chart', '.pressure-map']) {
+    for (const selector of ['.pressure-chart', '.temperature-chart', '.discomfort-chart']) {
       const bounds = await page.locator(selector).boundingBox();
       assert(bounds && bounds.y + bounds.height <= height, `${selector} fits`);
     }
@@ -82,17 +82,35 @@ try {
   assert(expected.segments.slice(1).every(segment => segment.reason === 'forecast'), 'Every re-plan uses a new forecast');
   const summary = pressureSummary(expectedIndex, p);
   assert(summary.minIndex >= p.reserveIdx, 'Near-miss holds the full reserve');
-  assert(await page.locator('.temperature-chart .recharts-reference-line').count() > 0);
+  assert.equal(await page.locator('.temperature-chart .recharts-reference-line').count(), 0, 'Re-plan ticks removed');
   const dispatches = [];
   connection.db.simConfig.onUpdate((_ctx, previous, next) => {
     if (previous.planId !== next.planId) dispatches.push({ planId: next.planId, hour: next.simHour });
   });
+  assert.equal(await page.locator('.pressure-map').count(), 0);
+  assert.equal(await page.locator('.gas-drawer-toggle').count(), 0);
+  assert.equal(await page.locator('.clock-status').count(), 0);
+  assert.equal(await page.getByLabel('Deliverability lost vs Feb 2024', { exact: true }).getAttribute('max'), '17.5');
+  assert.equal(await page.getByLabel('Strategy', { exact: true }).locator('option[value=SUSTAIN_STAGGER]').count(), 0);
+  assert(!await page.locator('.log-panel').evaluate(element => element.open));
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await phone.goto(`${url}/home?db=thermal-reserve-dev`);
   await phone.getByRole('button', { name: 'Join as an Anchorage home', exact: true }).click();
+  await phone.getByLabel('Nickname (optional)', { exact: true }).fill('Redesign test home');
   await phone.getByRole('button', { name: 'Continue', exact: true }).click();
   await phone.getByRole('button', { name: 'Join', exact: true }).click();
   await phone.locator('.heat-card').waitFor();
+  await page.waitForFunction(() => document.querySelector('.log-panel')?.open);
+  assert((await page.locator('.log-panel').innerText()).includes('Redesign test home joined'));
+  await phone.locator('.household-map .household-map-dot').first().waitFor({ timeout: 5000 });
+  assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.locator('.log-panel summary').click();
+  await phone.getByRole('button', { name: 'Override', exact: true }).click();
+  await phone.getByRole('button', { name: 'Rejoin event', exact: true }).waitFor();
+  await page.waitForFunction(() => document.querySelector('.log-panel')?.open);
+  assert((await page.locator('.log-panel').innerText()).includes('Redesign test home overrode'));
+  await phone.getByRole('button', { name: 'Rejoin event', exact: true }).click();
+  await phone.getByRole('button', { name: 'Override', exact: true }).waitFor();
   await page.getByLabel('Speed', { exact: true }).fill(process.env.SIM_SPEED || '2');
   await page.getByRole('button', { name: 'Apply inputs', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('.control-note')?.textContent.includes('Sending'));
@@ -122,6 +140,23 @@ try {
   for (const boundary of boundaries) assert(recorded.some(event => event.simHour >= boundary && event.simHour < boundary + 1), `Database log at ${boundary}`);
   assert(await page.locator('.log-panel').innerText().then(text => text.includes('Re-plan')));
   await page.screenshot({ path: '/tmp/thermal-reserve-forecast-run.png', fullPage: true });
+  await page.getByRole('button', { name: 'Stress', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.solve-status')?.textContent.startsWith('Optimized ·') && !document.querySelector('.control-note')?.textContent.includes('Sending'));
+  const stressPreset = (await json('data/presets.json')).find(preset => preset.id === 'stress');
+  assert.equal(await page.getByLabel('Deliverability lost vs Feb 2024', { exact: true }).inputValue(), String(stressPreset.lostMMcfd));
+  const stressPressure = pressureParams(consts, raw, stressPreset.lostMMcfd, stressPreset.reserveIdx);
+  const stressCfg = { ...cfg, capacityMMcfd: stressPressure.rMMcfd };
+  const stress = await replanRun(sc, cohorts, stressCfg, consts, stressPressure, { mode: 'REPLAN', bufferSigma: raw.forecast_buffer_sigma_default.value, strategy: 'OPTIMIZED', policy: { kind: 'SCHEDULED_PLUS_DRIFT', driftTempF: Infinity, driftHours: raw.drift_hours.value, driftPressureIdx: Infinity, driftFadeH: raw.drift_fade_h.value } });
+  const stressSummary = pressureSummary(pressureIndex(stress.run.hours.map(row => row.systemMMcfh), stressPressure), stressPressure);
+  assert(stressSummary.curtailedMMcf > 0 && stressSummary.curtailedMMcf < pressureSummary(pressureIndex(sc.systemMMcfh, stressPressure), stressPressure).curtailedMMcf);
+  assert((await page.locator('.pressure-status').innerText()).includes(`${stressSummary.curtailedMMcf.toFixed(1)} MMcf`));
+  await page.goto(`${url}/ops?db=thermal-reserve-dev&ui=gas`);
+  await page.locator('.clock-status').waitFor();
+  assert(await page.getByRole('heading', { name: 'Operator console', exact: true }).isVisible());
+  await page.goto(`${url}/ops?db=thermal-reserve-dev`);
+  await page.locator('.control-note').filter({ hasText: 'Connected' }).waitFor();
+  await page.getByRole('button', { name: 'Reset demo', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.pressure-status')?.textContent.startsWith('Above') && !document.querySelector('.control-note')?.textContent.includes('Sending'));
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ acceptance: 'Forecast W-C1 automated PASS', solveMs, maxBeatGap, plannedMinimumIndex: summary.minIndex, segments: expected.segments.map(segment => ({ hour: segment.fromHour, reason: segment.reason })), dispatches, hoursCompared: aggregates.length, maxPressureError: error, phonePressureMatches: true, layouts: ['1280×800', '1440×900'], inputInvalidation: true, pageErrors: errors }));
 } finally { connection?.disconnect(); await browser.close(); }
