@@ -497,6 +497,17 @@ export const claim_contact_reader = spacetimedb.reducer(
   }
 );
 
+// The contact reader (the iMessage companion) deletes one household's contact row, for example when
+// that person replies STOP. Only the reader may call it.
+export const remove_contact = spacetimedb.reducer(
+  { identity: t.identity() },
+  (ctx, { identity }) => {
+    const reader = ctx.db.contactReader.id.find(0);
+    if (!reader || !reader.identity.equals(ctx.sender)) throw new SenderError('contact reader only: call claim_contact_reader first');
+    if (ctx.db.householdContact.identity.find(identity)) ctx.db.householdContact.identity.delete(identity);
+  }
+);
+
 // Contact rows, visible only to the identity set by claim_contact_reader; empty for everyone else.
 export const contact_feed = spacetimedb.view(
   { name: 'contact_feed', public: true },
