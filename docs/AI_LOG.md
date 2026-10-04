@@ -69,3 +69,4 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T04:51 | STDB (Claude Code, Pro, Opus 5.5) | D-A3 and D-B1 on H1's instruction (DATA tasks): IEM NBS/NBE raw forecasts (fetched by H1), forecastRuns in all three scenarios, forecast_error.json, forecast_rmse_f; 12 new data tests | reviewed by H1
 
 2026-10-04T05:18 | WEB (OpenAI Codex, GPT-6.1-Sol) | Added forecast controls/charts, worker precompute, boundary-paced live re-plans, archived forecast-error table and ENGINE copy fixes; 35 web tests, build, physics check, 96-hour Maincloud acceptance at 2 and 4 h/s (max pressure error 0.117 points); 5710da8 | human review pending H2
+2026-10-04T05:12 | ENGINE (Claude Code, Max, Opus 5.5) | E-C2 cadence table on real forecasts (scripts/cadence.ts; drift trigger fix) and E-B1 production number review (Playwright, both presets match) | reviewed by H2 (pending)
