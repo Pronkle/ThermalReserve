@@ -6,7 +6,7 @@
 
 **Coordinated thermostat setbacks that keep Southcentral Alaska's gas demand under supply on the coldest days of a multi-day cold snap.**
 
-Join from your phone: [thermal-reserve.vercel.app/home](https://thermal-reserve.vercel.app/home) · QR code: `apps/web/public/household-join.svg` (embedded in the HTML)
+Join from your phone: [boreaflux.vercel.app/home](https://boreaflux.vercel.app/home) · QR code: `apps/web/public/household-join.svg` (embedded in the HTML)
 
 ### The problem
 

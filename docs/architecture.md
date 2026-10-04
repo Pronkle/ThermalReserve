@@ -15,7 +15,7 @@ flowchart LR
     model["packages/model<br/>physics, fleet, strategies,<br/>LP (HiGHS WASM), validation, what-if"]
   end
 
-  subgraph vercel["Vercel: thermal-reserve.vercel.app (static)"]
+  subgraph vercel["Vercel: boreaflux.vercel.app (static)"]
     ops["/ops<br/>operator console"]
     home["/home<br/>household phone app"]
     whatif["/whatif<br/>calculator"]
