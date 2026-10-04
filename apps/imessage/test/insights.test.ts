@@ -199,6 +199,10 @@ describe('concierge agent', () => {
     expect(fallbackReply({ world: world(), consts }, IDENTITY, 'why?')).toContain("won't guess");
   });
 
+  it('professional filter: no emoji, exclamation marks or em dashes reach the person', () => {
+    expect(toBubbles('Yo 😎 all set here — you\'re good!!')).toEqual(["Yo all set here, you're good."]);
+  });
+
   it('bubbles: at most 3', () => {
     expect(toBubbles('a\n\nb\n\nc\n\nd')).toEqual(['a', 'b', 'c d']);
   });
