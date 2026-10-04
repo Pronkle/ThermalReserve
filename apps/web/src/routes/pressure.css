@@ -218,3 +218,5 @@
 .join-qr-dialog { margin: auto; }
 .join-qr-dialog a { color: #1A3A8F; }
 .join-qr-dialog h2 { font-size: 20px; color: #0B215D; margin: 0 0 6px; }
+/* H2: charts sit directly on the page background, no boxes. */
+.pressure-console-shell .pressure-charts figure { background: transparent; border-color: transparent; box-shadow: none; }
