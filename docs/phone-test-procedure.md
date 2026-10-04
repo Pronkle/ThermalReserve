@@ -73,7 +73,7 @@ Do Phone A first, then Phone B. The recorder times each join from scan to live c
 
 ## Part D2: iMessage companion (only if CHAT ships, ~10 min)
 
-First add Phone A's number as a project user in the Photon dashboard (Photon won't text any other number), then run `docs/test-plan.md` §4b (C-0 to C-9) with Phone A (iPhone, Messages). Use **1 h/s** instead of 2 h/s so the texts have room. The companion process must be running on the team laptop (awake, plugged in, online) and pointed at the same database the phones use. Skip this part entirely if CHAT hasn't reached its Phase 1.
+First add Phone A's number as a project user in the Photon dashboard (Photon won't text any other number). **Start the companion ≤ 5 minutes before this part** (it texts the phone at startup; Photon's shared line stops routing replies after a long silence). Then run `docs/test-plan.md` §4b (C-0 to C-9) with Phone A (iPhone, Messages). Use **1 h/s** instead of 2 h/s so the texts have room. The companion process must be running on the team laptop (awake, plugged in, online) and pointed at the same database the phones use. Skip this part entirely if CHAT hasn't reached its Phase 1.
 
 ## Part E: clean up (2 min)
 
