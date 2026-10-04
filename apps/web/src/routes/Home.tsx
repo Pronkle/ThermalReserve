@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAggregates, useConnection, useMyHousehold, useReducers, useSimConfig } from '../lib/stdb';
 import { clockLabel, constants, decimal, integer, scenarios, temperature } from '../lib/ops';
-import { eventCountdown, heatStatus, householdDayStart } from '../lib/household';
+import { eventCountdown, heatStatus, householdDayStart, householdLinkCode } from '../lib/household';
 import { livePressureReading } from '../lib/pressure-ui';
 import './home.css';
 
@@ -19,11 +19,28 @@ export function Home() {
   const [exempt, setExempt] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [textUpdates, setTextUpdates] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [contactState, setContactState] = useState<'idle' | 'saving' | 'failed' | 'saved'>('idle');
+  const [linkCode, setLinkCode] = useState('');
+  const identityHex = home?.identity.toHexString();
+  useEffect(() => {
+    setLinkCode('');
+    if (!identityHex) return;
+    let current = true;
+    void householdLinkCode(identityHex).then(code => { if (current) setLinkCode(code); }).catch(() => { /* Optional companion must never block heat controls. */ });
+    return () => { current = false; };
+  }, [identityHex]);
   const connected = live.status === 'connected';
   const previouslyJoined = useRef(false);
   useEffect(() => {
     if (home) previouslyJoined.current = true;
-    else if (connected && previouslyJoined.current) { previouslyJoined.current = false; setStep(0); }
+    else if (connected && previouslyJoined.current) {
+      previouslyJoined.current = false; setStep(0); setTextUpdates(false); setContactState('idle');
+      setFirstName(''); setLastName(''); setPhone(''); setError('');
+    }
   }, [home, connected]);
   const scenario = scenarios.find(item => item.id === config?.scenarioId);
   const maxDepthF = config?.maxDepthF ?? constants.maxDepthDefaultF;
@@ -35,6 +52,19 @@ export function Home() {
     catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
     finally { setBusy(false); }
   }
+  async function saveContact(api: NonNullable<typeof reducers>) {
+    setContactState('saving');
+    try {
+      await api.setContact({ firstName, lastName, phone });
+      setContactState('saved'); setFirstName(''); setLastName(''); setPhone('');
+    } catch (failure) { setContactState('failed'); throw failure; }
+  }
+  const contactFields = <div className="contact-fields">
+    <label>First name<input value={firstName} autoComplete="given-name" maxLength={40} onChange={event => setFirstName(event.target.value)} /></label>
+    <label>Last name<input value={lastName} autoComplete="family-name" maxLength={40} onChange={event => setLastName(event.target.value)} /></label>
+    <label>Phone<input type="tel" value={phone} autoComplete="tel" placeholder="+19075550123" onChange={event => setPhone(event.target.value)} /></label>
+  </div>;
+  const privacyCopy = 'Demo only. Your name and number are stored privately for this demo, never shown publicly, and deleted when you reply STOP or the demo resets.';
   const dayStart = householdDayStart(config?.simHour ?? 0, config?.hours ?? 0);
   const today = aggregates.filter(row => row.hour >= dayStart && row.hour < dayStart + 24);
   const communitySavedMMcf = today.reduce((sum, row) => sum + row.reliefMmcf, 0);
@@ -58,6 +88,16 @@ export function Home() {
         {home.overridden && !home.exempt && <p className="steady-heat">Normal heat restored. You can rejoin when ready.</p>}
         <p className="home-limit" title={`${constants.raw.max_depth_default_f.label}: operator-selected setback limit; household comfort floor.`}>Program limit: up to {temperature.format(maxDepthF)}°F lower, never below {temperature.format(Math.max(home.floorF, constants.floorDefaultF))}°F <span className="metric-label">assumed</span></p>
       </div>
+      {contactState !== 'idle' && <section className="panel home-contact" aria-labelledby="contact-title">
+        <h2 id="contact-title">iMessage updates</h2>
+        {contactState === 'saved' ? <p role="status">You opted in to iMessage updates. Reply STOP any time.</p> : contactState === 'saving' ? <p role="status">Saving your iMessage details…</p> : <>
+          <p>Your home has joined. Correct your details to finish opting in.</p>
+          {contactFields}
+          <button className="home-primary" disabled={!connected || busy} onClick={() => void act(saveContact)}>Save iMessage details</button>
+          <button className="home-back" disabled={busy} onClick={() => { setContactState('idle'); setTextUpdates(false); setFirstName(''); setLastName(''); setPhone(''); setError(''); }}>Continue without updates</button>
+        </>}
+        <p className="home-limit">{privacyCopy}</p>
+      </section>}
       {pressure && <section className="panel home-pressure" aria-label="Modeled system pressure" title="Derived: P = 100 × modeled linepack / usable linepack, using completed live system gas hours and the delivery rate. Not psi or Enstar telemetry.">
         <h2>Modeled system pressure</h2>
         <p>System pressure: <strong>{integer.format(pressure.index)}</strong>, {pressure.index < 0 ? 'below' : 'above'} the curtailment line <span className="metric-label">derived · index points</span></p>
@@ -75,6 +115,11 @@ export function Home() {
         {targetMMcf > 0 ? <><progress aria-label="Progress toward today's relief target" max={targetMMcf} value={Math.max(0, Math.min(targetMMcf, communitySavedMMcf))} /><p className="home-limit" title="Derived: no-program system demand for this gas day minus operator-selected daily capacity.">Toward {decimal.format(targetMMcf)} MMcf for the day <span className="metric-label">derived</span></p></> : <p className="home-limit">No extra relief is needed to cover this day's modeled demand.</p>}
         <p className="home-limit">Completed simulation hours only. Net savings can fall while homes recover.</p>
       </section>
+      {linkCode && <section className="panel home-imessage" aria-labelledby="imessage-title">
+        <h2 id="imessage-title">Get updates by iMessage</h2>
+        <p>Reply <strong className="link-code">Link my home {linkCode}</strong> in your Thermal Reserve iMessage thread to get heat updates by text. Reply STOP any time.</p>
+        <p className="home-limit">Demo: works when the team's iMessage assistant is running.</p>
+      </section>}
     </> : step === 0 ? <div className="panel enrollment-intro">
       <h2>Steady heat. A stronger community.</h2>
       <p>Try an Anchorage home in our cold-snap simulation. You stay in control of your heat.</p>
@@ -94,7 +139,12 @@ export function Home() {
       <h2>You keep control</h2>
       {exempt ? <p>Your home is exempt. Your heat will stay at its normal setting during events.</p> : <p title="Assumed: operator-selected maximum setback and household comfort floor.">During a gas emergency your heat may be lowered up to {integer.format(maxDepthF)}°F, never below {integer.format(consentFloorF)}°F. Override any time.</p>}
       <p>This demo simulates your heat and savings. No real thermostat is controlled.</p>
-      <button className="home-primary" disabled={!connected || !config?.hours || busy} onClick={() => void act(api => api.joinHousehold({ nickname, heating, thermostat, exempt }))}>{busy ? 'Joining…' : 'Join'}</button>
+      <label className="steady-checkbox text-updates"><input type="checkbox" checked={textUpdates} onChange={event => setTextUpdates(event.target.checked)} /><span>Text me updates by iMessage</span></label>
+      {textUpdates && <>{contactFields}<p className="home-limit">{privacyCopy}</p></>}
+      <button className="home-primary" disabled={!connected || !config?.hours || busy} onClick={() => void act(async api => {
+        await api.joinHousehold({ nickname, heating, thermostat, exempt });
+        if (textUpdates) await saveContact(api);
+      })}>{busy ? 'Joining…' : 'Join'}</button>
       {!config?.hours && <p className="home-limit">The operator needs to load a scenario before you can join.</p>}
       <button className="home-back" onClick={() => setStep(1)}>Back</button>
     </div>}

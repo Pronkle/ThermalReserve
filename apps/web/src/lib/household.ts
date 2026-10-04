@@ -20,3 +20,17 @@ export function eventCountdown(hour: number, startHour: number, endHour: number)
   const minutes = Math.ceil(remaining * 60);
   return `${hour < startHour ? 'Starts in' : 'Ends in'} ${Math.floor(minutes / 60)}h ${minutes % 60}m of simulation time`;
 }
+
+// Matches the companion: first six base32 characters of SHA-256 of normalized identity hex.
+export async function householdLinkCode(identityHex: string) {
+  const bytes = new TextEncoder().encode(identityHex.toLowerCase().replace(/^0x/, ''));
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let code = '', buffer = 0, bits = 0;
+  for (const byte of digest) {
+    buffer = (buffer << 8) | byte; bits += 8;
+    while (bits >= 5 && code.length < 6) { code += alphabet[(buffer >>> (bits - 5)) & 31]; bits -= 5; }
+    if (code.length === 6) break;
+  }
+  return code;
+}
