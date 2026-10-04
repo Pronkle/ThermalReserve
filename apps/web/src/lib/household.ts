@@ -7,7 +7,7 @@ export function heatStatus(home: Pick<Household, 'exempt' | 'overridden' | 'targ
   if (home.overridden) return { name: 'Overridden', mode: 'overridden', targetF: constants.setpointDayF };
   const setbackF = Math.max(0, constants.setpointDayF - home.targetF);
   if (setbackF > 0.1) return { name: `Holding −${setbackF.toFixed(1)}°F`, mode: 'holding', targetF: home.targetF };
-  if (home.taF < constants.setpointDayF - 0.1) return { name: 'Recovering', mode: 'recovering', targetF: home.targetF };
+  if (home.taF < constants.setpointDayF - 0.25) return { name: 'Recovering', mode: 'recovering', targetF: home.targetF };
   return { name: 'Normal', mode: 'normal', targetF: home.targetF };
 }
 export function eventCountdown(hour: number, startHour: number, endHour: number) {

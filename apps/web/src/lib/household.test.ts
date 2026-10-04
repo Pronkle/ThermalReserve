@@ -10,6 +10,8 @@ it('shows exemption and override before any cohort setback', () => {
   expect(heatStatus({ ...home, overridden: true })).toMatchObject({ name: 'Overridden', targetF: constants.setpointDayF });
   expect(heatStatus({ ...home, targetF: constants.setpointDayF }).name).toBe('Recovering');
   expect(heatStatus({ ...home, targetF: constants.setpointDayF, taF: constants.setpointDayF }).name).toBe('Normal');
+  expect(heatStatus({ ...home, targetF: constants.setpointDayF, taF: constants.setpointDayF - 0.2 }).name).toBe('Normal');
+  expect(heatStatus({ ...home, targetF: constants.setpointDayF, taF: constants.setpointDayF - 0.3 }).name).toBe('Recovering');
 });
 it('uses simulation time for the start and end countdown', () => {
   expect(eventCountdown(11.5, 12, 84)).toBe('Starts in 0h 30m of simulation time');
