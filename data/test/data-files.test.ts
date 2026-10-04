@@ -12,12 +12,17 @@ import lastwinterJson from '../scenarios/lastwinter.json';
 import systemFitJson from '../system_fit.json';
 import waterMaskJson from '../water_mask.json';
 import calibrationJson from '../calibration.json';
+import presetsJson from '../presets.json';
+import ticksJson from '../deliverability_ticks.json';
+import { usableLinepackMMcf } from '@thermal-reserve/model';
 
 import {
   REQUIRED_CONSTANT_KEYS,
   type Anchor,
   type CohortSpec,
   type ConstantEntry,
+  type DeliverabilityTick,
+  type Preset,
   type RequiredConstantKey,
   type Scenario,
   type Widen,
@@ -29,6 +34,8 @@ const cohortSpec: Widen<CohortSpec> = cohortSpecJson;
 const demandShape: number[] = demandShapeJson;
 const anchors: Widen<Anchor>[] = anchorsJson;
 const scenarios: Widen<Scenario>[] = [designJson, feb2024Json, lastwinterJson];
+const presets: Widen<Preset>[] = presetsJson;
+const ticks: Widen<DeliverabilityTick>[] = ticksJson;
 
 const LABELS = ['sourced', 'derived', 'assumed'];
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
@@ -239,6 +246,61 @@ describe('water_mask.json', () => {
   it('covers the water points found in the 2026-10-03 check (Knik Arm, Lake Hood, tidal flats)', () => {
     for (const [lat, lon] of [[61.2309, -149.913], [61.1799, -149.961], [61.2018, -149.9533], [61.2098, -149.9239]]) {
       expect(mask.some((r) => inRing(lat, lon, r)), `${lat},${lon}`).toBe(true);
+    }
+  });
+});
+
+describe('pressure constants, presets and ticks (D-A1)', () => {
+  const v = (k: RequiredConstantKey): number => constants[k].value as number;
+
+  it('fixed values match AGENTS.md Section 6', () => {
+    expect(v('headroom_2024_mmcfd')).toBe(10);
+    expect(v('reserve_default_idx')).toBe(10);
+    expect(v('reserve_min_idx')).toBe(5);
+    expect(v('forecast_buffer_sigma_default')).toBe(1);
+    expect(v('forecast_lag_h')).toBe(1);
+    expect(v('replan_interval_h')).toBe(6);
+    expect(v('drift_temp_f')).toBe(1.5);
+    expect(v('drift_hours')).toBe(2);
+    expect(v('drift_pressure_idx')).toBe(5);
+    expect(v('drift_fade_h')).toBe(12);
+  });
+
+  it('deliverability_2024_mmcfd = feb2024 peak gas day + headroom', () => {
+    let peak = 0;
+    for (let d = 0; d < feb2024Json.hours / 24; d++) peak = Math.max(peak, sum(feb2024Json.systemMMcfh.slice(d * 24, d * 24 + 24)));
+    expect(Math.abs(v('deliverability_2024_mmcfd') - (peak + v('headroom_2024_mmcfd')))).toBeLessThan(0.05);
+    expect(constants.deliverability_2024_mmcfd.label).toBe('derived');
+  });
+
+  it('linepack_usable_mmcf equals usableLinepackMMcf at the 2024 rate within 0.01', () => {
+    expect(Math.abs(v('linepack_usable_mmcf') - usableLinepackMMcf(v('deliverability_2024_mmcfd'), demandShape))).toBeLessThan(0.01);
+  });
+
+  it('demand_sensitivity_mmcfd_per_f is system_fit.json b', () => {
+    expect(v('demand_sensitivity_mmcfd_per_f')).toBe(systemFitJson.b);
+  });
+
+  it('presets: Near-miss and Stress on known scenarios, 25,000 homes, default reserve', () => {
+    expect(presets.map((p) => p.id)).toEqual(['nearmiss', 'stress']);
+    for (const p of presets) {
+      expect(scenarios.map((s) => s.id)).toContain(p.scenarioId);
+      expect(p.enrolledHomes).toBe(25000);
+      expect(p.reserveIdx).toBe(v('reserve_default_idx'));
+      expect(p.lostMMcfd).toBeGreaterThanOrEqual(0);
+      expect(p.lostMMcfd).toBeLessThanOrEqual(35);
+      expect(p.lostMMcfd % 0.5).toBe(0);
+      expect(typeof p.provisional).toBe('boolean');
+    }
+    expect(presets[1].lostMMcfd).toBe(v('deliverability_loss_mmcfd'));
+  });
+
+  it('deliverability ticks: 0, Near-miss, needle peak, 2024 well failure, each labeled and sourced', () => {
+    expect(ticks.map((t) => t.lostMMcfd)).toEqual([0, presets[0].lostMMcfd, v('needle_peak_mmcfd'), v('deliverability_loss_mmcfd')]);
+    for (const t of ticks) {
+      expect(['sourced', 'derived']).toContain(t.label_kind);
+      expect(t.label.length).toBeGreaterThan(0);
+      expect(t.source.length).toBeGreaterThan(0);
     }
   });
 });
