@@ -81,10 +81,34 @@ describe('auto-onboarding', () => {
     expect(removed).toEqual([IDENTITY]);   // the private database row is deleted too
   });
 
+  it('a /home opt-in that texts us first is linked with consent on that first text', async () => {
+    const store = new Store(':memory:');
+    const r = await handleInbound({ store, consts, households: () => [home()], sim: () => sim(0, { status: 'idle' }), now: () => NOON_ET, log: () => undefined,
+      optedInHousehold: a => (a === PHONE ? IDENTITY : undefined) }, PHONE, 'hi');
+    expect(r.texts[0]).toMatch(/^Thanks. You're set for Test iPhone/);
+    expect(store.contact(PHONE)?.consented).toBe(true);
+    const stranger = await handleInbound({ store, consts, households: () => [home()], sim: () => sim(0), now: () => NOON_ET, log: () => undefined,
+      optedInHousehold: () => undefined }, '+15555550999', 'hi');
+    expect(stranger.texts[0]).toContain('automated');
+  });
+
   it('invalid requests and unknown households are refused', async () => {
     const store = new Store(':memory:');
     expect(await onboard(deps(store), { ...req, phone: '555' })).toBe('invalid');
     expect(await onboard(deps(store), { ...req, identity: 'nobody' })).toBe('no household');
+  });
+
+  it('an opener refused at first is retried; if it never goes out, nothing is stored', async () => {
+    const store = new Store(':memory:');
+    let tries = 0;
+    const flaky = { ...deps(store), retryDelaysMs: [0, 1, 1], sendText: async () => { if (++tries < 3) throw new Error('Target not allowed'); } };
+    expect(await onboard(flaky, req)).toBe('onboarded');
+    expect(tries).toBe(3);
+    const store2 = new Store(':memory:');
+    const dead = { ...deps(store2), retryDelaysMs: [0, 1], sendText: async () => { throw new Error('Target not allowed'); } };
+    expect(await onboard(dead, req)).toBe('failed');
+    expect(store2.contact(PHONE)).toBeUndefined();
+    expect(await onboard({ ...dead, sendText: async () => undefined }, req)).toBe('onboarded'); // a later retry works
   });
 
   it('a Photon failure is reported and nothing is stored', async () => {
