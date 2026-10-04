@@ -58,7 +58,7 @@ Replies it understands now: `Link <code>`, `NO`, `STOP` (deletes everything stor
 
 ## Two agents (Phase 2)
 
-Both run on **Claude Haiku 4.5** (`claude-haiku-4-5`), chosen to keep spend low.
+The **Concierge** (chatting) runs on **Claude Haiku 4.5** (`claude-haiku-4-5`) to keep spend low. **Insights** (reading the data and the model) runs on **Claude Sonnet 5.5** (`claude-sonnet-5-5`) at `effort: "low"`, with server-side refusal fallbacks on (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). Every call logs its tokens and cost (`[usage]`).
 
 - **Concierge** (`src/concierge/agent.ts`) owns the conversation: tone, 1–3 bubbles, empathy, preferences, and what to remember about the person. It never computes numbers. For anything with numbers or reasons it calls its `ask_insights` tool with one standalone question (it resolves "the second one" from the thread first).
 - **Insights** (`src/insights/agent.ts`) answers that one question with deterministic tools over the live mirror and `packages/model`: `household_now`, `explain_decision` (the "why": which gas day, demand vs capacity, shortfall, depth vs the maximum and the floor, and what a 4-hour morning setback or no program would leave uncovered), `plan_window`, `weather`, `gas_day`, `compare_strategies`, `constant`, `what_if`. Every number in a tool output carries a unit and a label.
@@ -69,7 +69,7 @@ Both run on **Claude Haiku 4.5** (`claude-haiku-4-5`), chosen to keep spend low.
 
 `npm run qa -- <LINKCODE>` pipes the brief's 10 scripted questions through the terminal provider against `thermal-reserve-dev` (needs a working key and a dev run).
 
-Prompt caching: the stable prefix (tools, then the system prompt) is marked for caching, but Haiku 4.5 only caches prefixes of 4,096 tokens or more and ours is shorter, so expect no cache hits at this size.
+Prompt caching: the stable prefix (tools, then the system prompt) is marked for caching. Sonnet 5.5 caches prefixes from 512 tokens, so Insights' ~1,200-token prefix caches; Haiku 4.5 needs 4,096, so the concierge's doesn't.
 
 ## What it stores
 

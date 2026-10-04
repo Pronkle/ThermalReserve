@@ -80,21 +80,29 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
-  // Both agents run on Claude Haiku 4.5. Without a key (or if the API fails) the concierge sends
+  // Concierge on Claude Haiku 4.5, Insights on Claude Sonnet 5.5. Without a key (or if the API fails) the concierge sends
   // an honest deterministic reply instead.
   const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 20_000, maxRetries: 1 }) : undefined;
   if (!anthropic) log('[chat] ANTHROPIC_API_KEY not set: questions get the deterministic fallback reply');
-  // Haiku 4.5 list prices, for the per-call cost line ($ per million tokens).
-  const PRICE = { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 };
+  // List prices ($ per million tokens) for the per-call cost line.
+  const PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
+    'claude-haiku-4-5': { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
+    'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+  };
   let spentUsd = 0;
   const call: ModelCall = async params => {
     if (!anthropic) throw new Error('ANTHROPIC_API_KEY not set');
-    const response = await anthropic.messages.create(params);
+    // Sonnet 5.5 calls opt into server-side refusal fallbacks: a classifier decline is retried
+    // on Anthropic's recommended model inside the same call instead of coming back empty.
+    const response = params.model === 'claude-sonnet-5-5'
+      ? await anthropic.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } as never) as unknown as Anthropic.Message
+      : await anthropic.messages.create(params);
     const u = response.usage;
-    const usd = (u.input_tokens * PRICE.input + u.output_tokens * PRICE.output
-      + (u.cache_read_input_tokens ?? 0) * PRICE.cacheRead + (u.cache_creation_input_tokens ?? 0) * PRICE.cacheWrite) / 1e6;
+    const price = PRICES[response.model] ?? PRICES[params.model] ?? PRICES['claude-sonnet-5-5'];
+    const usd = (u.input_tokens * price.input + u.output_tokens * price.output
+      + (u.cache_read_input_tokens ?? 0) * price.cacheRead + (u.cache_creation_input_tokens ?? 0) * price.cacheWrite) / 1e6;
     spentUsd += usd;
-    log(`[usage] ${params.model}: ${u.input_tokens} in, ${u.output_tokens} out, cache read ${u.cache_read_input_tokens ?? 0} → $${usd.toFixed(4)} (session $${spentUsd.toFixed(4)})`);
+    log(`[usage] ${response.model}: ${u.input_tokens} in, ${u.output_tokens} out, cache read ${u.cache_read_input_tokens ?? 0}, cache write ${u.cache_creation_input_tokens ?? 0} → $${usd.toFixed(4)} (session $${spentUsd.toFixed(4)})`);
     return response;
   };
   const converseSafely = async (address: string, identity: string, text: string) => {

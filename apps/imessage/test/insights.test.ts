@@ -98,12 +98,13 @@ function scripted(...steps: (Anthropic.ContentBlock[] | string)[]): ModelCall & 
 const use = (name: string, input: object = {}) => ({ type: 'tool_use', id: `t-${name}`, name, input }) as Anthropic.ContentBlock;
 
 describe('insights agent', () => {
-  it('uses explain_decision and returns a grounded answer on Haiku', async () => {
+  it('uses explain_decision and returns a grounded answer on Sonnet 5.5 at low effort', async () => {
     const call = scripted([use('explain_decision', { hour: 50 })], 'Friday is the short day: demand 268.00 MMcf against capacity of 265.00 MMcf, so your home holds at 65°F (simulated), never below 62°F.');
     const r = await ask({ question: 'why now?', ctx: ctx(), call });
     expect(r.honesty).toEqual({ ok: true, unsupported: [], regenerated: false, fellBack: false });
     expect(r.toolCalls.map(t => t.name)).toEqual(['explain_decision']);
-    expect(call.calls[0].model).toBe('claude-haiku-4-5');
+    expect(call.calls[0].model).toBe('claude-sonnet-5-5');
+    expect(call.calls[0].output_config).toEqual({ effort: 'low' });
   });
   it('a made-up number triggers one rewrite, then the template from tool output', async () => {
     const call = scripted([use('explain_decision', { hour: 50 })], 'It saves 9.9 MMcf.', 'Still 9.9 MMcf.');
@@ -141,6 +142,7 @@ describe('concierge agent', () => {
       'Friday is the short day, about 3 MMcf short.\n\nSo your home holds at 65°F for now, simulated, and never below 62°F.',
     );
     const r = await converse({ store, world: world(), consts, call, log: l => lines.push(l) }, PHONE, IDENTITY, 'why?');
+    expect(call.calls.map(c => c.model)).toEqual(['claude-haiku-4-5', 'claude-sonnet-5-5', 'claude-sonnet-5-5', 'claude-haiku-4-5']);
     expect(r.bubbles).toHaveLength(2);
     expect(r.insights).toHaveLength(1);
     expect(lines.some(l => /^\[handoff\] concierge → insights: "Why was the heat lowered at Fri Feb 2 02:00\?" → 1 tool call\(s\) \[explain_decision\] → honesty pass$/.test(l))).toBe(true);

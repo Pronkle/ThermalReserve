@@ -5,7 +5,9 @@ import { checkHonesty } from './honesty';
 import { runTool, ToolError, TOOLS, type ToolContext } from './tools';
 import { clockLabel } from '../watcher/compose';
 
-export const INSIGHTS_MODEL = 'claude-haiku-4-5';
+// The analyst reads the data and the model: Sonnet 5.5 at low effort (thinking stays adaptive;
+// low effort keeps it short). The concierge, which only chats, stays on Haiku 4.5.
+export const INSIGHTS_MODEL = 'claude-sonnet-5-5';
 const MAX_TOOL_ROUNDS = 5;
 
 export type ModelCall = (params: Anthropic.MessageCreateParamsNonStreaming) => Promise<Anthropic.Message>;
@@ -58,7 +60,8 @@ export async function ask({ question, ctx, call, log = () => undefined }: AskInp
   const toolCalls: ToolCallRecord[] = [];
   const request = (): Anthropic.MessageCreateParamsNonStreaming => ({
     model: INSIGHTS_MODEL,
-    max_tokens: 1024,
+    max_tokens: 4096, // room for adaptive thinking before the short answer
+    output_config: { effort: 'low' },
     tools: TOOLS,
     system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
     messages,
