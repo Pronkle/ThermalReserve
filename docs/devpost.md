@@ -6,7 +6,7 @@
 
 **Links:** live app <https://boreaflux.vercel.app> · repo [REPO URL] · backup video [VIDEO URL]
 
-**Team:** [H1 NAME], [H2 NAME], [H3 NAME]
+**Team:** Manning Zhang, Allen Guo, Gustavo Rodriguez
 
 ---
 

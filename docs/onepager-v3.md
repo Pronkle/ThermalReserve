@@ -70,4 +70,4 @@ Each home's heat loss is calibrated from Enstar's 149 Mcf average home [8], 30 y
 9. ACIS, Anchorage airport daily data 1996–2025. <https://www.rcc-acis.org/docs_webservices.html>
 10. U.S. EIA, heat content of delivered gas, Alaska, 2025. <https://www.eia.gov/dnav/ng/ng_cons_heat_a_epg0_vgth_btucf_a.htm>
 
-BoreaFlux · MHacks 2026 · a simulation; pressure is modeled.
+Team: Manning Zhang, Allen Guo, Gustavo Rodriguez · MHacks 2026 · a simulation; pressure is modeled.
