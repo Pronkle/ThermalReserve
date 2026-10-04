@@ -72,3 +72,5 @@ One line per `[DONE]`: `timestamp | AGENT (tool, account, model) | what | review
 2026-10-04T05:12 | ENGINE (Claude Code, Max, Opus 5.5) | E-C2 cadence table on real forecasts (scripts/cadence.ts; drift trigger fix) and E-B1 production number review (Playwright, both presets match) | reviewed by H2 (pending)
 2026-10-04T05:33 | STDB (Claude Code, Pro, Opus 5.5) | Checked the replay curve against real hourly observations; H1 kept the curve; recorded the gap in docs/qa.md (Q26) and docs/sources.md (DATA files, on H1's instruction) | reviewed by H1
 2026-10-04T05:36 | STDB (Claude Code, Pro, Opus 5.5) | H1 decision recorded: re-plan default forecast-only at 0.75σ (constants.json, AGENTS.md Sections 4-7 and 14) | reviewed by H1
+
+2026-10-04T05:39 | WEB (OpenAI Codex, GPT-6.1-Sol) | Applied H1 forecast-only re-plan contract and versioned plan fingerprints; 35 web tests, build, physics check, 96-hour Maincloud acceptance (16 forecast re-plans, max pressure error 0.134 points); 793bdad | human review pending H2
