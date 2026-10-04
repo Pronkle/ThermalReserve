@@ -1,5 +1,5 @@
-import { configureHighs, solvePlan } from './lp';
-import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, ThermalState } from './types';
+import { configureHighs, solvePlan, type SolveOpts } from './lp';
+import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario } from './types';
 
 // Run solvePlan off the main thread (AGENTS.md Section 9: "Solve plan" in a Web Worker).
 //
@@ -21,7 +21,7 @@ export interface SolveArgs {
   cfg: FleetConfig;
   mode: 'OPTIMIZED' | 'MAX_RELIEF';
   consts: ModelConstants;
-  opts?: { timeoutMs?: number; fromHour?: number; initial?: ThermalState[] };
+  opts?: SolveOpts;
 }
 
 export interface SolveRequest { id: number; args: SolveArgs }

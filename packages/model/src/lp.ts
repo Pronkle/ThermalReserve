@@ -1,5 +1,6 @@
 import { discretizeHourly, normalSetpointF } from './physics';
 import { clockHourAt, planBaseline, planSustainStagger, runPlan } from './strategies';
+import type { PressureParams } from './pressure';
 import type { CohortParams, FleetConfig, ModelConstants, Plan, Scenario, ThermalState } from './types';
 
 // Dispatch LP (AGENTS.md Section 10, E5), written as CPLEX LP text and solved with HiGHS (WebAssembly).
@@ -226,13 +227,16 @@ function fallbackPlan(sc: Scenario, cohorts: CohortParams[], cfg: FleetConfig, m
   return { ...p, id: `${sc.id}-${mode}-fallback-${why.replace(/\W+/g, '_').slice(0, 40)}`, solveMs, shortfallMMcfh: new Array<number>(sc.hours).fill(0), shortfallMMcfd: new Array<number>(Math.ceil(sc.hours / 24)).fill(0), note: 'Rule-based fallback' };
 }
 
+/** `pressure`: plan against the hourly linepack balance (Section 7) instead of the daily capacity rows. */
+export interface SolveOpts { timeoutMs?: number; fromHour?: number; initial?: ThermalState[]; pressure?: PressureParams & { initialIdx?: number } }
+
 export async function solvePlan(
   sc: Scenario,
   cohorts: CohortParams[],
   cfg: FleetConfig,
   mode: 'OPTIMIZED' | 'MAX_RELIEF',
   consts: ModelConstants,
-  opts?: { timeoutMs?: number; fromHour?: number; initial?: ThermalState[] },
+  opts?: SolveOpts,
 ): Promise<Plan> {
   const t0 = nowMs();
   const timeoutMs = opts?.timeoutMs ?? 5000;
