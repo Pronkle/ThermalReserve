@@ -184,6 +184,19 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
     }
   };
 
+  // Sends reply bubbles with the typing indicator; if Photon refuses the indicator itself (opt-in
+  // not applied yet), sends them without it, still with the retry.
+  const replyTo = async (msg: { responding: (fn: () => Promise<void>) => Promise<void>; send: (t: string) => Promise<void> }, texts: string[]) => {
+    let sent = 0;
+    try {
+      await msg.responding(async () => { for (const t of texts) { await sendReply(t2 => msg.send(t2), t); sent++; } });
+    } catch (e) {
+      if (!/Target not allowed/i.test(String(e))) throw e;
+      log('[in] typing indicator refused (opt-in not applied yet); sending without it');
+      for (const t of texts.slice(sent)) await sendReply(t2 => msg.send(t2), t);
+    }
+  };
+
   for await (const msg of transport.inbound()) {
     try {
       // A text that arrives during startup waits for the live data (link codes, current state).
@@ -200,7 +213,7 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
         const reply = await handleInbound(deps, msg.address, msg.text);
         log(`[in] ${maskAddress(msg.address)}: ${reply.react ? `tapback ${reply.react}` : `${reply.texts.length} bubble(s)`}`);
         if (reply.react) await msg.react(reply.react);
-        if (reply.texts.length) await msg.responding(async () => { for (const t of reply.texts) await sendReply(t2 => msg.send(t2), t); });
+        if (reply.texts.length) await replyTo(msg, reply.texts);
         // After the first exchange, share our contact card once (Photon's deliverability advice).
         const linkedNow = store.contact(msg.address);
         if (linkedNow && !linkedNow.cardSent && transport.shareContactCard) {
@@ -214,12 +227,22 @@ export async function runCompanion(transport: Transport, config: ChatConfig = lo
       // if the answer takes longer than 8 s, so the chat never goes silent.
       replyingUntil.set(msg.address, Infinity);
       try {
-        await msg.responding(async () => {
-          const slow = setTimeout(() => { void msg.send('Checking the numbers…'); }, 8_000);
-          const reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
+        let reply: Awaited<ReturnType<typeof handleInbound>> | undefined;
+        const work = async () => {
+          const slow = setTimeout(() => { void msg.send('Checking the numbers…').catch(() => undefined); }, 8_000);
+          reply = await handleInbound(deps, msg.address, msg.text).finally(() => clearTimeout(slow));
+        };
+        try { await msg.responding(work); }
+        catch (e) {
+          // Photon can refuse the typing indicator until a new opt-in applies: work without it.
+          if (!/Target not allowed/i.test(String(e))) throw e;
+          log('[in] typing indicator refused (opt-in not applied yet); answering without it');
+          if (!reply) await work();
+        }
+        if (reply) {
           log(`[in] ${maskAddress(msg.address)}: ${reply.texts.length} bubble(s)`);
           for (const t of reply.texts) await sendReply(t2 => msg.send(t2), t);
-        });
+        }
       } finally {
         replyingUntil.set(msg.address, Date.now() + REPLY_GAP_MS);
       }
